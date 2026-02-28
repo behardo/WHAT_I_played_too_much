@@ -1,20 +1,51 @@
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-// --- NUOVO NEMICO: Classe per il nemico più forte ---
+/**
+ * NemicoForte eredita da Nemico.
+ * Ha una logica di movimento leggermente diversa (più veloce)
+ * e ora accetta la vita dinamica per scalare con la difficoltà.
+ */
 public class NemicoForte extends Nemico {
 
-    // Parametri specifici per il nemico forte
-    private static final int VITA_FORTE = 8; // Più vita (quelli normali ne hanno 3 o 5)
-    private static final float VELOCITA_FORTE = 2.2f; // Più veloce (normali 1.8f)
-    private static final int SIZE_FORTE = 55; // Leggermente più grande
+    private float velocitaForte = 2.5f; // Più veloce del nemico base
+    private int tagliaForte = 55;       // Leggermente più grande
 
-    public NemicoForte(int grigliaX, int grigliaY, int tileSize) {
-        // Inizializziamo il Nemico base con i nuovi parametri
-        super(grigliaX, grigliaY, tileSize, VITA_FORTE);
-        this.velocita = VELOCITA_FORTE;
-        this.size = SIZE_FORTE;
+    // --- CORREZIONE: Il nome del costruttore DEVE essere NemicoForte ---
+    public NemicoForte(int grigliaX, int grigliaY, int tileSize, int vitaPassata) {
+        // Passa i parametri al costruttore di Nemico
+        super(grigliaX, grigliaY, tileSize, vitaPassata);
+
+        // Possiamo personalizzare la velocità o altre statistiche qui se vogliamo
+    }
+    // ------------------------------------------------------------------
+
+    @Override
+    public void update(float playerX, float playerY) {
+        // Inseguimento più aggressivo
+        if (x < playerX) x += velocitaForte;
+        else if (x > playerX) x -= velocitaForte;
+
+        if (y < playerY) y += velocitaForte;
+        else if (y > playerY) y -= velocitaForte;
     }
 
-    // Usiamo il draw base, ma il codice principale passerà l'immagine nemico2.png
+    @Override
+    public void draw(Graphics2D g2, BufferedImage img) {
+        if (img != null) {
+            g2.drawImage(img, (int)x, (int)y, tagliaForte, tagliaForte, null);
+        } else {
+            // Backup visivo: un teschio o un colore diverso
+            g2.setColor(Color.ORANGE);
+            g2.fillOval((int)x, (int)y, tagliaForte, tagliaForte);
+            g2.setColor(Color.BLACK);
+            g2.drawOval((int)x, (int)y, tagliaForte, tagliaForte);
+        }
+    }
+
+    @Override
+    public Rectangle getHitbox() {
+        // Hitbox leggermente più grande per riflettere la taglia
+        return new Rectangle((int)x, (int)y, tagliaForte, tagliaForte);
+    }
 }

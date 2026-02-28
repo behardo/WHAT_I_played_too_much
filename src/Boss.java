@@ -3,14 +3,15 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-// --- BOSS POTENZIATO: Classe Boss aggiornata ---
+// --- MODALITA: Classe Boss aggiornata con vita dinamica ---
 public class Boss extends Nemico {
     private int sizeBoss = 120; // Molto più grande del nemico normale
     private float velocitaBoss = 1.3f; // Lento ma inarrestabile
 
-    // --- BOSS POTENZIATO: Vita notevolmente aumentata ---
-    private static final int VITA_MAX_BOSS = 100; // Da 30 a 100 colpi
+    // --- MODALITA: Vita dinamica passata dal costruttore ---
+    private int vitaMaxBoss;
     private int vitaBoss;
+    // --------------------------------------------------------
 
     // Logica per attacco a distanza
     private int cooldownSparo = 0;
@@ -18,30 +19,34 @@ public class Boss extends Nemico {
     private List<BossProjectile> proiettiliBoss = new ArrayList<>();
     private BufferedImage imgProiettile;
 
-    public Boss(int grigliaX, int grigliaY, int tileSize) {
-        // Inizializziamo il Nemico base, sovrascriveremo la logica
-        super(grigliaX, grigliaY, tileSize, VITA_MAX_BOSS);
-        this.vitaBoss = VITA_MAX_BOSS;
+    // --- MODALITA: Costruttore AGGIORNATO (accetta 4 parametri, inclusa la vita) ---
+    public Boss(int grigliaX, int grigliaY, int tileSize, int vitaPassata) {
+        // Inizializziamo il Nemico base, ma sovrascriveremo la logica
+        super(grigliaX, grigliaY, tileSize, vitaPassata);
+
+        // --- MODALITA: Assegna la vita passata dal codice principale ---
+        this.vitaMaxBoss = vitaPassata;
+        this.vitaBoss = vitaMaxBoss;
+        // --------------------------------------------------------------
+
         // Posizioniamo la hitbox corretta per la dimensione del boss
         this.x = grigliaX * tileSize - (sizeBoss / 4);
         this.y = grigliaY * tileSize - (sizeBoss / 4);
     }
 
-    // --- BOSS POTENZIATO: Caricamento immagine proiettile ---
     public void caricaProiettile(BufferedImage img) {
         this.imgProiettile = img;
     }
-    // ---------------------------------------------------------
 
     @Override
     public void update(float playerX, float playerY) {
-        // Inseguimento lento verso il giocatore (invariato)
+        // Inseguimento lento verso il giocatore
         if (x + (sizeBoss/2) < playerX + 25) x += velocitaBoss;
         if (x + (sizeBoss/2) > playerX + 25) x -= velocitaBoss;
         if (y + (sizeBoss/2) < playerY + 25) y += velocitaBoss;
         if (y + (sizeBoss/2) > playerY + 25) y -= velocitaBoss;
 
-        // --- BOSS POTENZIATO: Logica Sparo ---
+        // Logica Sparo
         if (cooldownSparo > 0) cooldownSparo--;
         if (cooldownSparo <= 0) {
             spara(playerX, playerY);
@@ -58,7 +63,6 @@ public class Boss extends Nemico {
                 i--;
             }
         }
-        // ------------------------------------
     }
 
     private void spara(float targetX, float targetY) {
@@ -75,13 +79,10 @@ public class Boss extends Nemico {
             g2.fillRect((int)x, (int)y, sizeBoss, sizeBoss);
         }
 
-        // --- BOSS POTENZIATO: Disegno proiettili ---
+        // Disegno proiettili
         for (BossProjectile p : proiettiliBoss) {
             p.draw(g2);
         }
-        // -------------------------------------------
-
-        // Rimossa la barra della vita "sopra la testa", sarà nell'UI
     }
 
     @Override
@@ -89,19 +90,17 @@ public class Boss extends Nemico {
         return new Rectangle((int)x, (int)y, sizeBoss, sizeBoss);
     }
 
-    // --- BOSS POTENZIATO: Controllo collisione proiettili con giocatore ---
     public boolean controllaCollisioneProiettili(float px, float py, int pSize) {
         Rectangle hbGiocatore = new Rectangle((int)px, (int)py, pSize, pSize);
         for (int i = 0; i < proiettiliBoss.size(); i++) {
             BossProjectile p = proiettiliBoss.get(i);
             if (p.getHitbox().intersects(hbGiocatore)) {
                 proiettiliBoss.remove(i);
-                return true; // Ha colpito!
+                return true;
             }
         }
         return false;
     }
-    // ------------------------------------------------------------------------
 
     @Override
     public void subisciDanno(int danno) {
@@ -113,7 +112,7 @@ public class Boss extends Nemico {
         return vitaBoss <= 0;
     }
 
-    // Getters per l'UI
+    // Getters per l'UI (ORA CORRETTI PER USARE LE VARIABILI DINAMICHE)
     public int getVita() { return vitaBoss; }
-    public int getVitaMax() { return VITA_MAX_BOSS; }
+    public int getVitaMax() { return vitaMaxBoss; }
 }
