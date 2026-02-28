@@ -25,13 +25,12 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
     private final int ALTEZZA_GIOCO = RIG_TOTALI * TILE_SIZE;
 
     private float x, y;
-    // --- SHOP: Velocità e Danno di base (per upgrade) ---
+    // Parametri Giocatore aggiornabili dallo Shop
     private float velocitaDiBase = 6.0f;
     private float velocita = velocitaDiBase;
     private final int PG_SIZE = 50;
     private int dannoDiBase = 1;
     private int dannoPugno = dannoDiBase;
-    // ----------------------------------------------------
 
     // Risorse grafiche
     private BufferedImage imgPersonaggio, imgPorta, imgNemico, imgCuore, imgPugno;
@@ -39,32 +38,29 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
     private BufferedImage imgMuroMondo2, imgPavimentoMondo2;
     private BufferedImage imgBoss, imgCura, imgMoneta;
     private BufferedImage imgNemico2;
-    // --- SHOP: Nuove immagini ---
+    // Immagini Shop e Boss Potenziato
     private BufferedImage imgShopDoor, imgShopkeeper, imgItemSpeed, imgItemDamage;
-    // ----------------------------
+    private BufferedImage imgBossProjectile;
 
     private int monete = 0;
 
-    // Liste oggetti attivi
+    // Liste oggetti attivi nel frame corrente
     private List<Pugno> pugniAttivi = new ArrayList<>();
-    private List<Cura> curePerStanzaList = new ArrayList<>();
-    private List<Moneta> monetePerStanzaList = new ArrayList<>();
 
     private boolean up, down, left, right;
     private boolean shootUp, shootDown, shootLeft, shootRight;
     private int cooldownSparo = 0;
     private final int SPARO_DELAY = 12;
 
-    // Gestione Stanze e Mondi
+    // Liste di Memoria (una per ogni stanza generata)
     private List<Color> memoriaColoriMondo1 = new ArrayList<>();
     private List<Color> memoriaColoriMondo2 = new ArrayList<>();
     private List<List<Nemico>> nemiciPerStanza = new ArrayList<>();
     private List<List<Cura>> curePerStanzaMemoria = new ArrayList<>();
     private List<List<Moneta>> monetePerStanzaMemoria = new ArrayList<>();
-    // --- SHOP: Memoria per Shopkeepers e ShopItems in ogni stanza ---
     private List<List<Shopkeeper>> shopkeepersPerStanza = new ArrayList<>();
     private List<List<ShopItem>> shopItemsPerStanza = new ArrayList<>();
-    // ------------------------------------------------------------------
+
     private int indiceStanzaMemoria = 0;
     private Random random = new Random();
 
@@ -75,13 +71,17 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
     private boolean bossSpawnato = false;
     private boolean bossSconfitto = false;
 
+    // Gestione Tempo Boss
+    private final int TEMPO_BOSS_MONDO1 = 120 * 60; // 120 secondi (2 minuti)
+    private int tempoRimanenteBoss;
+
     // Sistema Vite
     private final int VITE_MAX = 3;
     private int vite = VITE_MAX;
     private boolean invulnerabile = false;
     private int timerInvulnerabilita = 0;
 
-    // Hitbox pulsanti Game Over
+    // Hitbox pulsanti Game Over (coordinate logiche)
     private Rectangle btnRiprova = new Rectangle(LARGHEZZA_GIOCO / 2 - 150, ALTEZZA_GIOCO / 2 + 80, 140, 50);
     private Rectangle btnEsci = new Rectangle(LARGHEZZA_GIOCO / 2 + 10, ALTEZZA_GIOCO / 2 + 80, 140, 50);
 
@@ -95,15 +95,13 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
         setFocusable(true);
         resetGiocatore();
 
-        // Inizializza la prima stanza del Mondo 1
+        // Inizializza la prima stanza del Mondo 1 (vuota)
         memoriaColoriMondo1.add(new Color(60, 60, 80));
         nemiciPerStanza.add(new ArrayList<>());
         curePerStanzaMemoria.add(new ArrayList<>());
         monetePerStanzaMemoria.add(new ArrayList<>());
-        // --- SHOP: Stanza 1 vuota ---
         shopkeepersPerStanza.add(new ArrayList<>());
         shopItemsPerStanza.add(new ArrayList<>());
-        // ---------------------------
 
         // CARICAMENTO RISORSE
         imgPersonaggio   = caricaImmagine("/personaggio.png");
@@ -119,13 +117,11 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
         imgCura          = caricaImmagine("/cura.png");
         imgMoneta        = caricaImmagine("/coin.png");
         imgNemico2       = caricaImmagine("/nemico2.png");
-
-        // --- SHOP: Caricamento nuove immagini ---
-        imgShopDoor      = caricaImmagine("/shop_door.png"); // Crea questo file!
-        imgShopkeeper    = caricaImmagine("/shopkeeper.png"); // Crea questo file!
-        imgItemSpeed     = caricaImmagine("/item_speed.png"); // Crea questo file!
-        imgItemDamage    = caricaImmagine("/item_damage.png"); // Crea questo file!
-        // ----------------------------------------
+        imgShopDoor      = caricaImmagine("/shop_door.png");
+        imgShopkeeper    = caricaImmagine("/shopkeeper.png");
+        imgItemSpeed     = caricaImmagine("/item_speed.png");
+        imgItemDamage    = caricaImmagine("/item_damage.png");
+        imgBossProjectile = caricaImmagine("/bullet.png");
 
         addKeyListener(new KeyAdapter() {
             public void keyPressed(KeyEvent e) {
@@ -133,7 +129,6 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
                     toggleFullscreen();
                     return;
                 }
-
                 if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     if (statoGioco == StatoGioco.GIOCO) {
                         statoPrecedente = StatoGioco.GIOCO;
@@ -143,17 +138,14 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
                     }
                     return;
                 }
-
                 if (e.getKeyCode() == KeyEvent.VK_ENTER && statoGioco == StatoGioco.PAUSA) {
                     statoGioco = StatoGioco.GIOCO;
                     return;
                 }
-
                 if (e.getKeyCode() == KeyEvent.VK_Q && statoGioco == StatoGioco.PAUSA) {
                     System.exit(0);
                     return;
                 }
-
                 if (statoGioco == StatoGioco.GIOCO) {
                     toggleMovimento(e.getKeyCode(), true);
                     toggleSparo(e.getKeyCode(), true);
@@ -190,10 +182,8 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
         invulnerabile = false;
         up = down = left = right = false;
         shootUp = shootDown = shootLeft = shootRight = false;
-        // --- SHOP: Reset upgrade ---
         velocita = velocitaDiBase;
         dannoPugno = dannoDiBase;
-        // ---------------------------
     }
 
     private void resetTotalGame() {
@@ -204,59 +194,60 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
         bossSpawnato = false;
         bossSconfitto = false;
         monete = 0;
+
+        // Resetta tutte le liste di memoria
         nemiciPerStanza.clear();
         curePerStanzaMemoria.clear();
         monetePerStanzaMemoria.clear();
-        // --- SHOP ---
         shopkeepersPerStanza.clear();
         shopItemsPerStanza.clear();
-        // ------------
         memoriaColoriMondo1.clear();
         memoriaColoriMondo2.clear();
 
+        // Inizializza la Stanza 1 del Mondo 1 (vuota)
         memoriaColoriMondo1.add(new Color(60, 60, 80));
         nemiciPerStanza.add(new ArrayList<>());
         curePerStanzaMemoria.add(new ArrayList<>());
         monetePerStanzaMemoria.add(new ArrayList<>());
-        // --- SHOP ---
         shopkeepersPerStanza.add(new ArrayList<>());
         shopItemsPerStanza.add(new ArrayList<>());
-        // ------------
     }
 
     private void generaNuovaStanza() {
+        // Backup colore
         if (mondoAttuale == 1) memoriaColoriMondo1.add(new Color(random.nextInt(100), random.nextInt(100), random.nextInt(100)));
         else memoriaColoriMondo2.add(new Color(100 + random.nextInt(50), random.nextInt(100), 150 + random.nextInt(100)));
 
+        // Inizializza le liste temporanee per la nuova stanza
         List<Nemico> nuoviNemici = new ArrayList<>();
-        List<Cura> nuoveCureMem = new ArrayList<>();
-        List<Moneta> nuoveMoneteMem = new ArrayList<>();
-        // --- SHOP: Liste per memoria nuova stanza ---
+        List<Cura> nuoveCure = new ArrayList<>();
+        List<Moneta> nuoveMonete = new ArrayList<>();
         List<Shopkeeper> nuoviShopkeepers = new ArrayList<>();
         List<ShopItem> nuoveItems = new ArrayList<>();
-        // --------------------------------------------
 
+        // Logica Spawn Nemici / Shop / Boss
         if (stanzaNelMondo == STANZA_BOSS && !bossSpawnato) {
-            nuoviNemici.add(new Boss(7, 2, TILE_SIZE));
+            Boss b = new Boss(7, 2, TILE_SIZE);
+            b.caricaProiettile(imgBossProjectile);
+            nuoviNemici.add(b);
             bossSpawnato = true;
             bossSconfitto = false;
+            tempoRimanenteBoss = TEMPO_BOSS_MONDO1;
         } else if (stanzaNelMondo == STANZA_BOSS && bossSpawnato && !bossSconfitto) {
-            nuoviNemici.add(new Boss(7, 2, TILE_SIZE));
+            Boss b = new Boss(7, 2, TILE_SIZE);
+            b.caricaProiettile(imgBossProjectile);
+            nuoviNemici.add(b);
         } else if (stanzaNelMondo < STANZA_BOSS) {
 
-            int quantiBase = random.nextInt(2) + (stanzaNelMondo / 2) + (mondoAttuale * 2);
-
-            // --- SHOP: Se è la Stanza 4, spawna lo shopkeeper e gli items ---
             if (stanzaNelMondo == 4) {
-                // Posizionamento Shopkeeper (vicino alla porta in alto)
+                // SHOP Room (Stanza 4)
                 nuoviShopkeepers.add(new Shopkeeper(7, 1, TILE_SIZE, imgShopkeeper));
-
-                // Posizionamento Items (3 oggetti in vendita)
-                nuoveItems.add(new ShopItem(5, 2, TILE_SIZE, "CURA", 2, imgCura)); // Cura standard
-                nuoveItems.add(new ShopItem(7, 2, TILE_SIZE, "VELOCITA", 5, imgItemSpeed)); // Velocità
-                nuoveItems.add(new ShopItem(9, 2, TILE_SIZE, "DANNO", 7, imgItemDamage)); // Danno Pugno
+                nuoveItems.add(new ShopItem(5, 2, TILE_SIZE, "CURA", 2, imgCura));
+                nuoveItems.add(new ShopItem(7, 2, TILE_SIZE, "VELOCITA", 5, imgItemSpeed));
+                nuoveItems.add(new ShopItem(9, 2, TILE_SIZE, "DANNO", 7, imgItemDamage));
             } else {
-                // Nemici normali negli altri livelli
+                // Stanze normali con nemici
+                int quantiBase = random.nextInt(2) + (stanzaNelMondo / 2) + (mondoAttuale * 2);
                 for(int i=0; i<quantiBase; i++) {
                     int safeX = 0, safeY = 0;
                     boolean safe = false;
@@ -264,6 +255,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
                         safeX = random.nextInt(COL_GIOCO) + OFFSET;
                         safeY = random.nextInt(RIG_GIOCO) + OFFSET;
                         safe = true;
+                        // Zone sicure vicino alle porte
                         if (safeX >= OFFSET && safeX <= OFFSET + 2 && safeY == 3) safe = false;
                         if (safeX >= COL_TOTALI - 4 && safeX <= COL_TOTALI - 1 && safeY == 3) safe = false;
                     }
@@ -277,16 +269,14 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
                     } else if (mondoAttuale == 2) nuoviNemici.add(new NemicoForte(safeX, safeY, TILE_SIZE));
                 }
             }
-            // ------------------------------------------------------------------
         }
 
+        // Aggiunta delle nuove liste alla memoria
         nemiciPerStanza.add(nuoviNemici);
-        curePerStanzaMemoria.add(nuoveCureMem);
-        monetePerStanzaMemoria.add(nuoveMoneteMem);
-        // --- SHOP: Aggiunta cure alla memoria ---
+        curePerStanzaMemoria.add(nuoveCure);
+        monetePerStanzaMemoria.add(nuoveMonete);
         shopkeepersPerStanza.add(nuoviShopkeepers);
         shopItemsPerStanza.add(nuoveItems);
-        // ----------------------------------------
         pugniAttivi.clear();
     }
 
@@ -313,7 +303,8 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
         if (shootRight) dirX = 1;
 
         if (dirX != 0 || dirY != 0) {
-            pugniAttivi.add(new Pugno(x, y, dirX, dirY, imgPugno, dannoPugno)); // Passa il danno aggiornato
+            // FIX: Passa il danno aggiornato (6 parametri)
+            pugniAttivi.add(new Pugno(x, y, dirX, dirY, imgPugno, dannoPugno));
             cooldownSparo = SPARO_DELAY;
         }
     }
@@ -343,6 +334,15 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
         if (statoGioco != StatoGioco.GIOCO) {
             repaint();
             return;
+        }
+
+        // Gestione Tempo Boss
+        if (stanzaNelMondo == STANZA_BOSS && bossSpawnato && !bossSconfitto) {
+            tempoRimanenteBoss--;
+            if (tempoRimanenteBoss <= 0) {
+                System.out.println("TEMPO SCADUTO! Game Over");
+                statoGioco = StatoGioco.GAME_OVER;
+            }
         }
 
         // Limiti
@@ -375,18 +375,8 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
                         mondoAttuale = 2;
                         stanzaNelMondo = 1;
                         indiceStanzaMemoria = 0;
-                        nemiciPerStanza.clear();
-                        curePerStanzaMemoria.clear();
-                        monetePerStanzaMemoria.clear();
-                        shopkeepersPerStanza.clear();
-                        shopItemsPerStanza.clear();
-                        memoriaColoriMondo1.clear();
-                        memoriaColoriMondo2.add(new Color(120, 80, 150));
-                        nemiciPerStanza.add(new ArrayList<>());
-                        curePerStanzaMemoria.add(new ArrayList<>());
-                        monetePerStanzaMemoria.add(new ArrayList<>());
-                        shopkeepersPerStanza.add(new ArrayList<>());
-                        shopItemsPerStanza.add(new ArrayList<>());
+                        resetTotalGame(); // Resetta per Mondo 2 (semplificato)
+                        mondoAttuale = 2; // Forza mondo 2 dopo reset
                         resetGiocatore();
                     } else x = maxX - 10;
                 } else {
@@ -398,7 +388,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
             }
         }
 
-        // --- SHOP: Logica Rilevamento Shopkeeper (battuta) ---
+        // Logica Rilevamento Shopkeeper (battuta)
         List<Shopkeeper> shopkeepersCorrenti = shopkeepersPerStanza.get(indiceStanzaMemoria);
         Rectangle hbGiocatore = new Rectangle((int)x, (int)y, PG_SIZE, PG_SIZE);
         for (Shopkeeper sk : shopkeepersCorrenti) {
@@ -406,30 +396,24 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
                 sk.attivaBattuta();
             }
         }
-        // -----------------------------------------------------
 
-        // --- SHOP: Logica Acquisto Items ---
+        // Logica Acquisto Items
         List<ShopItem> itemsCorrenti = shopItemsPerStanza.get(indiceStanzaMemoria);
         for (ShopItem si : itemsCorrenti) {
             if (si.controllaAcquisto(x, y, PG_SIZE, monete)) {
-                // Acquisto avvenuto!
                 monete -= si.getCosto();
                 si.setAcquistato();
 
-                // Applica l'effetto dell'upgrade
                 if (si.getTipo().equals("CURA")) {
                     vite++;
                     if (vite > VITE_MAX) vite = VITE_MAX;
                 } else if (si.getTipo().equals("VELOCITA")) {
-                    velocita += 1.5f; // Aumento velocità
-                    System.out.println("Upgrade Velocità! Nuova velocità: " + velocita);
+                    velocita += 1.5f;
                 } else if (si.getTipo().equals("DANNO")) {
-                    dannoPugno++; // Aumento danno pugno
-                    System.out.println("Upgrade Danno! Nuovo danno: " + dannoPugno);
+                    dannoPugno++;
                 }
             }
         }
-        // -----------------------------------
 
         // Sparo e cooldown
         if (cooldownSparo > 0) cooldownSparo--;
@@ -454,38 +438,19 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
             }
         }
 
-        // Raccolta Oggetti di Cura
-        List<Cura> cureCorrentiMem = curePerStanzaMemoria.get(indiceStanzaMemoria);
-        for (int i = 0; i < cureCorrentiMem.size(); i++) {
-            Cura c = cureCorrentiMem.get(i);
-            if (c.controllaRaccolta(x, y, PG_SIZE)) {
-                vite++;
-                if (vite > VITE_MAX) vite = VITE_MAX;
-                cureCorrentiMem.remove(i);
-                i--;
-            }
-        }
-
-        // Raccolta Monete
-        List<Moneta> moneteCorrentiMem = monetePerStanzaMemoria.get(indiceStanzaMemoria);
-        for (int i = 0; i < moneteCorrentiMem.size(); i++) {
-            Moneta m = moneteCorrentiMem.get(i);
-            if (m.controllaRaccolta(x, y, PG_SIZE)) {
-                monete += m.getValore();
-                moneteCorrentiMem.remove(i);
-                i--;
-            }
-        }
-
-        // Update Nemici e collisione
+        // Update e collisioni nemici
         List<Nemico> nemiciCorrenti = nemiciPerStanza.get(indiceStanzaMemoria);
         for (Nemico n : nemiciCorrenti) {
             n.update(x, y);
+
             if (!invulnerabile && n.toccaGiocatore(x, y, PG_SIZE)) {
-                vite--;
-                invulnerabile = true;
-                if (vite <= 0) {
-                    statoGioco = StatoGioco.GAME_OVER;
+                riceviDanno();
+            }
+
+            if (n instanceof Boss) {
+                Boss b = (Boss)n;
+                if (!invulnerabile && b.controllaCollisioneProiettili(x, y, PG_SIZE)) {
+                    riceviDanno();
                 }
             }
         }
@@ -504,21 +469,19 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
                     p.daRimuovere = true;
 
                     if (n.isMorto()) {
-                        if (n instanceof Boss) {
-                            bossSconfitto = true;
-                        }
+                        if (n instanceof Boss) bossSconfitto = true;
 
+                        // Drop garantito se stanza pulita (non shop)
                         float mx = n.x;
                         float my = n.y;
-
                         nemiciCorrenti.remove(j);
                         j--;
 
-                        if (nemiciCorrenti.isEmpty() && stanzaNelMondo != 4) { // Niente drop condizionale nella stanza shop
+                        if (nemiciCorrenti.isEmpty() && stanzaNelMondo != 4) {
                             if (vite < VITE_MAX) {
-                                cureCorrentiMem.add(new Cura((int)mx/TILE_SIZE, (int)my/TILE_SIZE, TILE_SIZE, imgCura));
+                                curePerStanzaMemoria.get(indiceStanzaMemoria).add(new Cura((int)mx/TILE_SIZE, (int)my/TILE_SIZE, TILE_SIZE, imgCura));
                             } else {
-                                moneteCorrentiMem.add(new Moneta((int)mx/TILE_SIZE, (int)my/TILE_SIZE, TILE_SIZE, imgMoneta));
+                                monetePerStanzaMemoria.get(indiceStanzaMemoria).add(new Moneta((int)mx/TILE_SIZE, (int)my/TILE_SIZE, TILE_SIZE, imgMoneta));
                             }
                         }
                     }
@@ -527,7 +490,31 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
             }
         }
 
+        // Raccolta oggetti
+        List<Cura> cureCorrenti = curePerStanzaMemoria.get(indiceStanzaMemoria);
+        for (int i = 0; i < cureCorrenti.size(); i++) {
+            if (cureCorrenti.get(i).controllaRaccolta(x, y, PG_SIZE)) {
+                vite++; if (vite > VITE_MAX) vite = VITE_MAX;
+                cureCorrenti.remove(i); i--;
+            }
+        }
+        List<Moneta> moneteCorrenti = monetePerStanzaMemoria.get(indiceStanzaMemoria);
+        for (int i = 0; i < moneteCorrenti.size(); i++) {
+            if (moneteCorrenti.get(i).controllaRaccolta(x, y, PG_SIZE)) {
+                monete += moneteCorrenti.get(i).getValore();
+                moneteCorrenti.remove(i); i--;
+            }
+        }
+
         repaint();
+    }
+
+    private void riceviDanno() {
+        vite--;
+        invulnerabile = true;
+        if (vite <= 0) {
+            statoGioco = StatoGioco.GAME_OVER;
+        }
     }
 
     @Override
@@ -558,7 +545,6 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
     private void disegnaMenu(Graphics2D g2) {
         g2.setColor(new Color(20, 20, 30));
         g2.fillRect(0, 0, LARGHEZZA_GIOCO, ALTEZZA_GIOCO);
-
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Consolas", Font.BOLD, 40));
         g2.drawString("WHAT: I'VE PLAYED TOO MUCH", LARGHEZZA_GIOCO/2 - 300, ALTEZZA_GIOCO/2 - 50);
@@ -572,11 +558,9 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
         disegnaGioco(g2);
         g2.setColor(new Color(0, 0, 0, 150));
         g2.fillRect(0, 0, LARGHEZZA_GIOCO, ALTEZZA_GIOCO);
-
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Consolas", Font.BOLD, 50));
         g2.drawString("P A U S A", LARGHEZZA_GIOCO / 2 - 120, ALTEZZA_GIOCO / 2 - 20);
-
         g2.setFont(new Font("Arial", Font.PLAIN, 20));
         g2.drawString("Premi [ESC] o [INVIO] per riprendere", LARGHEZZA_GIOCO / 2 - 160, ALTEZZA_GIOCO / 2 + 30);
         g2.drawString("Premi [Q] per uscire", LARGHEZZA_GIOCO / 2 - 80, ALTEZZA_GIOCO / 2 + 60);
@@ -586,24 +570,18 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
         disegnaGioco(g2);
         g2.setColor(new Color(0, 0, 0, 180));
         g2.fillRect(0, 0, LARGHEZZA_GIOCO, ALTEZZA_GIOCO);
-
         g2.setColor(Color.RED);
         g2.setFont(new Font("Consolas", Font.BOLD, 60));
         g2.drawString("G A M E   O V E R", LARGHEZZA_GIOCO / 2 - 250, ALTEZZA_GIOCO / 2 - 50);
-
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Arial", Font.PLAIN, 22));
         g2.drawString("Mondo " + mondoAttuale + ", Stanza " + stanzaNelMondo + ", Monete: " + monete, LARGHEZZA_GIOCO / 2 - 210, ALTEZZA_GIOCO / 2 + 20);
-
-        // DISEGNO PULSANTI
         g2.setFont(new Font("Arial", Font.BOLD, 22));
-
         g2.setColor(Color.DARK_GRAY);
         g2.fillRect(btnRiprova.x, btnRiprova.y, btnRiprova.width, btnRiprova.height);
         g2.setColor(Color.WHITE);
         g2.drawRect(btnRiprova.x, btnRiprova.y, btnRiprova.width, btnRiprova.height);
         g2.drawString("RIPROVA", btnRiprova.x + 20, btnRiprova.y + 32);
-
         g2.setColor(Color.DARK_GRAY);
         g2.fillRect(btnEsci.x, btnEsci.y, btnEsci.width, btnEsci.height);
         g2.setColor(Color.WHITE);
@@ -612,11 +590,10 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
     }
 
     private void disegnaGioco(Graphics2D g2) {
+        // Disegno Pavimento e Muri (Semplificato backup)
         BufferedImage imgMuroCorr      = (mondoAttuale == 1) ? imgMuroMondo1 : imgMuroMondo2;
         BufferedImage imgPavimentoCorr = (mondoAttuale == 1) ? imgPavimentoMondo1 : imgPavimentoMondo2;
-        Color coloreBackupPavimento   = (mondoAttuale == 1) ? memoriaColoriMondo1.get(indiceStanzaMemoria) : memoriaColoriMondo2.get(indiceStanzaMemoria);
 
-        // 1. Pavimento e Muri
         for (int i = 0; i < COL_TOTALI; i++) {
             for (int j = 0; j < RIG_TOTALI; j++) {
                 int px = i * TILE_SIZE;
@@ -626,120 +603,105 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
                     else { g2.setColor(Color.BLACK); g2.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
                 } else {
                     if (imgPavimentoCorr != null) g2.drawImage(imgPavimentoCorr, px, py, TILE_SIZE, TILE_SIZE, null);
-                    else { g2.setColor(coloreBackupPavimento); g2.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
+                    else { g2.setColor(Color.GRAY); g2.fillRect(px, py, TILE_SIZE, TILE_SIZE); }
                 }
             }
         }
 
-        // 2. Porte
+        // Porte
         int portaY = (RIG_TOTALI / 2) * TILE_SIZE;
-        int portaDX = (COL_TOTALI - 1) * TILE_SIZE;
-
         if (indiceStanzaMemoria > 0) {
             if (imgPorta != null) g2.drawImage(imgPorta, 0, portaY, TILE_SIZE, TILE_SIZE, null);
-            else { g2.setColor(Color.YELLOW); g2.fillRect(0, portaY, TILE_SIZE, TILE_SIZE); }
         }
-
-        if (stanzaNelMondo == STANZA_BOSS && mondoAttuale == 1) {
-            if (bossSconfitto) {
-                g2.setColor(new Color(0, 255, 255, 150));
-                g2.fillRect(portaDX, portaY, TILE_SIZE, TILE_SIZE);
-            } else {
-                if (imgPorta != null) g2.drawImage(imgPorta, portaDX, portaY, TILE_SIZE, TILE_SIZE, null);
-                else { g2.setColor(Color.RED); g2.fillRect(portaDX, portaY, TILE_SIZE, TILE_SIZE); }
-            }
+        int portaDX = (COL_TOTALI - 1) * TILE_SIZE;
+        if (stanzaNelMondo == STANZA_BOSS && mondoAttuale == 1 && bossSconfitto) {
+            g2.setColor(new Color(0, 255, 255, 150));
+            g2.fillRect(portaDX, portaY, TILE_SIZE, TILE_SIZE);
         } else {
-            // Porta normale destra
             if (imgPorta != null) g2.drawImage(imgPorta, portaDX, portaY, TILE_SIZE, TILE_SIZE, null);
-            else { g2.setColor(Color.YELLOW); g2.fillRect(portaDX, portaY, TILE_SIZE, TILE_SIZE); }
         }
 
-        // --- SHOP: Porta speciale nella Stanza 4 (in alto) ---
+        // Porta Speciale Shop (Stanza 4)
         if (stanzaNelMondo == 4 && mondoAttuale == 1) {
-            // Porta Shop (Griglia X=7, Y=0, in alto al centro)
             if (imgShopDoor != null) g2.drawImage(imgShopDoor, 7 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE, null);
-            else { g2.setColor(Color.GREEN); g2.fillRect(7 * TILE_SIZE, 0, TILE_SIZE, TILE_SIZE); }
-        }
-        // -----------------------------------------------------
-
-        // 2b. Disegno Oggetti di Cura (da nemici)
-        for (Cura c : curePerStanzaMemoria.get(indiceStanzaMemoria)) {
-            c.draw(g2);
         }
 
-        // 2c. Disegno Monete
-        for (Moneta m : monetePerStanzaMemoria.get(indiceStanzaMemoria)) {
-            m.draw(g2);
-        }
+        // Oggetti
+        for (Cura c : curePerStanzaMemoria.get(indiceStanzaMemoria)) c.draw(g2);
+        for (Moneta m : monetePerStanzaMemoria.get(indiceStanzaMemoria)) m.draw(g2);
+        for (Shopkeeper sk : shopkeepersPerStanza.get(indiceStanzaMemoria)) sk.draw(g2);
+        for (ShopItem si : shopItemsPerStanza.get(indiceStanzaMemoria)) si.draw(g2);
 
-        // --- SHOP: 2d. Disegno Shopkeepers e ShopItems ---
-        for (Shopkeeper sk : shopkeepersPerStanza.get(indiceStanzaMemoria)) {
-            sk.draw(g2);
-        }
-        for (ShopItem si : shopItemsPerStanza.get(indiceStanzaMemoria)) {
-            si.draw(g2);
-        }
-        // -------------------------------------------------
+        // Pugni
+        for (Pugno p : pugniAttivi) p.draw(g2);
 
-        // 3. Disegno Pugni
-        for (Pugno p : pugniAttivi) {
-            p.draw(g2);
-        }
-
-        // 4. Nemici
+        // Nemici e Boss
+        Boss bossCorrente = null;
         for (Nemico n : nemiciPerStanza.get(indiceStanzaMemoria)) {
-            if (n instanceof Boss) n.draw(g2, imgBoss);
-            else if (n instanceof NemicoForte) n.draw(g2, imgNemico2);
+            if (n instanceof Boss) {
+                bossCorrente = (Boss) n;
+                n.draw(g2, imgBoss);
+            } else if (n instanceof NemicoForte) n.draw(g2, imgNemico2);
             else n.draw(g2, imgNemico);
         }
 
-        // 5. Personaggio
+        // Personaggio
         if (!invulnerabile || timerInvulnerabilita % 10 < 5) {
             if (imgPersonaggio != null) g2.drawImage(imgPersonaggio, (int)x, (int)y, PG_SIZE, PG_SIZE, null);
-            else { g2.setColor(Color.CYAN); g2.fillOval((int)x, (int)y, PG_SIZE, PG_SIZE); }
         }
 
-        // 6. UI
-        // Vite
+        // UI Standard
         for (int i = 0; i < vite; i++) {
             if (imgCuore != null) g2.drawImage(imgCuore, 20 + (i * 35), 45, 30, 30, null);
-            else { g2.setColor(Color.RED); g2.fillOval(20 + (i * 35), 45, 25, 25); }
         }
-
-        // Contatore Monete nell'UI
         if (imgMoneta != null) g2.drawImage(imgMoneta, 20, 85, 25, 25, null);
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Arial", Font.BOLD, 22));
         g2.drawString("" + monete, 55, 105);
-
-        // Info avanzato
         g2.setFont(new Font("Consolas", Font.BOLD, 22));
         g2.drawString("MONDO: " + mondoAttuale, 20, 25);
         g2.drawString("STANZA: " + stanzaNelMondo + "/8", 160, 25);
+
+        // UI del Boss (Nome e Barra Vita)
+        if (stanzaNelMondo == STANZA_BOSS && bossSpawnato && !bossSconfitto && bossCorrente != null) {
+            int uiX = (COL_TOTALI * TILE_SIZE) / 2 - 150;
+            int uiY = (RIG_TOTALI * TILE_SIZE) - 60;
+            int barW = 300;
+            int barH = 20;
+            g2.setColor(Color.DARK_GRAY);
+            g2.fillRect(uiX, uiY, barW, barH);
+            g2.setColor(Color.RED);
+            int larghezzaVita = (int) (((float) bossCorrente.getVita() / bossCorrente.getVitaMax()) * barW);
+            g2.fillRect(uiX, uiY, larghezzaVita, barH);
+            g2.setColor(Color.BLACK);
+            g2.drawRect(uiX, uiY, barW, barH);
+            g2.setColor(Color.WHITE);
+            g2.setFont(new Font("Consolas", Font.BOLD, 18));
+            g2.drawString("CAPOCANTIERE CORRUTTO", uiX + 40, uiY - 5);
+            g2.setFont(new Font("Consolas", Font.PLAIN, 14));
+            g2.drawString(bossCorrente.getVita() + "/" + bossCorrente.getVitaMax() + " HP", uiX + 110, uiY + 15);
+
+            // UI Tempo Limite
+            g2.setFont(new Font("Consolas", Font.BOLD, 20));
+            g2.setColor(tempoRimanenteBoss < 600 ? Color.RED : Color.WHITE);
+            g2.drawString("TEMPO LIMITE: " + (tempoRimanenteBoss / 60) + "s", LARGHEZZA_GIOCO - 200, ALTEZZA_GIOCO - 30);
+        }
     }
 
-    // Gestione Clik Mouse
-    @Override
-    public void mouseClicked(MouseEvent e) {
+    @Override public void mouseClicked(MouseEvent e) {
         if (statoGioco == StatoGioco.GAME_OVER) {
-
-            // Conversione coordinate mouse Fullscreen
             double scaleX = (double) getWidth() / LARGHEZZA_GIOCO;
             double scaleY = (double) getHeight() / ALTEZZA_GIOCO;
             double scale = Math.min(scaleX, scaleY);
             int offsetX = (int) ((getWidth() - LARGHEZZA_GIOCO * scale) / 2);
             int offsetY = (int) ((getHeight() - ALTEZZA_GIOCO * scale) / 2);
-
             int mouseLogicalX = (int) ((e.getX() - offsetX) / scale);
             int mouseLogicalY = (int) ((e.getY() - offsetY) / scale);
             Point pLogico = new Point(mouseLogicalX, mouseLogicalY);
-
             if (btnRiprova.contains(pLogico)) {
                 resetTotalGame();
                 statoGioco = StatoGioco.GIOCO;
-            } else if (btnEsci.contains(pLogico)) {
-                System.exit(0);
-            }
+            } else if (btnEsci.contains(pLogico)) System.exit(0);
         }
     }
     @Override public void mousePressed(MouseEvent e) {}
@@ -750,7 +712,6 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener, Mous
     public static void main(String[] args) {
         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
         device = ge.getDefaultScreenDevice();
-
         finestra = new JFrame("WHAT: I'VE PLAYED TOO MUCH");
         finestra.add(new WhatIvePlayedTooMuch());
         finestra.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
