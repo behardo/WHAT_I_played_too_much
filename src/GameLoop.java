@@ -42,8 +42,45 @@ public class GameLoop {
         aggiornaSparo();
         aggiornaPugni();
         aggiornaShop();
+        aggiornaDialogoShopkeeper();
         aggiornaCollisioni();
         raccogliOggetti();
+    }
+
+    // ── Dialogo shopkeeper ────────────────────────────────────────────────────
+
+    private void aggiornaDialogoShopkeeper() {
+        if (!roomMgr.inStanzaShop) return;
+        java.util.List<Shopkeeper> sks = roomMgr.getShopkeeperShop();
+        if (sks.isEmpty() && roomMgr.getShopNemici().isEmpty()) return;
+        if (sks.isEmpty()) {
+            // Shopkeeper già trasformato in nemico, aggiornalo
+            return;
+        }
+
+        Shopkeeper sk = sks.get(0);
+        DialogoShopkeeper dialogo = state.dialogoShopkeeper;
+
+        dialogo.aggiorna(state.x, state.y, sk.getX(), sk.getY());
+
+        if (dialogo.getStato() == DialogoShopkeeper.Stato.ATTACCO) {
+            float skX = sk.getX();
+            float skY = sk.getY();
+            sks.clear();
+            roomMgr.getItemsShop().clear();
+            state.monete += 20;
+            // Spawna lo ShopkeeperNemico arrabbiato
+            roomMgr.getShopNemici().add(new ShopkeeperNemico(skX, skY, shopkeeperImgRef));
+            dialogo.consuma();
+        } else if (dialogo.getStato() == DialogoShopkeeper.Stato.RIFIUTO) {
+            dialogo.consuma();
+        }
+    }
+
+    // Immagine shopkeeper per ShopkeeperNemico (impostata da WhatIvePlayedTooMuch)
+    private java.awt.image.BufferedImage shopkeeperImgRef;
+    public void setShopkeeperImage(java.awt.image.BufferedImage img) {
+        this.shopkeeperImgRef = img;
     }
 
     // ── Movimento e transizioni ───────────────────────────────────────────────
@@ -229,11 +266,14 @@ public class GameLoop {
     // ── Collisioni ────────────────────────────────────────────────────────────
 
     private void aggiornaCollisioni() {
-        List<Nemico> nemici = roomMgr.getNemiciCorrenti();
+        List<Nemico> nemici = roomMgr.inStanzaShop
+                ? roomMgr.getShopNemici()
+                : roomMgr.getNemiciCorrenti();
 
-        // Nemici vs giocatore
-        for (Nemico n : nemici) {
-            n.update(state.x, state.y);
+        // Nemici vs giocatore — update con lista per separazione
+        for (int i = 0; i < nemici.size(); i++) {
+            Nemico n = nemici.get(i);
+            n.update(state.x, state.y, nemici);
 
             if (n.toccaGiocatore(state.x, state.y, GameState.PG_SIZE)) {
                 state.riceviDanno();
@@ -245,32 +285,36 @@ public class GameLoop {
             }
         }
 
+        // Tick barre vita
+        for (Nemico n : nemici) n.tickBarra();
+
         // Pugni vs nemici
         for (int i = 0; i < pugniAttivi.size(); i++) {
-            Pugno     p     = pugniAttivi.get(i);
-            Rectangle hbP   = p.getHitbox();
+            Pugno     p   = pugniAttivi.get(i);
+            Rectangle hbP = p.getHitbox();
 
             for (int j = 0; j < nemici.size(); j++) {
-                Nemico    n   = nemici.get(j);
+                Nemico n = nemici.get(j);
                 if (!hbP.intersects(n.getHitbox())) continue;
 
                 n.subisciDanno(p.getDanno());
                 p.daRimuovere = true;
 
                 if (n.isMorto()) {
-                    float dropX = n.x;
-                    float dropY = n.y;
+                    float dropX  = n.x;
+                    float dropY  = n.y;
                     boolean isBoss = n instanceof Boss;
 
                     nemici.remove(j--);
 
                     if (isBoss) {
                         state.bossSconfitto = true;
-                    } else if (nemici.isEmpty() && state.stanzaNelMondo != 4) {
+                    } else if (nemici.isEmpty() && !roomMgr.inStanzaShop
+                            && state.stanzaNelMondo != GameState.STANZA_BOSS) {
                         spawnDrop((int) dropX, (int) dropY);
                     }
                 }
-                break; // Un pugno colpisce un solo nemico
+                break;
             }
         }
     }

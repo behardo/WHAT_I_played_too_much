@@ -1,6 +1,3 @@
-import java.awt.Color;
-import java.util.ArrayList;
-
 /**
  * GameState.java
  * Contiene tutti i dati di stato del gioco: statistiche giocatore,
@@ -25,6 +22,12 @@ public class GameState {
 
     // ── Impostazioni (dati persistenti tra le schermate) ──────────────────────
     public final Impostazioni impostazioni = new Impostazioni();
+
+    // ── Sistema personaggi (sblocchi + combo segreto) ─────────────────────────
+    public final SistemaPersonaggi sistemaPersonaggi = new SistemaPersonaggi();
+
+    // ── Dialogo shopkeeper (attacco sì/no) ────────────────────────────────────
+    public final DialogoShopkeeper dialogoShopkeeper = new DialogoShopkeeper();
 
     // ── Posizione mouse (coordinate logiche, aggiornata ogni frame) ───────────
     public int mouseX = 0;
@@ -189,6 +192,8 @@ public class GameState {
         bossSpawnato                 = false;
         bossSconfitto                = false;
         shopSbloccato                = false;
+        sistemaPersonaggi.resetCompleto();
+        dialogoShopkeeper.reset();
         statoGioco                   = StatoGioco.MENU;
         resetGiocatore();
     }

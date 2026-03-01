@@ -3,116 +3,228 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 
-// --- MODALITA: Classe Boss aggiornata con vita dinamica ---
+/**
+ * Boss.java — estende Nemico.
+ *
+ * Boss diversi per mondo (parametro mondoAttuale):
+ *  Mondo 1 — Boss LENTO: insegue diretto, spara a intervalli lunghi
+ *  Mondo 2 — Boss MULTIPLO: spara 4 proiettili a croce
+ *  Mondo 3 — Boss CARICA: ogni tot frame scatta in avanti velocemente
+ *  Mondo 4 — Boss FINALE: spara spirale + velocità crescente
+ *
+ * Tutti i boss scalano vita/danno col mondo.
+ */
 public class Boss extends Nemico {
-    private int sizeBoss = 120; // Molto più grande del nemico normale
-    private float velocitaBoss = 1.3f; // Lento ma inarrestabile
 
-    // --- MODALITA: Vita dinamica passata dal costruttore ---
-    private int vitaMaxBoss;
-    private int vitaBoss;
-    // --------------------------------------------------------
+    // ── Dimensione e tipo ─────────────────────────────────────────────────────
+    private static final int TAGLIA_BOSS = 96;
+    private final int tipo;   // = mondoAttuale % 4  (1-4)
 
-    // Logica per attacco a distanza
-    private int cooldownSparo = 0;
-    private final int SPARO_DELAY = 90; // Spara ogni 1.5 secondi
-    private List<BossProjectile> proiettiliBoss = new ArrayList<>();
+    // ── Proiettili ────────────────────────────────────────────────────────────
+    private final List<BossProjectile> proiettili = new ArrayList<>();
     private BufferedImage imgProiettile;
+    private int cooldownSparo = 0;
 
-    // --- MODALITA: Costruttore AGGIORNATO (accetta 4 parametri, inclusa la vita) ---
-    public Boss(int grigliaX, int grigliaY, int tileSize, int vitaPassata) {
-        // Inizializziamo il Nemico base, ma sovrascriveremo la logica
-        super(grigliaX, grigliaY, tileSize, vitaPassata);
+    // Delay sparo per tipo
+    private final int DELAY_SPARO;
 
-        // --- MODALITA: Assegna la vita passata dal codice principale ---
-        this.vitaMaxBoss = vitaPassata;
-        this.vitaBoss = vitaMaxBoss;
-        // --------------------------------------------------------------
+    // ── Carica (tipo 3) ───────────────────────────────────────────────────────
+    private int timerCarica = 0;
+    private boolean inCarica = false;
+    private float caricaDx = 0, caricaDy = 0;
+    private static final int INTERVALLO_CARICA = 150;
+    private static final int DURATA_CARICA     = 20;
 
-        // Posizioniamo la hitbox corretta per la dimensione del boss
-        this.x = grigliaX * tileSize - (sizeBoss / 4);
-        this.y = grigliaY * tileSize - (sizeBoss / 4);
+    // ── Spirale (tipo 4) ──────────────────────────────────────────────────────
+    private float angoloproiettile = 0f;
+
+    // ── Costruttore ───────────────────────────────────────────────────────────
+    public Boss(int tileX, int tileY, int tileSize, int vita, int mondoAttuale) {
+        super(tileX, tileY, tileSize, vita);
+        this.size       = TAGLIA_BOSS;
+        this.dimensione = TAGLIA_BOSS;
+        this.tipo       = ((mondoAttuale - 1) % 4) + 1;
+        // Velocità crescente per mondo
+        this.velocita   = StatNemico.velocitaBoss(mondoAttuale);
+        // Delay sparo: diminuisce col mondo
+        this.DELAY_SPARO = Math.max(40, 90 - (mondoAttuale - 1) * 12);
+        // Centra nella tile
+        this.x -= (TAGLIA_BOSS - tileSize) / 2f;
+        this.y -= (TAGLIA_BOSS - tileSize) / 2f;
     }
 
-    public void caricaProiettile(BufferedImage img) {
-        this.imgProiettile = img;
-    }
+    public void caricaProiettile(BufferedImage img) { this.imgProiettile = img; }
+
+    // ── Update ────────────────────────────────────────────────────────────────
 
     @Override
-    public void update(float playerX, float playerY) {
-        // Inseguimento lento verso il giocatore
-        if (x + (sizeBoss/2) < playerX + 25) x += velocitaBoss;
-        if (x + (sizeBoss/2) > playerX + 25) x -= velocitaBoss;
-        if (y + (sizeBoss/2) < playerY + 25) y += velocitaBoss;
-        if (y + (sizeBoss/2) > playerY + 25) y -= velocitaBoss;
+    public void update(float pgX, float pgY, List<Nemico> altri) {
+        if (morto) return;
 
-        // Logica Sparo
-        if (cooldownSparo > 0) cooldownSparo--;
-        if (cooldownSparo <= 0) {
-            spara(playerX, playerY);
-            cooldownSparo = SPARO_DELAY;
+        switch (tipo) {
+            case 1 -> updateTipo1(pgX, pgY);
+            case 2 -> updateTipo2(pgX, pgY);
+            case 3 -> updateTipo3(pgX, pgY);
+            case 4 -> updateTipo4(pgX, pgY);
         }
 
-        // Update proiettili
-        for (int i = 0; i < proiettiliBoss.size(); i++) {
-            BossProjectile p = proiettiliBoss.get(i);
+        // Aggiorna proiettili
+        for (int i = 0; i < proiettili.size(); i++) {
+            BossProjectile p = proiettili.get(i);
             p.update();
-            // Rimuovi se fuori dai limiti della stanza (semplificato)
-            if (p.x < 64 || p.x > 1024 || p.y < 64 || p.y > 448) {
-                proiettiliBoss.remove(i);
-                i--;
+            if (p.x < 64 || p.x > GameState.LARGHEZZA_GIOCO - 64
+                    || p.y < 64 || p.y > GameState.ALTEZZA_GIOCO - 64) {
+                proiettili.remove(i--);
             }
         }
-    }
 
-    private void spara(float targetX, float targetY) {
-        // Crea il proiettile che parte dal centro del boss
-        proiettiliBoss.add(new BossProjectile(x + sizeBoss/2, y + sizeBoss/2, targetX, targetY, imgProiettile));
+        clampBordi();
     }
 
     @Override
-    public void draw(Graphics2D g2, BufferedImage img) {
-        if (img != null) {
-            g2.drawImage(img, (int)x, (int)y, sizeBoss, sizeBoss, null);
+    public void update(float pgX, float pgY) { update(pgX, pgY, java.util.Collections.emptyList()); }
+
+    // Tipo 1: lento, spara diretto
+    private void updateTipo1(float pgX, float pgY) {
+        muoviVerso(pgX, pgY, velocita);
+        if (--cooldownSparo <= 0) {
+            spara(pgX, pgY, 1);
+            cooldownSparo = DELAY_SPARO;
+        }
+    }
+
+    // Tipo 2: medio, spara a croce (4 direzioni)
+    private void updateTipo2(float pgX, float pgY) {
+        muoviVerso(pgX, pgY, velocita);
+        if (--cooldownSparo <= 0) {
+            sparaCroce();
+            cooldownSparo = DELAY_SPARO;
+        }
+    }
+
+    // Tipo 3: si carica verso il giocatore ogni tot frame
+    private void updateTipo3(float pgX, float pgY) {
+        if (inCarica) {
+            x += caricaDx * 9f;
+            y += caricaDy * 9f;
+            if (--timerCarica <= 0) inCarica = false;
         } else {
-            g2.setColor(Color.MAGENTA); // Backup colorato
-            g2.fillRect((int)x, (int)y, sizeBoss, sizeBoss);
+            muoviVerso(pgX, pgY, velocita * 0.6f);
+            timerCarica++;
+            if (timerCarica >= INTERVALLO_CARICA) {
+                // Prepara la carica
+                float dx   = pgX - x, dy = pgY - y;
+                float dist = (float) Math.sqrt(dx * dx + dy * dy);
+                if (dist > 1f) { caricaDx = dx / dist; caricaDy = dy / dist; }
+                inCarica    = true;
+                timerCarica = DURATA_CARICA;
+            }
         }
-
-        // Disegno proiettili
-        for (BossProjectile p : proiettiliBoss) {
-            p.draw(g2);
+        if (--cooldownSparo <= 0) {
+            spara(pgX, pgY, 1);
+            cooldownSparo = DELAY_SPARO;
         }
     }
 
-    @Override
-    public Rectangle getHitbox() {
-        return new Rectangle((int)x, (int)y, sizeBoss, sizeBoss);
+    // Tipo 4: spara spirale + accelera
+    private void updateTipo4(float pgX, float pgY) {
+        // Velocità crescente con vita bassa
+        float multVel = 1f + (1f - (float) vitaAttuale / vitaMax) * 1.5f;
+        muoviVerso(pgX, pgY, velocita * multVel);
+        if (--cooldownSparo <= 0) {
+            sparaSpirale();
+            cooldownSparo = DELAY_SPARO;
+        }
     }
 
-    public boolean controllaCollisioneProiettili(float px, float py, int pSize) {
-        Rectangle hbGiocatore = new Rectangle((int)px, (int)py, pSize, pSize);
-        for (int i = 0; i < proiettiliBoss.size(); i++) {
-            BossProjectile p = proiettiliBoss.get(i);
-            if (p.getHitbox().intersects(hbGiocatore)) {
-                proiettiliBoss.remove(i);
+    // ── Movimento ─────────────────────────────────────────────────────────────
+
+    private void muoviVerso(float tx, float ty, float vel) {
+        float dx = tx - x, dy = ty - y;
+        float d  = (float) Math.sqrt(dx * dx + dy * dy);
+        if (d > 1f) { x += (dx / d) * vel; y += (dy / d) * vel; }
+    }
+
+    // ── Sparo ─────────────────────────────────────────────────────────────────
+
+    private void spara(float tx, float ty, int n) {
+        float cx = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
+        proiettili.add(new BossProjectile(cx, cy, tx, ty, imgProiettile));
+    }
+
+    private void sparaCroce() {
+        float cx = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
+        float[][] dirs = {{1,0},{-1,0},{0,1},{0,-1}};
+        for (float[] d : dirs)
+            proiettili.add(new BossProjectile(cx, cy, cx + d[0]*100, cy + d[1]*100, imgProiettile));
+    }
+
+    private void sparaSpirale() {
+        float cx = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
+        for (int i = 0; i < 3; i++) {
+            float a = angoloproiettile + (float)(i * Math.PI * 2 / 3);
+            float tx = cx + (float) Math.cos(a) * 100;
+            float ty = cy + (float) Math.sin(a) * 100;
+            proiettili.add(new BossProjectile(cx, cy, tx, ty, imgProiettile));
+        }
+        angoloproiettile += 0.3f;
+    }
+
+    // ── Collisione proiettili col giocatore ───────────────────────────────────
+
+    public boolean controllaCollisioneProiettili(float pgX, float pgY, int pgSize) {
+        Rectangle hbPG = new Rectangle((int) pgX, (int) pgY, pgSize, pgSize);
+        for (int i = 0; i < proiettili.size(); i++) {
+            if (proiettili.get(i).getHitbox().intersects(hbPG)) {
+                proiettili.remove(i);
                 return true;
             }
         }
         return false;
     }
 
+    // ── Draw ──────────────────────────────────────────────────────────────────
+
     @Override
-    public void subisciDanno(int danno) {
-        vitaBoss -= danno;
+    public void draw(Graphics2D g2, BufferedImage img) {
+        if (morto) return;
+
+        // Effetto lampeggio rosso se vita bassa
+        boolean lampeggia = vitaAttuale < vitaMax * 0.25f
+                && (System.currentTimeMillis() / 150) % 2 == 0;
+
+        if (img != null) {
+            if (lampeggia) {
+                // Tinta rossa sopra lo sprite
+                g2.drawImage(img, (int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS, null);
+                g2.setColor(new Color(255, 0, 0, 80));
+                g2.fillRect((int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS);
+            } else {
+                g2.drawImage(img, (int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS, null);
+            }
+        } else {
+            // Colore diverso per tipo
+            Color[] colori = {Color.MAGENTA, new Color(0,150,200), new Color(200,80,0), new Color(150,0,150)};
+            g2.setColor(lampeggia ? Color.RED : colori[tipo - 1]);
+            g2.fillRect((int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS);
+        }
+
+        // Indicatore tipo sopra il boss
+        String[] nomi = {"BRUTALE", "OMBRA", "CARICA", "FINALE"};
+        g2.setFont(new Font("Consolas", Font.BOLD, 11));
+        g2.setColor(Color.WHITE);
+        FontMetrics fm = g2.getFontMetrics();
+        g2.drawString(nomi[tipo-1], (int)x + (TAGLIA_BOSS - fm.stringWidth(nomi[tipo-1]))/2, (int)y - 4);
+
+        // Disegna proiettili
+        for (BossProjectile p : proiettili) p.draw(g2);
     }
 
     @Override
-    public boolean isMorto() {
-        return vitaBoss <= 0;
-    }
+    public Rectangle getHitbox() { return new Rectangle((int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS); }
 
-    // Getters per l'UI (ORA CORRETTI PER USARE LE VARIABILI DINAMICHE)
-    public int getVita() { return vitaBoss; }
-    public int getVitaMax() { return vitaMaxBoss; }
+    // ── Barra vita boss (offset più grande per taglia) ────────────────────────
+    public void disegnaBarraVitaBoss(Graphics2D g2) {
+        disegnaBarraVita(g2, -14);
+    }
 }

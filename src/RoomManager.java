@@ -117,12 +117,12 @@ public class RoomManager {
     }
 
     private void generaStanzaBoss(List<Nemico> nemici) {
-        int vitaBoss = calcolaVitaBoss();
-        Boss b = new Boss(7, 2, GameState.TILE_SIZE, vitaBoss);
+        int vitaBoss = StatNemico.vitaBoss(state.mondoAttuale);
+        Boss b = new Boss(7, 2, GameState.TILE_SIZE, vitaBoss, state.mondoAttuale);
         b.caricaProiettile(res.imgBossProjectile);
         nemici.add(b);
-        state.bossSpawnato    = true;
-        state.bossSconfitto   = false;
+        state.bossSpawnato       = true;
+        state.bossSconfitto      = false;
         state.tempoRimanenteBoss = GameState.TEMPO_BOSS_DEFAULT;
     }
 
@@ -134,29 +134,24 @@ public class RoomManager {
     }
 
     private void generaStanzaNormale(List<Nemico> nemici) {
-        int quantiBase = random.nextInt(2)
-                + (state.stanzaNelMondo / 2)
-                + (state.mondoAttuale * 2);
-        int vitaNemico = (state.mondoAttuale % 2 == 0) ? 5 : 3;
+        int m     = state.mondoAttuale;
+        int quanti = StatNemico.quantiNemici(m, state.stanzaNelMondo, random);
+        float probForte = StatNemico.probNemicoForte(m);
 
-        if (state.modalitaScelta == GameState.Modalita.INFINITA && state.mondoAttuale > 1) {
-            vitaNemico  += ((state.mondoAttuale - 1) / 2) * 2;
-            quantiBase  += (state.mondoAttuale - 1);
-        }
+        for (int i = 0; i < quanti; i++) {
+            int[] pos  = trovaPosizioneSicura();
+            boolean forte = random.nextFloat() < probForte;
 
-        for (int i = 0; i < quantiBase; i++) {
-            int[] pos = trovaPosizioneSicura();
-            int safeX = pos[0];
-            int safeY = pos[1];
-
-            if (state.mondoAttuale % 2 != 0) {
-                nemici.add(new Nemico(safeX, safeY, GameState.TILE_SIZE, vitaNemico));
+            if (forte) {
+                Nemico nf = new NemicoForte(pos[0], pos[1], GameState.TILE_SIZE,
+                        StatNemico.vitaNemicoForte(m));
+                nf.velocita = StatNemico.velocitaNemicoForte(m);
+                nemici.add(nf);
             } else {
-                if (random.nextFloat() < 0.60f) {
-                    nemici.add(new NemicoForte(safeX, safeY, GameState.TILE_SIZE, vitaNemico + 3));
-                } else {
-                    nemici.add(new Nemico(safeX, safeY, GameState.TILE_SIZE, vitaNemico));
-                }
+                Nemico n = new Nemico(pos[0], pos[1], GameState.TILE_SIZE,
+                        StatNemico.vitaNemico(m));
+                n.velocita = StatNemico.velocitaNemico(m);
+                nemici.add(n);
             }
         }
     }
@@ -198,15 +193,19 @@ public class RoomManager {
             return;
         }
 
+        // Registra lo sblocco personaggio per questo mondo
+        state.sistemaPersonaggi.registraBossSconfitto(state.mondoAttuale);
+
         state.mondoAttuale++;
         state.stanzaNelMondo      = 1;
         state.indiceStanzaMemoria = 0;
         state.bossSpawnato        = false;
         state.bossSconfitto       = false;
-        state.shopSbloccato       = true;  // Boss del mondo precedente sconfitto → shop disponibile
+        state.shopSbloccato       = true;
 
         resetCompleto();
         state.resetGiocatore();
+        state.dialogoShopkeeper.reset();
 
         if (eventListener != null) eventListener.onCambioMondo(state.mondoAttuale);
     }
@@ -246,12 +245,14 @@ public class RoomManager {
     // ── Contenuto stanza shop ─────────────────────────────────────────────────
 
     // Lista separata per la stanza shop (non fa parte della memoria stanze normale)
-    private final java.util.List<Shopkeeper> shopkeeperShop = new java.util.ArrayList<>();
-    private final java.util.List<ShopItem>   itemsShop      = new java.util.ArrayList<>();
+    private final java.util.List<Shopkeeper>     shopkeeperShop = new java.util.ArrayList<>();
+    private final java.util.List<ShopItem>       itemsShop      = new java.util.ArrayList<>();
+    private final java.util.List<Nemico>         shopNemici     = new java.util.ArrayList<>();
     private boolean shopGenerato = false;
 
     public java.util.List<Shopkeeper> getShopkeeperShop() { return shopkeeperShop; }
     public java.util.List<ShopItem>   getItemsShop()      { return itemsShop; }
+    public java.util.List<Nemico>     getShopNemici()     { return shopNemici; }
 
     /**
      * Genera il contenuto della stanza shop se non è ancora stato generato.
@@ -272,6 +273,7 @@ public class RoomManager {
         shopGenerato = false;
         shopkeeperShop.clear();
         itemsShop.clear();
+        shopNemici.clear();
         inStanzaShop = false;
     }
 

@@ -1,4 +1,4 @@
-/**
+/*/**
  * Impostazioni.java
  * Contiene tutti i dati delle impostazioni di gioco modificabili dal giocatore.
  * Viene passato per riferimento a RenderEngine e GameLoop.

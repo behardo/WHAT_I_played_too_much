@@ -1,72 +1,83 @@
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.util.List;
 
-public class Nemico {
-    // Rendiamo x e y protette così Boss può accedervi
-    protected float x, y;
-    protected float velocita = 1.8f;
-    protected int size = 50;
+/**
+ * Nemico.java — estende Entita.
+ *
+ * AI migliorata:
+ *  - Inseguimento del giocatore con steering smussato
+ *  - Separazione dagli altri nemici (no clipping)
+ *  - Rimane dentro i bordi della stanza
+ */
+public class Nemico extends Entita {
 
-    // Sistema Salute Nemico
-    private int vita;
-    private int vitaMax;
+    protected float velocita = 1.6f;
+    protected int   size     = 50;
 
-    // Costruttore aggiornato per accettare la vita
-    public Nemico(int grigliaX, int grigliaY, int tileSize, int vitaIniziale) {
-        this.x = grigliaX * tileSize;
-        this.y = grigliaY * tileSize;
-        this.vitaMax = vitaIniziale;
-        this.vita = vitaIniziale;
+    public Nemico(int tileX, int tileY, int tileSize, int vita) {
+        super(tileX, tileY, tileSize, vita);
+        this.dimensione = size;
     }
 
-    public void update(float playerX, float playerY) {
-        // Logica inseguimento semplice verso il giocatore
-        // (Aggiungiamo un piccolo offset per non sovrapporsi perfettamente)
-        float targetX = playerX + 10;
-        float targetY = playerY + 10;
+    // ── Update con separazione ────────────────────────────────────────────────
 
-        if (x < targetX) x += velocita;
-        if (x > targetX) x -= velocita;
-        if (y < targetY) y += velocita;
-        if (y > targetY) y -= velocita;
+    public void update(float pgX, float pgY, List<Nemico> altri) {
+        if (morto) return;
+
+        float dx = (pgX + 25) - (x + size / 2f);
+        float dy = (pgY + 25) - (y + size / 2f);
+        float dist = (float) Math.sqrt(dx * dx + dy * dy);
+
+        float vx = 0, vy = 0;
+        if (dist > 1f) {
+            vx = (dx / dist) * velocita;
+            vy = (dy / dist) * velocita;
+        }
+
+        // Separazione dagli altri nemici — impedisce il clipping
+        for (Nemico altro : altri) {
+            if (altro == this || altro.morto) continue;
+            float ox    = x - altro.x;
+            float oy    = y - altro.y;
+            float odist = (float) Math.sqrt(ox * ox + oy * oy);
+            float minD  = (size + altro.size) * 0.6f;
+            if (odist < minD && odist > 0.1f) {
+                float push = (minD - odist) / minD;
+                vx += (ox / odist) * push * 2.5f;
+                vy += (oy / odist) * push * 2.5f;
+            }
+        }
+
+        x += vx;
+        y += vy;
+        clampBordi();
     }
 
+    @Override
+    public void update(float pgX, float pgY) {
+        update(pgX, pgY, java.util.Collections.emptyList());
+    }
+
+    protected void clampBordi() {
+        int T = GameState.TILE_SIZE;
+        int O = GameState.OFFSET;
+        float minX = O * T, maxX = (O + GameState.COL_GIOCO) * T - size;
+        float minY = O * T, maxY = (O + GameState.RIG_GIOCO) * T - size;
+        if (x < minX) x = minX; if (x > maxX) x = maxX;
+        if (y < minY) y = minY; if (y > maxY) y = maxY;
+    }
+
+    @Override
     public void draw(Graphics2D g2, BufferedImage img) {
-        if (img != null) {
-            g2.drawImage(img, (int)x, (int)y, size, size, null);
-        } else {
-            g2.setColor(Color.ORANGE); // Colore backup nemici
-            g2.fillRect((int)x, (int)y, size, size);
-        }
-
-        // Barra della vita sopra il nemico (visibile solo se danneggiato)
-        if (vita < vitaMax) {
-            g2.setColor(Color.RED);
-            g2.fillRect((int)x, (int)y - 7, size, 4); // Sfondo
-            g2.setColor(Color.GREEN);
-            int larghezzaVita = (int)(((float)vita / vitaMax) * size);
-            g2.fillRect((int)x, (int)y - 7, larghezzaVita, 4); // Vita
-        }
+        if (morto) return;
+        if (img != null) g2.drawImage(img, (int) x, (int) y, size, size, null);
+        else { g2.setColor(Color.ORANGE); g2.fillRect((int) x, (int) y, size, size); }
     }
 
-    public boolean toccaGiocatore(float px, float py, int pSize) {
-        // Collisione circolare approssimativa per i nemici
-        float dx = (x + size/2) - (px + pSize/2);
-        float dy = (y + size/2) - (py + pSize/2);
-        float distanzaSq = dx*dx + dy*dy;
-        return distanzaSq < (size/2 + pSize/2)*(size/2 + pSize/2);
-    }
+    @Override
+    public Rectangle getHitbox() { return new Rectangle((int) x, (int) y, size, size); }
 
-    // Hitbox quadra per la collisione con i pugni
-    public Rectangle getHitbox() {
-        return new Rectangle((int)x, (int)y, size, size);
-    }
-
-    public void subisciDanno(int danno) {
-        vita -= danno;
-    }
-
-    public boolean isMorto() {
-        return vita <= 0;
-    }
+    public float getX() { return x; }
+    public float getY() { return y; }
 }

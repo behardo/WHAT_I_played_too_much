@@ -96,15 +96,35 @@ public class InputHandler {
     }
 
     private void gestisciSelezionePG(int k) {
-        int n = ui.getNumPersonaggi();
-        if (k == KeyEvent.VK_LEFT  || k == KeyEvent.VK_A)
-            state.indicePersonaggioSelezionato = (state.indicePersonaggioSelezionato - 1 + n) % n;
-        else if (k == KeyEvent.VK_RIGHT || k == KeyEvent.VK_D)
-            state.indicePersonaggioSelezionato = (state.indicePersonaggioSelezionato + 1) % n;
-        else if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE)
-            state.statoGioco = GameState.StatoGioco.SELEZIONE_MODALITA;
-        else if (k == KeyEvent.VK_ESCAPE)
+        // Controlla combo B×5
+        boolean isB = (k == KeyEvent.VK_B);
+        boolean comboCompletata = state.sistemaPersonaggi.registraPressione(isB);
+        if (comboCompletata) System.out.println("[Segreto] G.O.D. sbloccato!");
+
+        // Mostra sempre 4 base, segreto solo se attivo
+        int disponibili = state.sistemaPersonaggi.isSegretoAttivo() ? 5 : 4;
+
+        if (k == KeyEvent.VK_LEFT || k == KeyEvent.VK_A) {
+            // Vai a sinistra saltando i bloccati
+            int next = state.indicePersonaggioSelezionato;
+            for (int t = 0; t < disponibili; t++) {
+                next = (next - 1 + disponibili) % disponibili;
+                if (state.sistemaPersonaggi.isSbloccato(next)) break;
+            }
+            state.indicePersonaggioSelezionato = next;
+        } else if (k == KeyEvent.VK_RIGHT || k == KeyEvent.VK_D) {
+            int next = state.indicePersonaggioSelezionato;
+            for (int t = 0; t < disponibili; t++) {
+                next = (next + 1) % disponibili;
+                if (state.sistemaPersonaggi.isSbloccato(next)) break;
+            }
+            state.indicePersonaggioSelezionato = next;
+        } else if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE) {
+            if (state.sistemaPersonaggi.isSbloccato(state.indicePersonaggioSelezionato))
+                state.statoGioco = GameState.StatoGioco.SELEZIONE_MODALITA;
+        } else if (k == KeyEvent.VK_ESCAPE) {
             state.statoGioco = GameState.StatoGioco.MENU;
+        }
     }
 
     private void gestisciSelezioneModalita(int k) {
@@ -122,6 +142,15 @@ public class InputHandler {
     }
 
     private void gestisciGioco(int k, boolean pressed) {
+        // Dialogo shopkeeper ha priorità sugli altri input
+        if (state.dialogoShopkeeper.isVisibile()) {
+            if (k == KeyEvent.VK_LEFT  || k == KeyEvent.VK_A)     state.dialogoShopkeeper.spostaScelta(-1);
+            if (k == KeyEvent.VK_RIGHT || k == KeyEvent.VK_D)     state.dialogoShopkeeper.spostaScelta(1);
+            if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE) state.dialogoShopkeeper.conferma();
+            if (k == KeyEvent.VK_ESCAPE)                           state.dialogoShopkeeper.annulla();
+            return; // blocca movimento durante il dialogo
+        }
+
         if (k == KeyEvent.VK_ESCAPE) {
             state.statoPrecedente = GameState.StatoGioco.GIOCO;
             state.statoGioco      = GameState.StatoGioco.PAUSA;
