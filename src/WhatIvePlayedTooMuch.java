@@ -91,6 +91,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         setFocusable(true);
         addKeyListener(input.getKeyAdapter());
         addMouseListener(input.getMouseAdapter());
+        addMouseMotionListener(input.getMouseAdapter());
 
         // 10. Avvia game loop a 60 fps
         new Timer(16, this).start();

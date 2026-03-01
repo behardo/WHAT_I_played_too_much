@@ -11,16 +11,24 @@ public class GameState {
 
     // ── Enumerazioni ──────────────────────────────────────────────────────────
     public enum StatoGioco {
-        MENU, SELEZIONE_PERSONAGGIO, SELEZIONE_MODALITA,
+        MENU, IMPOSTAZIONI, CONTROLLI,
+        SELEZIONE_PERSONAGGIO, SELEZIONE_MODALITA,
         GIOCO, VITTORIA_STORIA, GAME_OVER, PAUSA
     }
 
     public enum Modalita { STORIA, INFINITA }
 
     // ── Stato corrente ────────────────────────────────────────────────────────
-    public StatoGioco statoGioco   = StatoGioco.MENU;
+    public StatoGioco statoGioco     = StatoGioco.MENU;
     public StatoGioco statoPrecedente;
     public Modalita   modalitaScelta = Modalita.STORIA;
+
+    // ── Impostazioni (dati persistenti tra le schermate) ──────────────────────
+    public final Impostazioni impostazioni = new Impostazioni();
+
+    // ── Posizione mouse (coordinate logiche, aggiornata ogni frame) ───────────
+    public int mouseX = 0;
+    public int mouseY = 0;
 
     // ── Posizione giocatore ───────────────────────────────────────────────────
     public float x, y;
@@ -32,11 +40,19 @@ public class GameState {
     public int   vite;
 
     // ── Progressione mondo/stanza ─────────────────────────────────────────────
-    public int     mondoAttuale       = 1;
-    public int     stanzaNelMondo     = 1;
+    public int     mondoAttuale        = 1;
+    public int     stanzaNelMondo      = 1;
     public int     indiceStanzaMemoria = 0;
-    public boolean bossSpawnato       = false;
-    public boolean bossSconfitto      = false;
+    public boolean bossSpawnato        = false;
+    public boolean bossSconfitto       = false;
+
+    /**
+     * True quando il boss del mondo PRECEDENTE è stato sconfitto.
+     * Determina se la porta dello shop (nord) è visibile nella stanza 1 del nuovo mondo.
+     * Viene impostato a true in avanzaAlMondoSuccessivo() e resettato a false
+     * solo all'inizio di una nuova partita completa.
+     */
+    public boolean shopSbloccato = false;
 
     // ── Risorse ───────────────────────────────────────────────────────────────
     public int monete = 0;
@@ -117,6 +133,7 @@ public class GameState {
         monete               = 0;
         bossSpawnato         = false;
         bossSconfitto        = false;
+        shopSbloccato        = false;
         resetGiocatore();
     }
 
@@ -171,6 +188,7 @@ public class GameState {
         monete                       = 0;
         bossSpawnato                 = false;
         bossSconfitto                = false;
+        shopSbloccato                = false;
         statoGioco                   = StatoGioco.MENU;
         resetGiocatore();
     }

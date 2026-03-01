@@ -26,6 +26,7 @@ public class GameLoop {
     public GameLoop(GameState state, RoomManager roomMgr) {
         this.state   = state;
         this.roomMgr = roomMgr;
+        roomMgr.setPugniAttiviRef(pugniAttivi); // Per pulizia pugni al cambio stanza shop
     }
 
     // ── Tick principale ───────────────────────────────────────────────────────
@@ -56,10 +57,38 @@ public class GameLoop {
         float minY = O * T;
         float maxY = (O + GameState.RIG_GIOCO) * T - GameState.PG_SIZE;
 
+        // ── Stanza Shop Nord ──────────────────────────────────────────────────
+        // Dentro la stanza shop: solo movimento libero + porta a sud per uscire
+        if (roomMgr.inStanzaShop) {
+            if (state.up    && state.y > minY) state.y -= state.velocita;
+            if (state.down  && state.y < maxY) state.y += state.velocita;
+            if (state.left  && state.x > minX) state.x -= state.velocita;
+            if (state.right && state.x < maxX) state.x += state.velocita;
+
+            // Porta sud (bordo basso): esce dallo shop
+            if (state.y >= maxY && state.down) {
+                roomMgr.esciDalloShop();
+            }
+            return; // Nessuna altra transizione dentro lo shop
+        }
+
+        // ── Movimento verticale ───────────────────────────────────────────────
         if (state.up    && state.y > minY) state.y -= state.velocita;
         if (state.down  && state.y < maxY) state.y += state.velocita;
 
-        // Zona porta (y centrale) per transizioni orizzontali
+        // Porta nord shop: stanza 1 del nuovo mondo, shop sbloccato, giocatore in cima
+        boolean inZonaPortaNord = state.x > (GameState.LARGHEZZA_GIOCO / 2f - GameState.TILE_SIZE)
+                && state.x < (GameState.LARGHEZZA_GIOCO / 2f + GameState.TILE_SIZE);
+        if (state.up && state.y <= minY
+                && state.stanzaNelMondo == 1
+                && state.shopSbloccato
+                && inZonaPortaNord) {
+            roomMgr.assicuraShopGenerato();
+            roomMgr.entraNelloShop();
+            return;
+        }
+
+        // ── Movimento orizzontale ─────────────────────────────────────────────
         float centroPortaY = (GameState.RIG_TOTALI * T) / 2f;
         boolean inZonaPorta = state.y > centroPortaY - T && state.y < centroPortaY + T;
 
@@ -81,22 +110,34 @@ public class GameLoop {
         }
     }
 
+    /**
+     * True se la stanza corrente è "pulita" (nessun nemico vivo).
+     * La stanza boss si considera pulita solo dopo bossSconfitto.
+     * La stanza 1 (ingresso) è sempre pulita.
+     */
+    private boolean stanzaPulita() {
+        if (state.stanzaNelMondo == 1) return true;
+        return roomMgr.getNemiciCorrenti().isEmpty();
+    }
+
     private void gestisciTransizioneDestra(float maxX) {
         boolean isBossStanza = state.stanzaNelMondo == GameState.STANZA_BOSS;
 
         if (isBossStanza && state.bossSpawnato) {
             if (state.bossSconfitto) {
-                // Avanza al mondo successivo (RoomManager decide se vittoria o no)
                 roomMgr.avanzaAlMondoSuccessivo();
                 pugniAttivi.clear();
             } else {
-                // Boss ancora vivo: blocca il passaggio
-                state.x = maxX - 10;
+                state.x = maxX - 10; // Boss ancora vivo: blocca
             }
         } else {
-            // Stanza normale: entra nella stanza successiva
-            roomMgr.entraNellaStanzaSuccessiva();
-            pugniAttivi.clear();
+            // Stanza normale: passa solo se pulita
+            if (stanzaPulita()) {
+                roomMgr.entraNellaStanzaSuccessiva();
+                pugniAttivi.clear();
+            } else {
+                state.x = maxX - 10; // Nemici ancora vivi: blocca
+            }
         }
     }
 
@@ -156,13 +197,19 @@ public class GameLoop {
         Rectangle hbPG = new Rectangle((int) state.x, (int) state.y,
                 GameState.PG_SIZE, GameState.PG_SIZE);
 
-        // Shopkeeper battuta
-        for (Shopkeeper sk : roomMgr.getShopkeepersCorrenti()) {
+        // Usa le liste corrette in base a dove si trova il giocatore
+        java.util.List<Shopkeeper> shopkeepers = roomMgr.inStanzaShop
+                ? roomMgr.getShopkeeperShop()
+                : roomMgr.getShopkeepersCorrenti();
+        java.util.List<ShopItem> items = roomMgr.inStanzaShop
+                ? roomMgr.getItemsShop()
+                : roomMgr.getShopItemsCorrenti();
+
+        for (Shopkeeper sk : shopkeepers) {
             if (hbPG.intersects(sk.getHitbox())) sk.attivaBattuta();
         }
 
-        // Acquisto items
-        for (ShopItem si : roomMgr.getShopItemsCorrenti()) {
+        for (ShopItem si : items) {
             if (si.controllaAcquisto(state.x, state.y, GameState.PG_SIZE, state.monete)) {
                 state.monete -= si.getCosto();
                 si.setAcquistato();

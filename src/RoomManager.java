@@ -70,6 +70,7 @@ public class RoomManager {
         shopItemsPerStanza.clear();
         memoriaColoriMondo1.clear();
         memoriaColoriMondo2.clear();
+        resetShop();
         inizializzaStanzaDefault();
     }
 
@@ -100,13 +101,11 @@ public class RoomManager {
 
         } else if (state.stanzaNelMondo == GameState.STANZA_BOSS
                 && state.bossSpawnato && !state.bossSconfitto) {
-            // Boss già spawnato ma non sconfitto: ricrea stanza (torna indietro e rientra)
+            // Boss già spawnato ma non sconfitto: rientra, ricrea il boss
             generaStanzaBoss(nuoviNemici);
 
-        } else if (state.stanzaNelMondo == 4) {
-            generaStanzaShop(nuoviShopkeepers, nuoveItems);
-
         } else if (state.stanzaNelMondo < GameState.STANZA_BOSS) {
+            // Stanza normale con nemici (non esiste più la stanza 4 shop fissa)
             generaStanzaNormale(nuoviNemici);
         }
 
@@ -204,6 +203,7 @@ public class RoomManager {
         state.indiceStanzaMemoria = 0;
         state.bossSpawnato        = false;
         state.bossSconfitto       = false;
+        state.shopSbloccato       = true;  // Boss del mondo precedente sconfitto → shop disponibile
 
         resetCompleto();
         state.resetGiocatore();
@@ -211,7 +211,69 @@ public class RoomManager {
         if (eventListener != null) eventListener.onCambioMondo(state.mondoAttuale);
     }
 
-    // ── Getters stanza corrente ───────────────────────────────────────────────
+    // ── Shop room separata ────────────────────────────────────────────────────
+
+    /**
+     * True se il giocatore si trova attualmente nella stanza shop nord.
+     * Usato da GameLoop e RenderEngine per comportamento speciale.
+     */
+    public boolean inStanzaShop = false;
+
+    /**
+     * Entra nella stanza shop (porta a nord dalla stanza 1 del nuovo mondo).
+     * Memorizza la posizione precedente per il ritorno.
+     */
+    public void entraNelloShop() {
+        inStanzaShop = true;
+        state.shopSbloccato = false; // Consumato: non riappare finché non batti il prossimo boss
+        state.y = (GameState.RIG_GIOCO) * GameState.TILE_SIZE - GameState.PG_SIZE - 10f; // Entra dal basso della stanza shop
+        pugniAttiviRef.clear();
+    }
+
+    /**
+     * Esce dalla stanza shop (porta a sud, torna alla stanza 1).
+     */
+    public void esciDalloShop() {
+        inStanzaShop = false;
+        state.y = GameState.OFFSET * GameState.TILE_SIZE + 20f; // Torna nella stanza 1 in cima
+        pugniAttiviRef.clear();
+    }
+
+    // Riferimento ai pugni attivi passato da GameLoop per pulirli al cambio stanza shop
+    private java.util.List<Pugno> pugniAttiviRef = new java.util.ArrayList<>();
+    public void setPugniAttiviRef(java.util.List<Pugno> pugni) { this.pugniAttiviRef = pugni; }
+
+    // ── Contenuto stanza shop ─────────────────────────────────────────────────
+
+    // Lista separata per la stanza shop (non fa parte della memoria stanze normale)
+    private final java.util.List<Shopkeeper> shopkeeperShop = new java.util.ArrayList<>();
+    private final java.util.List<ShopItem>   itemsShop      = new java.util.ArrayList<>();
+    private boolean shopGenerato = false;
+
+    public java.util.List<Shopkeeper> getShopkeeperShop() { return shopkeeperShop; }
+    public java.util.List<ShopItem>   getItemsShop()      { return itemsShop; }
+
+    /**
+     * Genera il contenuto della stanza shop se non è ancora stato generato.
+     */
+    public void assicuraShopGenerato() {
+        if (shopGenerato) return;
+        shopkeeperShop.clear();
+        itemsShop.clear();
+        shopkeeperShop.add(new Shopkeeper(7, 1, GameState.TILE_SIZE, res.imgShopkeeper));
+        itemsShop.add(new ShopItem(4, 3, GameState.TILE_SIZE, "CURA",     2, res.imgCura));
+        itemsShop.add(new ShopItem(7, 3, GameState.TILE_SIZE, "VELOCITA", 5, res.imgItemSpeed));
+        itemsShop.add(new ShopItem(10, 3, GameState.TILE_SIZE, "DANNO",   7, res.imgItemDamage));
+        shopGenerato = true;
+    }
+
+    /** Resetta il flag shopGenerato (chiamato al cambio mondo per refresh items) */
+    public void resetShop() {
+        shopGenerato = false;
+        shopkeeperShop.clear();
+        itemsShop.clear();
+        inStanzaShop = false;
+    }
 
     public List<Nemico>     getNemiciCorrenti()      { return nemiciPerStanza.get(state.indiceStanzaMemoria); }
     public List<Cura>       getCureCorrenti()         { return curePerStanza.get(state.indiceStanzaMemoria); }
