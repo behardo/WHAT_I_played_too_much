@@ -44,20 +44,18 @@ public class RenderEngine {
      * Applica la trasformazione fullscreen e delega al metodo corretto.
      */
     public void render(Graphics2D g2, int panelWidth, int panelHeight) {
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        // Hint qualità: bilineare per lo stretch, anti-aliasing per testo/forme
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,        RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,       RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.setRenderingHint(RenderingHints.KEY_RENDERING,           RenderingHints.VALUE_RENDER_QUALITY);
 
-        // Sfondo nero (letterbox)
-        g2.setColor(Color.BLACK);
-        g2.fillRect(0, 0, panelWidth, panelHeight);
+        // Stretch puro: scaleX e scaleY indipendenti, nessun offset/letterbox
+        double[] params = fullscreen.getScaleParams(panelWidth, panelHeight);
+        double scaleX   = params[0];
+        double scaleY   = params[1];
+        // Nessun fillRect di sfondo: il contenuto copre tutto il pannello
 
-        // Scaling fullscreen con letterbox
-        double[] params  = fullscreen.getScaleParams(panelWidth, panelHeight);
-        double   scale   = params[2];
-        double   offsetX = params[3];
-        double   offsetY = params[4];
-
-        g2.translate(offsetX, offsetY);
-        g2.scale(scale, scale);
+        g2.scale(scaleX, scaleY);
 
         // Dispatch per stato
         switch (state.statoGioco) {
@@ -90,26 +88,24 @@ public class RenderEngine {
         }
 
         // Titolo
-        g2.setFont(new Font("Consolas", Font.BOLD, 42));
+        g2.setFont(new Font("Consolas", Font.BOLD, 38));
         String titolo = "WHAT: I'VE PLAYED TOO MUCH";
         FontMetrics fm = g2.getFontMetrics();
         int tx = W/2 - fm.stringWidth(titolo)/2;
-        // Ombra titolo
         g2.setColor(new Color(0, 0, 0, 150));
-        g2.drawString(titolo, tx + 3, H/2 - 115 + 3);
-        // Titolo principale
+        g2.drawString(titolo, tx + 3, 60 + 3);
         g2.setColor(new Color(200, 200, 255));
-        g2.drawString(titolo, tx, H/2 - 115);
+        g2.drawString(titolo, tx, 60);
 
         // Sottotitolo
-        g2.setFont(new Font("Arial", Font.ITALIC, 17));
+        g2.setFont(new Font("Arial", Font.ITALIC, 16));
         g2.setColor(new Color(140, 140, 180));
         String sub = "Un roguelike di muratori e boss corrotti";
-        g2.drawString(sub, W/2 - g2.getFontMetrics().stringWidth(sub)/2, H/2 - 75);
+        g2.drawString(sub, W/2 - g2.getFontMetrics().stringWidth(sub)/2, 85);
 
         // Separatore
         g2.setColor(new Color(80, 80, 130));
-        g2.fillRect(W/2 - 130, H/2 - 58, 260, 2);
+        g2.fillRect(W/2 - 120, 95, 240, 2);
 
         // Bottoni menu
         ui.btnGioca.draw(g2);
@@ -134,55 +130,63 @@ public class RenderEngine {
         sfondoOverlay(g2, new Color(10, 10, 30));
 
         // Titolo
-        g2.setFont(new Font("Consolas", Font.BOLD, 38));
+        g2.setFont(new Font("Consolas", Font.BOLD, 32));
         g2.setColor(new Color(200, 200, 255));
         String t = "IMPOSTAZIONI";
-        g2.drawString(t, W/2 - g2.getFontMetrics().stringWidth(t)/2, 90);
+        g2.drawString(t, W/2 - g2.getFontMetrics().stringWidth(t)/2, 62);
         g2.setColor(new Color(80, 80, 130));
-        g2.fillRect(W/2 - 160, 100, 320, 2);
+        g2.fillRect(W/2 - 140, 70, 280, 2);
 
-        int labelX = W/2 - 200;
-        int sx     = W/2 + 30;
+        // Leggo i parametri di layout calcolati in UIManager
+        int LX   = ui._impLabelX;
+        int CX2  = ui._impCtrlX;
+        int SW   = ui._impSw;
+        int s    = ui._impStartY;
+        int RH   = ui._impRigaH;
+        int SH   = ui._impSh;
+        int sliderX = CX2 + SW + 5;
+        int sliderW = 145;
 
-        // ── Volume Musica ─────────────────────────────────────────────────────
-        int sy1 = H/2 - 80;
-        g2.setFont(new Font("Consolas", Font.BOLD, 20));
-        g2.setColor(Color.WHITE);
-        g2.drawString("VOLUME MUSICA", labelX, sy1 + 28);
-        ui.btnMusMeno.draw(g2);
-        disegnaSlider(g2, sx + 60, sy1 + 8, 130, 28, imp.volumeMusica,
-                new Color(80, 80, 200), new Color(140, 140, 255));
+        // ── Riga 1: Volume Musica ─────────────────────────────────────────────
         g2.setFont(new Font("Consolas", Font.BOLD, 18));
+        g2.setColor(Color.WHITE);
+        g2.drawString("VOLUME MUSICA", LX, s + SH/2 + 6);
+        ui.btnMusMeno.draw(g2);
+        disegnaSlider(g2, sliderX, s + 4, sliderW, SH - 8, imp.volumeMusica,
+                new Color(80, 80, 200), new Color(140, 140, 255));
+        g2.setFont(new Font("Consolas", Font.BOLD, 16));
         g2.setColor(new Color(200, 200, 255));
-        g2.drawString(imp.volumeMusica + "%", sx + 200, sy1 + 28);
+        g2.drawString(imp.volumeMusica + "%", sliderX + sliderW + 8, s + SH/2 + 6);
         ui.btnMusPiu.draw(g2);
 
-        // ── Volume Effetti ────────────────────────────────────────────────────
-        int sy2 = H/2;
-        g2.setFont(new Font("Consolas", Font.BOLD, 20));
-        g2.setColor(Color.WHITE);
-        g2.drawString("VOLUME EFFETTI", labelX, sy2 + 28);
-        ui.btnEffMeno.draw(g2);
-        disegnaSlider(g2, sx + 60, sy2 + 8, 130, 28, imp.volumeEffetti,
-                new Color(80, 180, 80), new Color(120, 220, 120));
+        // ── Riga 2: Volume Effetti ────────────────────────────────────────────
         g2.setFont(new Font("Consolas", Font.BOLD, 18));
+        g2.setColor(Color.WHITE);
+        g2.drawString("VOLUME EFFETTI", LX, s+RH + SH/2 + 6);
+        ui.btnEffMeno.draw(g2);
+        disegnaSlider(g2, sliderX, s+RH + 4, sliderW, SH - 8, imp.volumeEffetti,
+                new Color(80, 180, 80), new Color(120, 220, 120));
+        g2.setFont(new Font("Consolas", Font.BOLD, 16));
         g2.setColor(new Color(150, 230, 150));
-        g2.drawString(imp.volumeEffetti + "%", sx + 200, sy2 + 28);
+        g2.drawString(imp.volumeEffetti + "%", sliderX + sliderW + 8, s+RH + SH/2 + 6);
         ui.btnEffPiu.draw(g2);
 
-        // ── Difficoltà ────────────────────────────────────────────────────────
-        int dy = H/2 + 80;
-        g2.setFont(new Font("Consolas", Font.BOLD, 20));
+        // ── Riga 3: Difficoltà ────────────────────────────────────────────────
+        g2.setFont(new Font("Consolas", Font.BOLD, 18));
         g2.setColor(Color.WHITE);
-        g2.drawString("DIFFICOLTA'", labelX, dy + 28);
-        // Aggiorna etichetta bottone difficoltà dinamicamente con colore
-        g2.setFont(new Font("Consolas", Font.BOLD, 20));
+        g2.drawString("DIFFICOLTA'", LX, s+RH*2 + SH/2 + 6);
         ui.btnDifficolta.setColoreTesto(imp.getColoreDifficolta());
+        // Aggiorna il label del bottone dinamicamente
+        // (MenuButton non supporta cambio label → disegniamo il testo sopra)
         ui.btnDifficolta.draw(g2);
-        // Hint sotto
-        g2.setFont(new Font("Arial", Font.ITALIC, 14));
-        g2.setColor(new Color(120, 120, 150));
-        g2.drawString("← Clicca per cambiare →", W/2 - 80, dy + 68);
+        // Sovrascrivi testo con la difficoltà corrente centrato nel bottone
+        Rectangle db = ui.btnDifficolta.bounds;
+        g2.setFont(new Font("Consolas", Font.BOLD, 18));
+        g2.setColor(imp.getColoreDifficolta());
+        String diff = imp.getNomeDifficolta();
+        FontMetrics fm = g2.getFontMetrics();
+        g2.drawString(diff, db.x + (db.width - fm.stringWidth(diff))/2,
+                db.y + (db.height + fm.getAscent() - fm.getDescent())/2);
 
         // ── Indietro ──────────────────────────────────────────────────────────
         ui.btnChiudiImpostazioni.draw(g2);
@@ -275,49 +279,59 @@ public class RenderEngine {
         g2.fillRect(0, 0, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
 
         g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Consolas", Font.BOLD, 36));
-        g2.drawString("SCEGLI IL TUO MURATORE", GameState.LARGHEZZA_GIOCO / 2 - 220, 80);
+        g2.setFont(new Font("Consolas", Font.BOLD, 30));
+        String titolo = "SCEGLI IL TUO PERSONAGGIO";
+        g2.drawString(titolo, GameState.LARGHEZZA_GIOCO/2 - g2.getFontMetrics().stringWidth(titolo)/2, 55);
 
-        g2.setFont(new Font("Arial", Font.PLAIN, 16));
-        g2.drawString("[Frecce/Mouse] per navigare, [INVIO/Click] per confermare",
-                GameState.LARGHEZZA_GIOCO / 2 - 200, 110);
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        g2.setColor(new Color(160, 160, 190));
+        g2.drawString("[Frecce/Mouse] naviga  [INVIO/Click] conferma  [ESC] indietro",
+                GameState.LARGHEZZA_GIOCO/2 - 220, 78);
 
         for (int i = 0; i < ui.listaPersonaggi.size(); i++) {
             DatiPersonaggio pg   = ui.listaPersonaggi.get(i);
             Rectangle       rect = ui.rectsSelezionePG[i];
             boolean         sel  = (i == state.indicePersonaggioSelezionato);
 
-            // Sfondo riquadro
-            g2.setColor(sel ? new Color(255, 215, 0, 100) : new Color(255, 255, 255, 30));
-            g2.fillRect(rect.x, rect.y, rect.width, rect.height);
-            g2.setColor(sel ? Color.YELLOW : Color.GRAY);
-            g2.drawRect(rect.x, rect.y, rect.width, rect.height);
+            // Sfondo riquadro con angoli arrotondati
+            g2.setColor(sel ? new Color(255, 215, 0, 80) : new Color(255, 255, 255, 20));
+            g2.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 8, 8);
+            g2.setColor(sel ? Color.YELLOW : new Color(120, 120, 160));
+            g2.setStroke(new BasicStroke(sel ? 2f : 1f));
+            g2.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 8, 8);
+            g2.setStroke(new BasicStroke(1f));
 
-            // Icona personaggio
+            // Icona personaggio centrata in alto
             int imgSize = 80;
             if (pg.imgIcona != null) {
-                g2.drawImage(pg.imgIcona, rect.x + (rect.width / 2 - imgSize / 2),
-                        rect.y + 20, imgSize, imgSize, null);
+                g2.drawImage(pg.imgIcona,
+                        rect.x + (rect.width - imgSize) / 2,
+                        rect.y + 15, imgSize, imgSize, null);
             }
 
-            // Testo stats
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Consolas", Font.BOLD, 18));
-            g2.drawString(pg.nome, rect.x + 10, rect.y + imgSize + 50);
+            // Nome
+            g2.setColor(sel ? Color.YELLOW : Color.WHITE);
+            g2.setFont(new Font("Consolas", Font.BOLD, 15));
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(pg.nome, rect.x + (rect.width - fm.stringWidth(pg.nome))/2, rect.y + 112);
 
-            g2.setFont(new Font("Arial", Font.ITALIC, 14));
-            g2.drawString(pg.descrizione, rect.x + 10, rect.y + imgSize + 75);
+            // Descrizione
+            g2.setFont(new Font("Arial", Font.ITALIC, 12));
+            g2.setColor(new Color(180, 180, 200));
+            g2.drawString(pg.descrizione, rect.x + 8, rect.y + 130);
 
-            if (res.imgCuore != null) {
-                g2.drawImage(res.imgCuore, rect.x + 10, rect.y + 160, 20, 20, null);
-            }
-            g2.setFont(new Font("Arial", Font.BOLD, 14));
-            g2.setColor(Color.RED);
-            g2.drawString("" + pg.vitaMax, rect.x + 35, rect.y + 175);
-            g2.setColor(Color.CYAN);
-            g2.drawString("VEL: " + pg.velocitaBase, rect.x + 60, rect.y + 175);
-            g2.setColor(Color.WHITE);
-            g2.drawString("DMG: " + pg.dannoBase, rect.x + 60, rect.y + 195);
+            // Stats: vita, velocità, danno
+            int statY = rect.y + 152;
+            if (res.imgCuore != null)
+                g2.drawImage(res.imgCuore, rect.x + 8, statY - 14, 16, 16, null);
+            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.setColor(new Color(255, 100, 100));
+            g2.drawString("" + pg.vitaMax, rect.x + 27, statY);
+
+            g2.setColor(new Color(100, 200, 255));
+            g2.drawString("VEL " + pg.velocitaBase, rect.x + 8,  statY + 18);
+            g2.setColor(new Color(255, 200, 100));
+            g2.drawString("DMG " + pg.dannoBase,    rect.x + 80, statY + 18);
         }
     }
 
@@ -328,44 +342,61 @@ public class RenderEngine {
         g2.fillRect(0, 0, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
 
         g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Consolas", Font.BOLD, 40));
-        g2.drawString("SELEZIONA LA SFIDA", GameState.LARGHEZZA_GIOCO / 2 - 180, 80);
+        g2.setFont(new Font("Consolas", Font.BOLD, 30));
+        String t = "SELEZIONA LA SFIDA";
+        g2.drawString(t, GameState.LARGHEZZA_GIOCO/2 - g2.getFontMetrics().stringWidth(t)/2, 55);
 
-        g2.setFont(new Font("Arial", Font.PLAIN, 18));
-        g2.drawString("[Frecce/Mouse] per navigare, [INVIO/Click] per confermare, [ESC] per PG",
-                GameState.LARGHEZZA_GIOCO / 2 - 270, 115);
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
+        g2.setColor(new Color(160, 160, 190));
+        g2.drawString("[Frecce/Mouse] naviga  [INVIO/Click] conferma  [ESC] indietro",
+                GameState.LARGHEZZA_GIOCO/2 - 210, 80);
 
-        String[] nomi   = { "STORIA CLASSICA",    "MODALITA INFINITA" };
-        String[] desc1  = { "Sconfiggi 4 Boss",   "Sopravvivi a mondi infiniti!" };
-        String[] desc2  = { "per vincere!",        "Nemici sempre più forti." };
-        BufferedImage[] icone = { res.imgIconaStoria, res.imgIconaInfinita };
-        String[] fallback = { "📖", "∞" };
+        String[] nomi     = { "STORIA CLASSICA",      "MODALITA INFINITA"    };
+        String[] desc1    = { "Sconfiggi 4 Boss",      "Sopravvivi all'infinito!" };
+        String[] desc2    = { "per salvare il cantiere", "Nemici sempre più forti." };
+        BufferedImage[] icone    = { res.imgIconaStoria, res.imgIconaInfinita };
+        String[] fallback = { "S", "∞" };
 
         for (int i = 0; i < 2; i++) {
             Rectangle rect = ui.rectsSelezioneModalita[i];
             boolean   sel  = (i == state.indiceModalitaSelezionata);
 
-            g2.setColor(sel ? new Color(173, 216, 230, 100) : new Color(255, 255, 255, 20));
-            g2.fillRect(rect.x, rect.y, rect.width, rect.height);
-            g2.setColor(sel ? Color.CYAN : Color.GRAY);
-            g2.drawRect(rect.x, rect.y, rect.width, rect.height);
+            // Sfondo
+            g2.setColor(sel ? new Color(173, 216, 230, 80) : new Color(255, 255, 255, 15));
+            g2.fillRoundRect(rect.x, rect.y, rect.width, rect.height, 10, 10);
+            g2.setColor(sel ? Color.CYAN : new Color(120, 120, 160));
+            g2.setStroke(new BasicStroke(sel ? 2.5f : 1.5f));
+            g2.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 10, 10);
+            g2.setStroke(new BasicStroke(1f));
 
-            int imgSize = 120;
+            // Icona/fallback centrata
+            int imgSize = 90;
             if (icone[i] != null) {
-                g2.drawImage(icone[i], rect.x + (rect.width / 2 - imgSize / 2),
-                        rect.y + 20, imgSize, imgSize, null);
+                g2.drawImage(icone[i],
+                        rect.x + (rect.width - imgSize) / 2,
+                        rect.y + 15, imgSize, imgSize, null);
             } else {
-                g2.setColor(Color.WHITE);
-                g2.setFont(new Font("Consolas", Font.BOLD, 100));
-                g2.drawString(fallback[i], rect.x + (rect.width / 2 - 50), rect.y + 110);
+                g2.setColor(sel ? Color.CYAN : Color.WHITE);
+                g2.setFont(new Font("Consolas", Font.BOLD, 70));
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(fallback[i],
+                        rect.x + (rect.width - fm.stringWidth(fallback[i]))/2,
+                        rect.y + 90);
             }
 
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Consolas", Font.BOLD, 22));
-            g2.drawString(nomi[i],  rect.x + 10, rect.y + 170);
-            g2.setFont(new Font("Arial", Font.ITALIC, 15));
-            g2.drawString(desc1[i], rect.x + 10, rect.y + 195);
-            g2.drawString(desc2[i], rect.x + 10, rect.y + 215);
+            // Nome
+            g2.setColor(sel ? Color.CYAN : Color.WHITE);
+            g2.setFont(new Font("Consolas", Font.BOLD, 18));
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(nomi[i],
+                    rect.x + (rect.width - fm.stringWidth(nomi[i]))/2,
+                    rect.y + 128);
+
+            // Descrizione
+            g2.setFont(new Font("Arial", Font.ITALIC, 14));
+            g2.setColor(new Color(190, 190, 210));
+            g2.drawString(desc1[i], rect.x + 12, rect.y + 158);
+            g2.drawString(desc2[i], rect.x + 12, rect.y + 178);
         }
     }
 
@@ -375,30 +406,32 @@ public class RenderEngine {
         final int W = GameState.LARGHEZZA_GIOCO;
         final int H = GameState.ALTEZZA_GIOCO;
 
-        // Overlay scuro semitrasparente sopra il gioco
         g2.setColor(new Color(0, 0, 0, 170));
         g2.fillRect(0, 0, W, H);
 
-        // Pannello centrale
-        int pw = 320, ph = 320;
-        int px = W/2 - pw/2, py = H/2 - ph/2 - 20;
+        // Pannello: top=130 (dove partono i bottoni) - 75 (per titolo+separatore)
+        // bottom = 154 + 4*44 + 3*10 = 154+206 = 360, +15 padding = 375
+        int pw = 300, padX = 20;
+        int py = 79;                      // 154 - 75
+        int ph = 375 - py;               // 296
+        int px = W/2 - pw/2 - padX;
+
         g2.setColor(new Color(15, 15, 35, 230));
-        g2.fillRoundRect(px, py, pw, ph, 16, 16);
+        g2.fillRoundRect(px, py, pw + padX*2, ph, 16, 16);
         g2.setColor(new Color(80, 80, 140));
         g2.setStroke(new BasicStroke(2f));
-        g2.drawRoundRect(px, py, pw, ph, 16, 16);
+        g2.drawRoundRect(px, py, pw + padX*2, ph, 16, 16);
         g2.setStroke(new BasicStroke(1f));
 
-        // Titolo pausa
-        g2.setFont(new Font("Consolas", Font.BOLD, 34));
+        // Titolo centrato nel pannello
+        g2.setFont(new Font("Consolas", Font.BOLD, 30));
         g2.setColor(new Color(200, 200, 255));
         String t = "PAUSA";
         FontMetrics fm = g2.getFontMetrics();
-        g2.drawString(t, W/2 - fm.stringWidth(t)/2, py + 50);
+        g2.drawString(t, W/2 - fm.stringWidth(t)/2, py + 45);
         g2.setColor(new Color(60, 60, 110));
-        g2.fillRect(W/2 - 80, py + 58, 160, 2);
+        g2.fillRect(W/2 - 70, py + 52, 140, 2);
 
-        // Bottoni
         ui.btnRiprendi.draw(g2);
         ui.btnImpostazioniPausa.draw(g2);
         ui.btnMenuPrincipalePausa.draw(g2);

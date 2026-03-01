@@ -50,7 +50,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         // 3. Logica stanze
         roomMgr    = new RoomManager(state, res);
 
-        // 4. Fullscreen
+        // 4. Fullscreen — finestra è già impostata nel main() prima di new WhatIvePlayedTooMuch()
         fullscreen = new FullscreenManager(finestra, this, device);
 
         // 5. Input (dipende da state, ui, roomMgr, fullscreen)
@@ -87,7 +87,9 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         });
 
         // 9. Setup pannello
-        setPreferredSize(new Dimension(GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO));
+        // NON impostiamo una preferredSize fissa sul pannello: la finestra è resizable
+        // e il rendering stretch si adatta a qualsiasi dimensione.
+        // La dimensione preferita iniziale è gestita da main() sulla JFrame.
         setFocusable(true);
         addKeyListener(input.getKeyAdapter());
         addMouseListener(input.getMouseAdapter());
@@ -118,17 +120,32 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
     // ── Main ─────────────────────────────────────────────────────────────────
 
     public static void main(String[] args) {
-        GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        device   = ge.getDefaultScreenDevice();
-        finestra = new JFrame("WHAT: I'VE PLAYED TOO MUCH");
+        // Usa invokeLater per sicurezza thread Swing
+        SwingUtilities.invokeLater(() -> {
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
+            device   = ge.getDefaultScreenDevice();
 
-        WhatIvePlayedTooMuch gioco = new WhatIvePlayedTooMuch();
-        finestra.add(gioco);
-        finestra.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        finestra.setResizable(false);
-        finestra.pack();
-        finestra.setLocationRelativeTo(null);
-        finestra.setVisible(true);
-        gioco.requestFocusInWindow();
+            finestra = new JFrame("WHAT: I'VE PLAYED TOO MUCH");
+            finestra.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+            // Ridimensionabile liberamente — il rendering si adatta in stretch
+            finestra.setResizable(true);
+
+            WhatIvePlayedTooMuch gioco = new WhatIvePlayedTooMuch();
+            finestra.add(gioco);
+
+            // Dimensione iniziale = dimensione logica di gioco
+            finestra.setPreferredSize(
+                    new Dimension(GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO));
+
+            // Dimensione minima: metà della logica (evita finestre troppo piccole)
+            finestra.setMinimumSize(
+                    new Dimension(GameState.LARGHEZZA_GIOCO / 2, GameState.ALTEZZA_GIOCO / 2));
+
+            finestra.pack();
+            finestra.setLocationRelativeTo(null);
+            finestra.setVisible(true);
+            gioco.requestFocusInWindow();
+        });
     }
 }
