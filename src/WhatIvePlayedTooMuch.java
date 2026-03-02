@@ -26,7 +26,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
     // ── Dipendenze ────────────────────────────────────────────────────────────
     private final GameState         state;
     private final ResourceLoader    res;
-    private final UIManager         ui;
+    final UIManager ui;
     private final RoomManager       roomMgr;
     private final FullscreenManager fullscreen;
     private final InputHandler      input;
@@ -57,8 +57,10 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         input      = new InputHandler(state, ui, roomMgr, fullscreen);
 
         // 6. Game loop (dipende da state, roomMgr)
-        gameLoop   = new GameLoop(state, roomMgr);
+        gameLoop   = new GameLoop(state, roomMgr, ui);
         gameLoop.setPungoImage(res.imgPugno);
+        gameLoop.setShopkeeperImage(res.imgShopkeeper);
+        gameLoop.setShopkeeperNemicoImage(res.imgShopkeeperNemico);
         gameLoop.setDropImages(res.imgCura, res.imgMoneta);
 
         // 7. Renderer (dipende da tutti i precedenti)
@@ -97,6 +99,12 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
 
         // 10. Avvia game loop a 60 fps
         new Timer(16, this).start();
+    }
+
+
+    /** Forza ricalcolo layout bottoni con dimensioni reali. */
+    public void forceLayoutUpdate(int w, int h) {
+        if (ui != null) ui.ricalcolaBottoni(w, h);
     }
 
     // ── Game loop ─────────────────────────────────────────────────────────────
@@ -146,6 +154,12 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
             finestra.setLocationRelativeTo(null);
             finestra.setVisible(true);
             gioco.requestFocusInWindow();
+            // Ricalcola layout dopo che la finestra ha dimensioni reali
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                int pw = gioco.getWidth();
+                int ph = gioco.getHeight();
+                if (pw > 0 && ph > 0) gioco.forceLayoutUpdate(pw, ph);
+            });
         });
     }
 }

@@ -71,6 +71,7 @@ public class InputHandler {
                 state.mouseX = p.x;
                 state.mouseY = p.y;
                 ui.aggiornaMouse(p.x, p.y);
+                sincronizzaIndicePausa(p);
             }
 
             @Override
@@ -79,11 +80,20 @@ public class InputHandler {
                 state.mouseX = p.x;
                 state.mouseY = p.y;
                 ui.aggiornaMouse(p.x, p.y);
+                sincronizzaIndicePausa(p);
             }
         };
     }
 
     // ── Gestori tastiera ──────────────────────────────────────────────────────
+
+    private void sincronizzaIndicePausa(Point p) {
+        if (state.statoGioco != GameState.StatoGioco.PAUSA) return;
+        MenuButton[] btns = { ui.btnRiprendi, ui.btnImpostazioniPausa,
+                ui.btnMenuPrincipalePausa, ui.btnEsciPausa };
+        for (int i = 0; i < btns.length; i++)
+            if (btns[i].contains(p)) { state.indiceBtnPausa = i; return; }
+    }
 
     private void gestisciMenu(int k) {
         if (k == KeyEvent.VK_ENTER) state.statoGioco = GameState.StatoGioco.SELEZIONE_PERSONAGGIO;
@@ -135,10 +145,26 @@ public class InputHandler {
     }
 
     private void gestisciPausa(int k) {
-        if (k == KeyEvent.VK_ESCAPE || k == KeyEvent.VK_ENTER)
-            state.statoGioco = GameState.StatoGioco.GIOCO;
-        else if (k == KeyEvent.VK_Q)
-            System.exit(0);
+        // Navigazione con frecce
+        if (k == KeyEvent.VK_UP   || k == KeyEvent.VK_W) {
+            state.indiceBtnPausa = (state.indiceBtnPausa - 1 + 4) % 4; return;
+        }
+        if (k == KeyEvent.VK_DOWN || k == KeyEvent.VK_S) {
+            state.indiceBtnPausa = (state.indiceBtnPausa + 1) % 4; return;
+        }
+        if (k == KeyEvent.VK_ESCAPE) {
+            state.statoGioco = GameState.StatoGioco.GIOCO; return;
+        }
+        if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE) {
+            switch (state.indiceBtnPausa) {
+                case 0 -> state.statoGioco = GameState.StatoGioco.GIOCO;
+                case 1 -> { state.statoPrecedente = GameState.StatoGioco.PAUSA;
+                    state.statoGioco = GameState.StatoGioco.IMPOSTAZIONI; }
+                case 2 -> { state.tornaAlMenu(); roomMgr.resetCompleto(); }
+                case 3 -> System.exit(0);
+            }
+        }
+        if (k == KeyEvent.VK_Q) System.exit(0);
     }
 
     private void gestisciGioco(int k, boolean pressed) {
@@ -152,8 +178,9 @@ public class InputHandler {
         }
 
         if (k == KeyEvent.VK_ESCAPE) {
-            state.statoPrecedente = GameState.StatoGioco.GIOCO;
-            state.statoGioco      = GameState.StatoGioco.PAUSA;
+            state.statoPrecedente  = GameState.StatoGioco.GIOCO;
+            state.statoGioco       = GameState.StatoGioco.PAUSA;
+            state.indiceBtnPausa   = 0;  // seleziona "RIPRENDI" di default
             return;
         }
         toggleMovimento(k, pressed);
@@ -190,7 +217,6 @@ public class InputHandler {
                 if (ui.btnMusPiu.contains(p))   state.impostazioni.cambiaVolumeMusica(+10);
                 if (ui.btnEffMeno.contains(p))  state.impostazioni.cambiaVolumeEffetti(-10);
                 if (ui.btnEffPiu.contains(p))   state.impostazioni.cambiaVolumeEffetti(+10);
-                if (ui.btnDifficolta.contains(p)) state.impostazioni.cicladifficolta();
                 if (ui.btnChiudiImpostazioni.contains(p)) tornaDaImpostazioni();
             }
 
@@ -202,7 +228,8 @@ public class InputHandler {
 
             case SELEZIONE_PERSONAGGIO -> {
                 for (int i = 0; i < 4; i++) {
-                    if (ui.rectsSelezionePG[i].contains(p)) {
+                    if (ui.rectsSelezionePG[i].contains(p)
+                            && state.sistemaPersonaggi.isSbloccato(i)) {
                         state.indicePersonaggioSelezionato = i;
                         state.statoGioco = GameState.StatoGioco.SELEZIONE_MODALITA;
                         break;

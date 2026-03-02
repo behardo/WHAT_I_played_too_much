@@ -18,6 +18,7 @@ public class GameLoop {
 
     private final GameState   state;
     private final RoomManager roomMgr;
+    private UIManager ui;  // Per proiettile per PG
 
     // Lista pugni condivisa con RenderEngine
     public final List<Pugno> pugniAttivi = new ArrayList<>();
@@ -26,6 +27,12 @@ public class GameLoop {
     public GameLoop(GameState state, RoomManager roomMgr) {
         this.state   = state;
         this.roomMgr = roomMgr;
+    }
+
+    public GameLoop(GameState state, RoomManager roomMgr, UIManager ui) {
+        this.state   = state;
+        this.roomMgr = roomMgr;
+        this.ui      = ui;
         roomMgr.setPugniAttiviRef(pugniAttivi); // Per pulizia pugni al cambio stanza shop
     }
 
@@ -70,7 +77,9 @@ public class GameLoop {
             roomMgr.getItemsShop().clear();
             state.monete += 20;
             // Spawna lo ShopkeeperNemico arrabbiato
-            roomMgr.getShopNemici().add(new ShopkeeperNemico(skX, skY, shopkeeperImgRef));
+            // Usa sprite dedicato per il nemico (shopkeeper_nemico.png se disponibile)
+            java.awt.image.BufferedImage imgSKN = shopkeeperNemicoImgRef != null ? shopkeeperNemicoImgRef : shopkeeperImgRef;
+            roomMgr.getShopNemici().add(new ShopkeeperNemico(skX, skY, imgSKN));
             dialogo.consuma();
         } else if (dialogo.getStato() == DialogoShopkeeper.Stato.RIFIUTO) {
             dialogo.consuma();
@@ -79,8 +88,12 @@ public class GameLoop {
 
     // Immagine shopkeeper per ShopkeeperNemico (impostata da WhatIvePlayedTooMuch)
     private java.awt.image.BufferedImage shopkeeperImgRef;
+    private java.awt.image.BufferedImage shopkeeperNemicoImgRef;
     public void setShopkeeperImage(java.awt.image.BufferedImage img) {
         this.shopkeeperImgRef = img;
+    }
+    public void setShopkeeperNemicoImage(java.awt.image.BufferedImage img) {
+        this.shopkeeperNemicoImgRef = img;
     }
 
     // ── Movimento e transizioni ───────────────────────────────────────────────
@@ -133,8 +146,15 @@ public class GameLoop {
             if (state.x > minX) {
                 state.x -= state.velocita;
             } else if (inZonaPorta && state.indiceStanzaMemoria > 0) {
-                roomMgr.tornaAllaStanzaPrecedente();
-                pugniAttivi.clear();
+                // Bloccato se boss fight attiva (boss spawned e non sconfitto)
+                boolean bossAttivo = state.stanzaNelMondo == GameState.STANZA_BOSS
+                        && state.bossSpawnato && !state.bossSconfitto;
+                if (!bossAttivo) {
+                    roomMgr.tornaAllaStanzaPrecedente();
+                    pugniAttivi.clear();
+                } else {
+                    state.x = minX + 2; // Spingi indietro
+                }
             }
         }
 
@@ -193,17 +213,19 @@ public class GameLoop {
         if (state.shootRight) dirX =  1;
 
         if (dirX != 0 || dirY != 0) {
-            // ResourceLoader non è disponibile qui: il pugno usa imgPugno dal costruttore
-            // Il riferimento all'immagine viene passato tramite factory o da chi costruisce il GameLoop
-            BufferedImageRef imgPugno = pungnoImageRef;
-            pugniAttivi.add(new Pugno(state.x, state.y, dirX, dirY,
-                    imgPugno != null ? imgPugno.img : null,
-                    state.dannoPugno));
+            // Usa il proiettile specifico del personaggio selezionato
+            java.awt.image.BufferedImage imgBullet = null;
+            if (ui != null) {
+                DatiPersonaggio pg = ui.listaPersonaggi.get(state.indicePersonaggioSelezionato);
+                imgBullet = pg.imgProiettile;
+            }
+            if (imgBullet == null && pungnoImageRef != null) imgBullet = pungnoImageRef.img;
+            pugniAttivi.add(new Pugno(state.x, state.y, dirX, dirY, imgBullet, state.dannoPugno));
             state.cooldownSparo = GameState.SPARO_DELAY;
         }
     }
 
-    // ── Buffer immagine pugno (impostato da WhatIvePlayedTooMuch) ─────────────
+    // ── Fallback immagine pugno (impostato da WhatIvePlayedTooMuch) ──────────
     private BufferedImageRef pungnoImageRef;
 
     public void setPungoImage(java.awt.image.BufferedImage img) {

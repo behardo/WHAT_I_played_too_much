@@ -118,7 +118,16 @@ public class SistemaPersonaggi {
     }
 
     /**
-     * Reset completo (chiamato da tornaAlMenu).
+     * Reset parziale (torna al menu): mantiene i mondi sconfitti (sblocchi personaggi),
+     * resetta solo il contatore combo e il segreto.
+     */
+    public void resetSoloCombo() {
+        contatoreBCombo = 0;
+        segretoAttivo   = false;
+    }
+
+    /**
+     * Reset completo (nuova partita): azzera tutto inclusi gli sblocchi.
      */
     public void resetCompleto() {
         contatoreBCombo = 0;

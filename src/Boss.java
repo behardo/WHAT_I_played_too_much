@@ -22,7 +22,7 @@ public class Boss extends Nemico {
 
     // ── Proiettili ────────────────────────────────────────────────────────────
     private final List<BossProjectile> proiettili = new ArrayList<>();
-    private BufferedImage imgProiettile;
+    private BufferedImage[] imgProiettiliPerTipo = new BufferedImage[4]; // indice 0-3
     private int cooldownSparo = 0;
 
     // Delay sparo per tipo
@@ -53,7 +53,20 @@ public class Boss extends Nemico {
         this.y -= (TAGLIA_BOSS - tileSize) / 2f;
     }
 
-    public void caricaProiettile(BufferedImage img) { this.imgProiettile = img; }
+    /** Carica lo stesso proiettile per tutti i tipi (compatibilità). */
+    public void caricaProiettile(BufferedImage img) {
+        java.util.Arrays.fill(imgProiettiliPerTipo, img);
+    }
+    /** Carica proiettili specifici per tipo (1-4). */
+    public void caricaProiettiliPerTipo(java.awt.image.BufferedImage[] imgs) {
+        for (int i = 0; i < 4 && i < imgs.length; i++)
+            imgProiettiliPerTipo[i] = imgs[i];
+    }
+    private BufferedImage getImgProiettile() {
+        BufferedImage img = imgProiettiliPerTipo[tipo - 1];
+        if (img == null) img = imgProiettiliPerTipo[0]; // fallback al tipo 1
+        return img;
+    }
 
     // ── Update ────────────────────────────────────────────────────────────────
 
@@ -149,14 +162,14 @@ public class Boss extends Nemico {
 
     private void spara(float tx, float ty, int n) {
         float cx = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
-        proiettili.add(new BossProjectile(cx, cy, tx, ty, imgProiettile));
+        proiettili.add(new BossProjectile(cx, cy, tx, ty, getImgProiettile()));
     }
 
     private void sparaCroce() {
         float cx = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
         float[][] dirs = {{1,0},{-1,0},{0,1},{0,-1}};
         for (float[] d : dirs)
-            proiettili.add(new BossProjectile(cx, cy, cx + d[0]*100, cy + d[1]*100, imgProiettile));
+            proiettili.add(new BossProjectile(cx, cy, cx + d[0]*100, cy + d[1]*100, getImgProiettile()));
     }
 
     private void sparaSpirale() {
@@ -165,7 +178,7 @@ public class Boss extends Nemico {
             float a = angoloproiettile + (float)(i * Math.PI * 2 / 3);
             float tx = cx + (float) Math.cos(a) * 100;
             float ty = cy + (float) Math.sin(a) * 100;
-            proiettili.add(new BossProjectile(cx, cy, tx, ty, imgProiettile));
+            proiettili.add(new BossProjectile(cx, cy, tx, ty, getImgProiettile()));
         }
         angoloproiettile += 0.3f;
     }
@@ -208,13 +221,6 @@ public class Boss extends Nemico {
             g2.setColor(lampeggia ? Color.RED : colori[tipo - 1]);
             g2.fillRect((int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS);
         }
-
-        // Indicatore tipo sopra il boss
-        String[] nomi = {"BRUTALE", "OMBRA", "CARICA", "FINALE"};
-        g2.setFont(new Font("Consolas", Font.BOLD, 11));
-        g2.setColor(Color.WHITE);
-        FontMetrics fm = g2.getFontMetrics();
-        g2.drawString(nomi[tipo-1], (int)x + (TAGLIA_BOSS - fm.stringWidth(nomi[tipo-1]))/2, (int)y - 4);
 
         // Disegna proiettili
         for (BossProjectile p : proiettili) p.draw(g2);

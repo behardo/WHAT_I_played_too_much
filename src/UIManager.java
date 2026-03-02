@@ -20,7 +20,7 @@ public class UIManager {
     public final MenuButton btnRiprova, btnMenuPrincipaleGO, btnEsciGO;
     public final MenuButton btnMenuPrincipaleVittoria;
     public final MenuButton btnMusMeno, btnMusPiu, btnEffMeno, btnEffPiu;
-    public final MenuButton btnDifficolta, btnChiudiImpostazioni;
+    public final MenuButton btnChiudiImpostazioni;
     public final MenuButton btnChiudiControlli;
 
     // Parametri layout impostazioni usati da RenderEngine per allineare testo/slider
@@ -100,7 +100,7 @@ public class UIManager {
             btnMusPiu             = b("+",        CX2+SW+155,  s,         SW,  SH, nVerde, hVerde, bVerde, bVerH);
             btnEffMeno            = b("-",        CX2,         s+RH,      SW,  SH, nRosso, hRosso, bRosso, bRosH);
             btnEffPiu             = b("+",        CX2+SW+155,  s+RH,      SW,  SH, nVerde, hVerde, bVerde, bVerH);
-            btnDifficolta         = b("NORMALE",  W/2-110,     s+RH*2,    220, SH, nDark,  hBlu,   bBlu,   bBluH);
+
             btnChiudiImpostazioni = b("INDIETRO", W/2-100,     s+RH*3+10, 200, BH, nDark,  hBlu,   bBlu,   bBluH);
 
             _impLabelX = LX;   _impCtrlX = CX2;  _impSw = SW;
@@ -115,7 +115,7 @@ public class UIManager {
                 { btnRiprendi, btnImpostazioniPausa, btnMenuPrincipalePausa, btnEsciPausa },
                 { btnRiprova, btnMenuPrincipaleGO, btnEsciGO },
                 { btnMenuPrincipaleVittoria },
-                { btnMusMeno, btnMusPiu, btnEffMeno, btnEffPiu, btnDifficolta, btnChiudiImpostazioni },
+                { btnMusMeno, btnMusPiu, btnEffMeno, btnEffPiu, btnChiudiImpostazioni },
                 { btnChiudiControlli }
         };
     }
@@ -137,19 +137,22 @@ public class UIManager {
 
     private void inizializzaPersonaggi(ResourceLoader res) {
         listaPersonaggi.add(new DatiPersonaggio("BELLGERD", 3, 6.0f, 1,
-                res.getIconaPerIndice(0), res.imgPersonaggioDefault, "Equilibrato."));
+                res.getIconaPerIndice(0), res.imgPersonaggioDefault, "Equilibrato.",
+                res.getBulletPerPG(0)));
         listaPersonaggi.add(new DatiPersonaggio("VLAD",     2, 8.5f, 1,
-                res.getIconaPerIndice(1), res.imgPersonaggioVeloce,  "Veloce ma fragile."));
+                res.getIconaPerIndice(1), res.imgPersonaggioVeloce,  "Veloce ma fragile.",
+                res.getBulletPerPG(1)));
         listaPersonaggi.add(new DatiPersonaggio("PAUL",     3, 4.5f, 2,
-                res.getIconaPerIndice(2), res.imgPersonaggioForte,   "Lento ma potente."));
+                res.getIconaPerIndice(2), res.imgPersonaggioForte,   "Lento ma potente.",
+                res.getBulletPerPG(2)));
         listaPersonaggi.add(new DatiPersonaggio("JUICY",    5, 3.5f, 1,
-                res.getIconaPerIndice(3), res.imgPersonaggioTank,    "Lentissimo, molta vita."));
+                res.getIconaPerIndice(3), res.imgPersonaggioTank,    "Lentissimo, molta vita.",
+                res.getBulletPerPG(3)));
         // Segreto — indice 4, visibile solo con combo B x5
         listaPersonaggi.add(new DatiPersonaggio(
                 "G.O.D.", 99, 12.0f, 25,
-                null,
-                res.imgPersonaggioDefault,
-                "???"));
+                null, res.imgPersonaggioDefault, "???",
+                res.getBulletPerPG(4)));
     }
 
     private void inizializzaRectsSelezionePG() {
@@ -171,4 +174,79 @@ public class UIManager {
     // ── Accesso ───────────────────────────────────────────────────────────────
     public DatiPersonaggio getPersonaggioSelezionato(int i) { return listaPersonaggi.get(i); }
     public int             getNumPersonaggi()               { return listaPersonaggi.size(); }
+    /**
+     * Ricalcola posizioni di tutti i bottoni e rect in base alle dimensioni
+     * reali del pannello. Chiamato ogni volta che la finestra cambia dimensione.
+     */
+    public void ricalcolaBottoni(int W, int H) {
+        final int BW  = (int)(W * 0.23);   // ~25% della larghezza
+        final int BH  = (int)(H * 0.098);  // ~10% dell'altezza
+        final int GAP = (int)(H * 0.022);
+        final int CX  = W / 2 - BW / 2;
+
+        // ── Menu principale ───────────────────────────────────────────────────
+        int s1 = (int)(H * 0.38);
+        btnGioca.setBounds(CX, s1,             BW, BH);
+        btnImpostazioni.setBounds(CX, s1 + (BH+GAP),   BW, BH);
+        btnControlli.setBounds(CX, s1 + (BH+GAP)*2, BW, BH);
+        btnEsciMenu.setBounds(CX, s1 + (BH+GAP)*3, BW, BH);
+
+        // ── Pausa ─────────────────────────────────────────────────────────────
+        int s2 = (int)(H * 0.34);
+        btnRiprendi.setBounds(CX, s2,             BW, BH);
+        btnImpostazioniPausa.setBounds(CX, s2 + (BH+GAP),   BW, BH);
+        btnMenuPrincipalePausa.setBounds(CX, s2 + (BH+GAP)*2, BW, BH);
+        btnEsciPausa.setBounds(CX, s2 + (BH+GAP)*3, BW, BH);
+
+        // ── Game Over ─────────────────────────────────────────────────────────
+        int bw3 = (int)(W * 0.17), g3 = (int)(W * 0.011);
+        int x0 = W/2 - (bw3*3 + g3*2)/2;
+        int y0 = (int)(H * 0.59);
+        btnRiprova.setBounds(x0,            y0, bw3, BH);
+        btnMenuPrincipaleGO.setBounds(x0+bw3+g3,     y0, bw3, BH);
+        btnEsciGO.setBounds(x0+(bw3+g3)*2, y0, bw3, BH);
+
+        // ── Vittoria ──────────────────────────────────────────────────────────
+        int bvW = (int)(W * 0.27);
+        btnMenuPrincipaleVittoria.setBounds(W/2 - bvW/2, (int)(H * 0.75) - BH/2, bvW, BH);
+
+        // ── Impostazioni ──────────────────────────────────────────────────────
+        final int SH  = (int)(H * 0.085);
+        final int RH  = (int)(H * 0.123);
+        final int SW  = (int)(W * 0.044);
+        final int LX  = W/2 - (int)(W * 0.202);
+        final int CX2 = W/2 + (int)(W * 0.005);
+        int si = (int)(H * 0.324);
+        btnMusMeno.setBounds(CX2,       si,         SW, SH);
+        btnMusPiu.setBounds(CX2+SW+(int)(W*0.142), si, SW, SH);
+        btnEffMeno.setBounds(CX2,       si+RH,      SW, SH);
+        btnEffPiu.setBounds(CX2+SW+(int)(W*0.142), si+RH, SW, SH);
+        btnChiudiImpostazioni.setBounds(W/2-(int)(W*0.092), si+RH*3+(int)(H*0.022), (int)(W*0.184), BH);
+        _impLabelX = LX; _impCtrlX = CX2; _impSw = SW;
+        _impStartY = si; _impRigaH = RH;  _impSh = SH;
+
+        // ── Controlli ─────────────────────────────────────────────────────────
+        btnChiudiControlli.setBounds(W/2-(int)(W*0.092), (int)(H*0.833), (int)(W*0.184), BH);
+
+        // ── Rect selezione PG ─────────────────────────────────────────────────
+        boolean segretoAttivo = false; // non abbiamo ref a SistemaPersonaggi qui, usiamo 4 slot fissi
+        int numSlot = 5;
+        int rectW = (int)(W * 0.118), rectH = (int)(H * 0.447);
+        int gapR  = (int)(W * 0.009);
+        int totR  = rectW * numSlot + gapR * (numSlot - 1);
+        int sxR   = W/2 - totR/2;
+        int syR   = (int)(H * 0.223);
+        for (int i = 0; i < numSlot; i++)
+            rectsSelezionePG[i] = new java.awt.Rectangle(sxR + i*(rectW+gapR), syR, rectW, rectH);
+
+        // ── Rect selezione modalità ───────────────────────────────────────────
+        int rectMW = (int)(W * 0.239), rectMH = (int)(H * 0.536);
+        int gapM   = (int)(W * 0.018);
+        int totM   = rectMW * 2 + gapM;
+        int sxM    = W/2 - totM/2;
+        int syM    = (int)(H * 0.277);
+        for (int i = 0; i < 2; i++)
+            rectsSelezioneModalita[i] = new java.awt.Rectangle(sxM + i*(rectMW+gapM), syM, rectMW, rectMH);
+    }
+
 }

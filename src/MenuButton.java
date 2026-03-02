@@ -113,8 +113,9 @@ public class MenuButton {
             g2.fillRoundRect(x + 2, y + 2, w - 4, h / 2, raggio, raggio);
         }
 
-        // Testo centrato
-        g2.setFont(new Font("Consolas", Font.BOLD, 22));
+        // Testo centrato — font proporzionale all'altezza del bottone
+        int btnFs = Math.max(10, (int)(h * 0.42));
+        g2.setFont(new Font("Consolas", Font.BOLD, btnFs));
         FontMetrics fm = g2.getFontMetrics();
         int tx = x + (w - fm.stringWidth(label)) / 2;
         int ty = y + (h + fm.getAscent() - fm.getDescent()) / 2;

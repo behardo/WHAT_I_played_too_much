@@ -119,7 +119,8 @@ public class RoomManager {
     private void generaStanzaBoss(List<Nemico> nemici) {
         int vitaBoss = StatNemico.vitaBoss(state.mondoAttuale);
         Boss b = new Boss(7, 2, GameState.TILE_SIZE, vitaBoss, state.mondoAttuale);
-        b.caricaProiettile(res.imgBossProjectile);
+        b.caricaProiettile(res.imgBossProjectile); // fallback
+        b.caricaProiettiliPerTipo(res.imgProiettilePerBoss);
         nemici.add(b);
         state.bossSpawnato       = true;
         state.bossSconfitto      = false;

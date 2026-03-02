@@ -46,6 +46,19 @@ public class ResourceLoader {
     public BufferedImage[] imgBossPerMondo    = new BufferedImage[4];
     public BufferedImage   imgBossProjectile;
 
+    // ── Proiettili per personaggio (0=BELLGERD, 1=VLAD, 2=PAUL, 3=JUICY, 4=GOD)
+    public BufferedImage[] imgProiettilePerPG   = new BufferedImage[5];
+    // ── Proiettili per boss (0=tipo1, 1=tipo2, 2=tipo3, 3=tipo4) ─────────────
+    public BufferedImage[] imgProiettilePerBoss = new BufferedImage[4];
+    // ── Sprite mercante nemico ────────────────────────────────────────────────
+    public BufferedImage   imgShopkeeperNemico;
+    // ── Sfondi personalizzabili ───────────────────────────────────────────────
+    public BufferedImage   imgSfondoMenu;
+    public BufferedImage   imgSfondoVittoria;
+    public BufferedImage   imgSfondoGameOver;
+    // ── Font bitmap ───────────────────────────────────────────────────────────
+    public BitmapFont      bitmapFont;
+
     // Mantenuti per compatibilità con codice esistente
     public BufferedImage imgNemico;
     public BufferedImage imgNemico2;
@@ -103,10 +116,35 @@ public class ResourceLoader {
         imgBoss                = load("/boss.png");
         imgBossProjectile      = load("/bullet.png");
 
+        // ── Proiettili per personaggio ────────────────────────────────────────
+        // Se non trovati, usano imgPugno come fallback
+        imgProiettilePerPG[0] = caricaConFallback("/bullet_bellgerd.png", imgPugno);
+        imgProiettilePerPG[1] = caricaConFallback("/bullet_vlad.png",     imgPugno);
+        imgProiettilePerPG[2] = caricaConFallback("/bullet_paul.png",     imgPugno);
+        imgProiettilePerPG[3] = caricaConFallback("/bullet_juicy.png",    imgPugno);
+        imgProiettilePerPG[4] = caricaConFallback("/bullet_god.png",      imgPugno);
+
+        // ── Proiettili per boss ───────────────────────────────────────────────
+        imgProiettilePerBoss[0] = caricaConFallback("/bullet_boss1.png",  imgBossProjectile);
+        imgProiettilePerBoss[1] = caricaConFallback("/bullet_boss2.png",  imgBossProjectile);
+        imgProiettilePerBoss[2] = caricaConFallback("/bullet_boss3.png",  imgBossProjectile);
+        imgProiettilePerBoss[3] = caricaConFallback("/bullet_boss4.png",  imgBossProjectile);
+
+        // ── Sprite mercante nemico ────────────────────────────────────────────
+        imgShopkeeperNemico = caricaConFallback("/shopkeeper_nemico.png", imgShopkeeper);
+
+        // ── Sfondi personalizzabili ───────────────────────────────────────────
+        imgSfondoMenu     = load("/sfondo_menu.png");      // null = usa sfondo procedurale
+        imgSfondoVittoria = load("/sfondo_vittoria.png");  // null = usa sfondo procedurale
+        imgSfondoGameOver = load("/sfondo_gameover.png");  // null = usa sfondo procedurale
+
+        // ── Font bitmap ───────────────────────────────────────────────────────
+        bitmapFont = new BitmapFont(load("/font.png"));
+
         // ── Nemici per mondo specifico ────────────────────────────────────────
         // Mondo 1 — usa gli sprite base come fallback
         imgNemicoPerMondo[0]      = caricaConFallback("/nemico_m1.png",      imgNemico);
-        imgNemicoFortePerMondo[0] = caricaConFallback("/nemico_forte_m1.png", imgNemico2);
+        imgNemicoFortePerMondo[0] = caricaConFallback("/nemico_m2.png", imgNemico2);
         imgBossPerMondo[0]        = caricaConFallback("/boss_m1.png",         imgBoss);
 
         // Mondo 2 — fogne/buio
@@ -181,6 +219,27 @@ public class ResourceLoader {
             System.err.println("[ResourceLoader] Errore caricamento: " + path + " → " + e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Proiettile del personaggio per indice (0-4).
+     * Fallback: imgPugno se null.
+     */
+    public BufferedImage getBulletPerPG(int indice) {
+        if (indice >= 0 && indice < imgProiettilePerPG.length
+                && imgProiettilePerPG[indice] != null)
+            return imgProiettilePerPG[indice];
+        return imgPugno;
+    }
+
+    /**
+     * Proiettile del boss per tipo (1-4).
+     * Fallback: imgBossProjectile se null.
+     */
+    public BufferedImage getBulletPerBoss(int tipo) {
+        int i = Math.max(0, Math.min(tipo - 1, imgProiettilePerBoss.length - 1));
+        if (imgProiettilePerBoss[i] != null) return imgProiettilePerBoss[i];
+        return imgBossProjectile;
     }
 
     public BufferedImage getImgGiocatorePerIndice(int indice) {

@@ -28,13 +28,6 @@ public class Impostazioni {
         volumeEffetti = Math.max(0, Math.min(100, volumeEffetti + delta));
     }
 
-    public void cicladifficolta() {
-        difficolta = switch (difficolta) {
-            case FACILE    -> Difficolta.NORMALE;
-            case NORMALE   -> Difficolta.DIFFICILE;
-            case DIFFICILE -> Difficolta.FACILE;
-        };
-    }
 
     /** Modificatori di gameplay in base alla difficoltà */
     public float getMultiplicatoreNemici() {
