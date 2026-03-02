@@ -8,23 +8,31 @@ import java.awt.event.WindowEvent;
 /**
  * FullscreenManager.java
  *
- * Gestisce fullscreen e ridimensionamento.
- * Il rendering usa SEMPRE le dimensioni reali del pannello —
- * niente stretch, niente bande nere, niente deformazione.
+ * Gestisce il ridimensionamento e il fullscreen mantenendo il rapporto
+ * d'aspetto originale (1088×448) senza deformare il contenuto.
  *
- * I menu e il gioco si ridisegnano in coordinate proporzionali
- * alla dimensione corrente del pannello.
+ * Modalità di scaling: LETTERBOX
+ *  - Si calcola il fattore di scala uniforme (il minore tra scaleX e scaleY)
+ *  - Il contenuto logico viene centrato nel pannello
+ *  - Le aree non coperte vengono riempite di nero
+ *
+ * F11 → fullscreen hardware (barra titolo rimossa)
+ * Bordi/massimizza → finestra si ridimensiona, contenuto sempre proporzionato
  */
 public class FullscreenManager {
 
     private final JFrame         finestra;
     private final JPanel         pannello;
     private final GraphicsDevice device;
+
     private boolean isF11Fullscreen = false;
 
-    // UIManager da aggiornare quando cambia la dimensione
-    private UIManager uiManager;
+    // Parametri letterbox calcolati all'ultimo render (letti da scalaCoordinate)
+    private double lastScale   = 1.0;
+    private int    lastOffsetX = 0;
+    private int    lastOffsetY = 0;
 
+    // ─────────────────────────────────────────────────────────────────────────
     public FullscreenManager(JFrame finestra, JPanel pannello, GraphicsDevice device) {
         this.finestra = finestra;
         this.pannello = pannello;
@@ -32,9 +40,7 @@ public class FullscreenManager {
         collegaListenerFinestra();
     }
 
-    public void setUIManager(UIManager ui) {
-        this.uiManager = ui;
-    }
+    // ── Listener finestra ─────────────────────────────────────────────────────
 
     private void collegaListenerFinestra() {
         if (finestra == null) return;
@@ -42,7 +48,7 @@ public class FullscreenManager {
         finestra.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
-                aggiornaUI();
+                pannello.revalidate();
                 pannello.repaint();
             }
         });
@@ -50,15 +56,14 @@ public class FullscreenManager {
         finestra.addWindowStateListener(new WindowAdapter() {
             @Override
             public void windowStateChanged(WindowEvent e) {
-                boolean mass = (e.getNewState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH;
-                if (!mass && !isF11Fullscreen) {
+                boolean massimizzata = (e.getNewState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH;
+                if (!massimizzata && !isF11Fullscreen) {
                     finestra.setSize(
                             GameState.LARGHEZZA_GIOCO + finestra.getInsets().left + finestra.getInsets().right,
                             GameState.ALTEZZA_GIOCO   + finestra.getInsets().top  + finestra.getInsets().bottom
                     );
                     finestra.setLocationRelativeTo(null);
                 }
-                aggiornaUI();
                 pannello.revalidate();
                 pannello.repaint();
                 pannello.requestFocusInWindow();
@@ -66,45 +71,84 @@ public class FullscreenManager {
         });
     }
 
-    private void aggiornaUI() {
-        if (uiManager != null) {
-            int w = pannello.getWidth()  > 0 ? pannello.getWidth()  : GameState.LARGHEZZA_GIOCO;
-            int h = pannello.getHeight() > 0 ? pannello.getHeight() : GameState.ALTEZZA_GIOCO;
-            uiManager.ricalcolaBottoni(w, h);
-        }
-    }
+    // ── Toggle F11 ────────────────────────────────────────────────────────────
 
     public void toggle() {
         isF11Fullscreen = !isF11Fullscreen;
         finestra.dispose();
+
         if (isF11Fullscreen) {
             finestra.setUndecorated(true);
             device.setFullScreenWindow(finestra);
         } else {
             finestra.setUndecorated(false);
             device.setFullScreenWindow(null);
-            finestra.setPreferredSize(new Dimension(GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO));
+            finestra.setPreferredSize(
+                    new Dimension(GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO));
             finestra.pack();
             finestra.setLocationRelativeTo(null);
         }
+
         finestra.setVisible(true);
         pannello.requestFocusInWindow();
-        aggiornaUI();
     }
 
     public boolean isF11Fullscreen() { return isF11Fullscreen; }
 
+    // ── Calcolo letterbox ─────────────────────────────────────────────────────
+
     /**
-     * Converte coordinate mouse reali in coordinate logiche proporzionali.
-     * Con questo approccio non c'è scala fissa: le coordinate reali
-     * corrispondono già alle coordinate di disegno.
+     * Calcola i parametri letterbox per il pannello dato.
+     * Scala uniforme: il contenuto logico viene centrato, bande nere ai bordi.
+     *
+     * @return double[] { scale, offsetX, offsetY }
      */
-    public Point scalaCoordinate(int mouseX, int mouseY) {
-        // Il rendering usa direttamente le dimensioni del pannello,
-        // quindi le coordinate mouse sono già corrette
-        return new Point(mouseX, mouseY);
+    public double[] getScaleParams(int panelWidth, int panelHeight) {
+        if (panelWidth <= 0 || panelHeight <= 0) {
+            lastScale = 1.0; lastOffsetX = 0; lastOffsetY = 0;
+            return new double[]{ 1.0, 0.0, 0.0 };
+        }
+
+        double scaleX = (double) panelWidth  / GameState.LARGHEZZA_GIOCO;
+        double scaleY = (double) panelHeight / GameState.ALTEZZA_GIOCO;
+
+        // Scala uniforme = il minore dei due (no deformazione)
+        double scale = Math.min(scaleX, scaleY);
+
+        // Contenuto centrato: calcola offset delle bande nere
+        int contentW = (int)(GameState.LARGHEZZA_GIOCO * scale);
+        int contentH = (int)(GameState.ALTEZZA_GIOCO   * scale);
+        int offsetX  = (panelWidth  - contentW) / 2;
+        int offsetY  = (panelHeight - contentH) / 2;
+
+        lastScale   = scale;
+        lastOffsetX = offsetX;
+        lastOffsetY = offsetY;
+
+        return new double[]{ scale, offsetX, offsetY };
     }
 
-    /** Nessun parametro di scala: rendering diretto. */
-    public void aggiornaParametri(double scale, int offX, int offY) { /* non usato */ }
+    // ── Scaling coordinate mouse ──────────────────────────────────────────────
+
+    /**
+     * Converte le coordinate reali del mouse in coordinate logiche di gioco,
+     * tenendo conto delle bande nere laterbox.
+     *
+     *   logX = (mouseX - offsetX) / scale
+     *   logY = (mouseY - offsetY) / scale
+     *
+     * Clampato a [0, dimensione logica] per gestire click nelle bande nere.
+     */
+    public Point scalaCoordinate(int mouseX, int mouseY) {
+        double scale = lastScale > 0 ? lastScale : 1.0;
+
+        int logX = (int)((mouseX - lastOffsetX) / scale);
+        int logY = (int)((mouseY - lastOffsetY) / scale);
+
+        // Clamp: i click nelle bande nere restano ai bordi del gioco
+        logX = Math.max(0, Math.min(logX, GameState.LARGHEZZA_GIOCO - 1));
+        logY = Math.max(0, Math.min(logY, GameState.ALTEZZA_GIOCO   - 1));
+
+        return new Point(logX, logY);
+    }
 }

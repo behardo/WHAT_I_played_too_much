@@ -39,32 +39,53 @@ public class RenderEngine {
 
     // ── Entry point rendering ─────────────────────────────────────────────────
 
+    /**
+     * Punto di ingresso principale. Chiamato da paintComponent().
+     * Applica la trasformazione fullscreen e delega al metodo corretto.
+     */
     public void render(Graphics2D g2, int panelWidth, int panelHeight) {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,        RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,   RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,       RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         g2.setRenderingHint(RenderingHints.KEY_RENDERING,           RenderingHints.VALUE_RENDER_QUALITY);
 
-        // Aggiorna layout bottoni a ogni frame (idempotente se dimensioni invariate)
-        ui.ricalcolaBottoni(panelWidth, panelHeight);
+        // Calcola parametri letterbox: scala uniforme + offset bande nere
+        double[] params  = fullscreen.getScaleParams(panelWidth, panelHeight);
+        double   scale   = params[0];
+        int      offsetX = (int) params[1];
+        int      offsetY = (int) params[2];
 
-        // Disegna direttamente nelle dimensioni reali del pannello — nessuna scala,
-        // nessuna banda nera, niente deformazione
+        // Riempi TUTTO il pannello di nero (bande laterali/superiori)
+        g2.setColor(Color.BLACK);
+        g2.fillRect(0, 0, panelWidth, panelHeight);
+
+        // Salva transform, sposta all'offset e scala uniformemente
+        java.awt.geom.AffineTransform savedTransform = g2.getTransform();
+        g2.translate(offsetX, offsetY);
+        g2.scale(scale, scale);
+
+        // Dispatch per stato (disegna sempre in coordinate logiche 1088×448)
         switch (state.statoGioco) {
-            case MENU                  -> disegnaMenu(g2, panelWidth, panelHeight);
-            case IMPOSTAZIONI          -> disegnaImpostazioni(g2, panelWidth, panelHeight);
-            case CONTROLLI             -> disegnaControlli(g2, panelWidth, panelHeight);
-            case SELEZIONE_PERSONAGGIO -> disegnaSelezionePersonaggio(g2, panelWidth, panelHeight);
-            case SELEZIONE_MODALITA    -> disegnaSelezioneModalita(g2, panelWidth, panelHeight);
-            case GIOCO                 -> disegnaGioco(g2, panelWidth, panelHeight);
-            case PAUSA                 -> { disegnaGioco(g2, panelWidth, panelHeight); disegnaPausa(g2, panelWidth, panelHeight); }
-            case GAME_OVER             -> { disegnaGioco(g2, panelWidth, panelHeight); disegnaGameOver(g2, panelWidth, panelHeight); }
-            case VITTORIA_STORIA       -> disegnaVittoriaStoria(g2, panelWidth, panelHeight);
+            case MENU                  -> disegnaMenu(g2);
+            case IMPOSTAZIONI          -> disegnaImpostazioni(g2);
+            case CONTROLLI             -> disegnaControlli(g2);
+            case SELEZIONE_PERSONAGGIO -> disegnaSelezionePersonaggio(g2);
+            case SELEZIONE_MODALITA    -> disegnaSelezioneModalita(g2);
+            case GIOCO                 -> disegnaGioco(g2);
+            case PAUSA                 -> { disegnaGioco(g2); disegnaPausa(g2); }
+            case GAME_OVER             -> { disegnaGioco(g2); disegnaGameOver(g2); }
+            case VITTORIA_STORIA       -> disegnaVittoriaStoria(g2);
         }
+
+        // Ripristina transform originale
+        g2.setTransform(savedTransform);
     }
 
     // ── Menu Principale ───────────────────────────────────────────────────────
 
-    private void disegnaMenu(Graphics2D g2, int W, int H) {
+    private void disegnaMenu(Graphics2D g2) {
+        final int W = GameState.LARGHEZZA_GIOCO;
+        final int H = GameState.ALTEZZA_GIOCO;
+
         // Sfondo con gradiente simulato
         g2.setColor(new Color(12, 12, 28));
         g2.fillRect(0, 0, W, H);
@@ -110,10 +131,12 @@ public class RenderEngine {
 
     // ── Impostazioni ─────────────────────────────────────────────────────────
 
-    private void disegnaImpostazioni(Graphics2D g2, int W, int H) {
+    private void disegnaImpostazioni(Graphics2D g2) {
+        final int W = GameState.LARGHEZZA_GIOCO;
+        final int H = GameState.ALTEZZA_GIOCO;
         Impostazioni imp = state.impostazioni;
 
-        sfondoOverlay(g2, W, H, new Color(10, 10, 30));
+        sfondoOverlay(g2, new Color(10, 10, 30));
 
         // Titolo
         g2.setFont(new Font("Consolas", Font.BOLD, 32));
@@ -200,8 +223,11 @@ public class RenderEngine {
 
     // ── Controlli ────────────────────────────────────────────────────────────
 
-    private void disegnaControlli(Graphics2D g2, int W, int H) {
-        sfondoOverlay(g2, W, H, new Color(10, 10, 30));
+    private void disegnaControlli(Graphics2D g2) {
+        final int W = GameState.LARGHEZZA_GIOCO;
+        final int H = GameState.ALTEZZA_GIOCO;
+
+        sfondoOverlay(g2, new Color(10, 10, 30));
 
         g2.setFont(new Font("Consolas", Font.BOLD, 38));
         g2.setColor(new Color(200, 200, 255));
@@ -257,26 +283,26 @@ public class RenderEngine {
 
     // ── Selezione Personaggio ─────────────────────────────────────────────────
 
-    private void disegnaSelezionePersonaggio(Graphics2D g2, int W, int H) {
+    private void disegnaSelezionePersonaggio(Graphics2D g2) {
         g2.setColor(new Color(30, 30, 50));
-        g2.fillRect(0, 0, W, H);
+        g2.fillRect(0, 0, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
 
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Consolas", Font.BOLD, 30));
         String titolo = "SCEGLI IL TUO PERSONAGGIO";
-        g2.drawString(titolo, W/2 - g2.getFontMetrics().stringWidth(titolo)/2, 55);
+        g2.drawString(titolo, GameState.LARGHEZZA_GIOCO/2 - g2.getFontMetrics().stringWidth(titolo)/2, 55);
 
         g2.setFont(new Font("Arial", Font.PLAIN, 14));
         g2.setColor(new Color(160, 160, 190));
         g2.drawString("[Frecce/Mouse] naviga  [INVIO/Click] conferma  [ESC] indietro",
-                W/2 - 220, 78);
+                GameState.LARGHEZZA_GIOCO/2 - 220, 78);
 
         // Hint combo segreto
         int comboB = state.sistemaPersonaggi.getContatoreBCombo();
         if (comboB > 0) {
             g2.setColor(new Color(255, 200, 0, 180));
             g2.setFont(new Font("Consolas", Font.BOLD, 14));
-            g2.drawString("B × " + comboB + " / 5", W - 95, 25);
+            g2.drawString("B × " + comboB + " / 5", GameState.LARGHEZZA_GIOCO - 95, 25);
         }
 
         // Mostra sempre i 4 base + il segreto solo se attivato
@@ -287,7 +313,7 @@ public class RenderEngine {
         int rectW = segretoAttivo ? 128 : 155;
         int rectH = 200, gap = segretoAttivo ? 10 : 12;
         int totW  = rectW * numMostra + gap * (numMostra - 1);
-        int startX = W / 2 - totW / 2;
+        int startX = GameState.LARGHEZZA_GIOCO / 2 - totW / 2;
         int startY = 100;
 
         for (int i = 0; i < numMostra; i++) {
@@ -391,19 +417,19 @@ public class RenderEngine {
 
     // ── Selezione Modalità ────────────────────────────────────────────────────
 
-    private void disegnaSelezioneModalita(Graphics2D g2, int W, int H) {
+    private void disegnaSelezioneModalita(Graphics2D g2) {
         g2.setColor(new Color(40, 20, 50));
-        g2.fillRect(0, 0, W, H);
+        g2.fillRect(0, 0, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
 
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("Consolas", Font.BOLD, 30));
         String t = "SELEZIONA LA SFIDA";
-        g2.drawString(t, W/2 - g2.getFontMetrics().stringWidth(t)/2, 55);
+        g2.drawString(t, GameState.LARGHEZZA_GIOCO/2 - g2.getFontMetrics().stringWidth(t)/2, 55);
 
         g2.setFont(new Font("Arial", Font.PLAIN, 14));
         g2.setColor(new Color(160, 160, 190));
         g2.drawString("[Frecce/Mouse] naviga  [INVIO/Click] conferma  [ESC] indietro",
-                W/2 - 210, 80);
+                GameState.LARGHEZZA_GIOCO/2 - 210, 80);
 
         String[] nomi     = { "STORIA CLASSICA",      "MODALITA INFINITA"    };
         String[] desc1    = { "Sconfiggi 4 Boss",      "Sopravvivi all'infinito!" };
@@ -456,7 +482,10 @@ public class RenderEngine {
 
     // ── Pausa ─────────────────────────────────────────────────────────────────
 
-    private void disegnaPausa(Graphics2D g2, int W, int H) {
+    private void disegnaPausa(Graphics2D g2) {
+        final int W = GameState.LARGHEZZA_GIOCO;
+        final int H = GameState.ALTEZZA_GIOCO;
+
         g2.setColor(new Color(0, 0, 0, 170));
         g2.fillRect(0, 0, W, H);
 
@@ -491,7 +520,10 @@ public class RenderEngine {
 
     // ── Game Over ─────────────────────────────────────────────────────────────
 
-    private void disegnaGameOver(Graphics2D g2, int W, int H) {
+    private void disegnaGameOver(Graphics2D g2) {
+        final int W = GameState.LARGHEZZA_GIOCO;
+        final int H = GameState.ALTEZZA_GIOCO;
+
         g2.setColor(new Color(0, 0, 0, 185));
         g2.fillRect(0, 0, W, H);
 
@@ -528,7 +560,10 @@ public class RenderEngine {
 
     // ── Vittoria Storia ───────────────────────────────────────────────────────
 
-    private void disegnaVittoriaStoria(Graphics2D g2, int W, int H) {
+    private void disegnaVittoriaStoria(Graphics2D g2) {
+        final int W = GameState.LARGHEZZA_GIOCO;
+        final int H = GameState.ALTEZZA_GIOCO;
+
         g2.setColor(new Color(10, 40, 10));
         g2.fillRect(0, 0, W, H);
         // Alone dorato
@@ -559,49 +594,40 @@ public class RenderEngine {
 
     // ── Gioco ─────────────────────────────────────────────────────────────────
 
-    private void disegnaGioco(Graphics2D g2, int W, int H) {
-        // Applica scala + offset per adattare il gameplay alla finestra reale
-        double gs  = gameScale(W, H);
-        int    gox = gameOffX(W, H);
-        int    goy = gameOffY(W, H);
-
-        // Sfondo: riempie tutta la finestra col colore muro del tema
-        TileSet tsBg = TileSet.perMondo(state.mondoAttuale, res);
-        g2.setColor(tsBg.coloreTemaMuro);
-        g2.fillRect(0, 0, W, H);
-
-        // Salva transform, applica scala gameplay
-        java.awt.geom.AffineTransform baseTransform = g2.getTransform();
-        g2.translate(gox, goy);
-        g2.scale(gs, gs);
-
+    private void disegnaGioco(Graphics2D g2) {
+        // Se siamo nella stanza shop, disegna una schermata shop speciale
         if (roomMgr.inStanzaShop) {
-            disegnaStanzaShop(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
+            disegnaStanzaShop(g2);
             for (Shopkeeper sk : roomMgr.getShopkeeperShop()) sk.draw(g2);
             for (ShopItem   si : roomMgr.getItemsShop())      si.draw(g2);
-            if (pugniAttivi != null) for (Pugno p : pugniAttivi) p.draw(g2);
-            for (Nemico n : roomMgr.getShopNemici()) { n.draw(g2, null); n.disegnaBarraVita(g2); }
-            disegnaGiocatore(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
-            g2.setTransform(baseTransform);
-            disegnaHUD(g2, W, H);
+            // Pugni del giocatore visibili anche nello shop
+            if (pugniAttivi != null) {
+                for (Pugno p : pugniAttivi) p.draw(g2);
+            }
+            // ShopkeeperNemico arrabbiato + barra vita
+            for (Nemico n : roomMgr.getShopNemici()) {
+                n.draw(g2, null);
+                n.disegnaBarraVita(g2);
+            }
+            disegnaGiocatore(g2);
+            disegnaHUD(g2);
             state.dialogoShopkeeper.disegna(g2);
             return;
         }
 
-        disegnaAmbiente(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
-        disegnaOggetti(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
-        if (pugniAttivi != null) for (Pugno p : pugniAttivi) p.draw(g2);
-        disegnaNemici(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
-        disegnaGiocatore(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
-
-        // Ripristina transform e disegna HUD sopra (non scalato)
-        g2.setTransform(baseTransform);
-        disegnaHUD(g2, W, H);
+        disegnaAmbiente(g2);
+        disegnaOggetti(g2);
+        if (pugniAttivi != null) {
+            for (Pugno p : pugniAttivi) p.draw(g2);
+        }
+        disegnaNemici(g2);
+        disegnaGiocatore(g2);
+        disegnaHUD(g2);
     }
 
     // ── Stanza Shop ───────────────────────────────────────────────────────────
 
-    private void disegnaStanzaShop(Graphics2D g2, int W, int H) {
+    private void disegnaStanzaShop(Graphics2D g2) {
         TileSet ts = TileSet.perMondo(state.mondoAttuale, res);
 
         for (int i = 0; i < GameState.COL_TOTALI; i++) {
@@ -623,7 +649,7 @@ public class RenderEngine {
         // Targa "SHOP" in cima
         g2.setColor(new Color(255, 215, 0));
         g2.setFont(new Font("Consolas", Font.BOLD, 28));
-        g2.drawString("✦  NEGOZIO  ✦", W / 2 - 110, GameState.TILE_SIZE - 10);
+        g2.drawString("✦  NEGOZIO  ✦", GameState.LARGHEZZA_GIOCO / 2 - 110, GameState.TILE_SIZE - 10);
 
         // Porta sud (per uscire) al centro in basso
         int portaSudX = (GameState.COL_TOTALI / 2) * GameState.TILE_SIZE;
@@ -643,25 +669,7 @@ public class RenderEngine {
         for (ShopItem   si : roomMgr.getItemsShop())      si.draw(g2);
     }
 
-
-    /** Scala del gameplay: adatta le coordinate tile/giocatore alla finestra reale. */
-    private double gameScale(int W, int H) {
-        return Math.min(
-                (double) W / GameState.LARGHEZZA_GIOCO,
-                (double) H / GameState.ALTEZZA_GIOCO
-        );
-    }
-    /** Offset X per centrare il gioco nella finestra reale. */
-    private int gameOffX(int W, int H) {
-        return (W - (int)(GameState.LARGHEZZA_GIOCO * gameScale(W, H))) / 2;
-    }
-    /** Offset Y per centrare il gioco nella finestra reale. */
-    private int gameOffY(int W, int H) {
-        return (H - (int)(GameState.ALTEZZA_GIOCO * gameScale(W, H))) / 2;
-    }
-
-
-    private void disegnaAmbiente(Graphics2D g2, int W, int H) {
+    private void disegnaAmbiente(Graphics2D g2) {
         TileSet ts = TileSet.perMondo(state.mondoAttuale, res);
 
         for (int i = 0; i < GameState.COL_TOTALI; i++) {
@@ -725,14 +733,14 @@ public class RenderEngine {
         }
     }
 
-    private void disegnaOggetti(Graphics2D g2, int W, int H) {
+    private void disegnaOggetti(Graphics2D g2) {
         for (Cura       c  : roomMgr.getCureCorrenti())         c.draw(g2);
         for (Moneta     m  : roomMgr.getMoneteCorrenti())       m.draw(g2);
         for (Shopkeeper sk : roomMgr.getShopkeepersCorrenti())  sk.draw(g2);
         for (ShopItem   si : roomMgr.getShopItemsCorrenti())    si.draw(g2);
     }
 
-    private void disegnaNemici(Graphics2D g2, int W, int H) {
+    private void disegnaNemici(Graphics2D g2) {
         for (Nemico n : roomMgr.getNemiciCorrenti()) {
             if (n instanceof Boss) {
                 n.draw(g2, res.getBossSprite(state.mondoAttuale));
@@ -747,7 +755,7 @@ public class RenderEngine {
         }
     }
 
-    private void disegnaGiocatore(Graphics2D g2, int W, int H) {
+    private void disegnaGiocatore(Graphics2D g2) {
         // Lampeggio durante invulnerabilità
         if (state.invulnerabile && state.timerInvulnerabilita % 10 >= 5) return;
 
@@ -762,39 +770,35 @@ public class RenderEngine {
         }
     }
 
-    private void disegnaHUD(Graphics2D g2, int W, int H) {
-        int hCuore = Math.max(20, H / 15);
-        int gapCuore = hCuore + 5;
-
+    private void disegnaHUD(Graphics2D g2) {
         // Cuori
         for (int i = 0; i < state.vite; i++) {
             if (res.imgCuore != null)
-                g2.drawImage(res.imgCuore, 15 + i * gapCuore, (int)(H * 0.1), hCuore, hCuore, null);
+                g2.drawImage(res.imgCuore, 20 + i * 35, 45, 30, 30, null);
         }
 
         // Monete
-        int mY = (int)(H * 0.21);
-        if (res.imgMoneta != null) g2.drawImage(res.imgMoneta, 15, mY, hCuore, hCuore, null);
+        if (res.imgMoneta != null) g2.drawImage(res.imgMoneta, 20, 85, 25, 25, null);
         g2.setColor(Color.WHITE);
-        g2.setFont(new Font("Arial", Font.BOLD, Math.max(14, H / 20)));
-        g2.drawString("" + state.monete, 15 + gapCuore, mY + hCuore - 4);
+        g2.setFont(new Font("Arial", Font.BOLD, 22));
+        g2.drawString("" + state.monete, 55, 105);
 
-        // Mondo / stanza
+        // Mondo / stanza con nome dal TileSet
         TileSet ts = TileSet.perMondo(state.mondoAttuale, res);
-        g2.setFont(new Font("Consolas", Font.BOLD, Math.max(12, H / 25)));
+        g2.setFont(new Font("Consolas", Font.BOLD, 18));
         g2.setColor(ts.coloreTemaUI);
-        String mondoStr = state.modalitaScelta == GameState.Modalita.STORIA
-                ? "M" + state.mondoAttuale + ": " + ts.nomeMondo
-                : "∞ M" + state.mondoAttuale + ": " + ts.nomeMondo;
-        g2.drawString(mondoStr, 15, (int)(H * 0.055));
-
+        if (state.modalitaScelta == GameState.Modalita.STORIA) {
+            g2.drawString("M" + state.mondoAttuale + ": " + ts.nomeMondo, 20, 25);
+        } else {
+            g2.drawString("∞ M" + state.mondoAttuale + ": " + ts.nomeMondo, 20, 25);
+        }
         g2.setColor(Color.WHITE);
-        String stanzaStr = "Stanza " + state.stanzaNelMondo + "/" + GameState.STANZA_BOSS;
-        g2.drawString(stanzaStr, (int)(W * 0.35), (int)(H * 0.055));
+        g2.drawString("Stanza " + state.stanzaNelMondo + "/8", 380, 25);
 
-        disegnaUIBoss(g2, W, H);
+        disegnaUIBoss(g2);
     }
-    private void disegnaUIBoss(Graphics2D g2, int W, int H) {
+
+    private void disegnaUIBoss(Graphics2D g2) {
         if (state.stanzaNelMondo != GameState.STANZA_BOSS
                 || !state.bossSpawnato || state.bossSconfitto) return;
 
@@ -804,64 +808,75 @@ public class RenderEngine {
         }
         if (bossCorrente == null) return;
 
+        // Nome boss per tipo/mondo
         String[] nomiUI = {
-                "⚒ BRUTALE", "🌑 OMBRA", "🔥 CARICA", "💀 FINALE"
+                "⚒  BRUTALE — Capo del Cantiere",
+                "🌑  OMBRA — Signore delle Fogne",
+                "🔥  CARICA — Mastro della Fornace",
+                "💀  FINALE — Il Castello Non Cade"
         };
-        String nomeBoss = nomiUI[((state.mondoAttuale - 1) % 4)];
+        int tipoUI = ((state.mondoAttuale - 1) % 4);
+        String nomeBoss = nomiUI[tipoUI];
 
-        int barW = (int)(W * 0.37);
-        int barH = Math.max(14, H / 22);
-        int uiX  = W / 2 - barW / 2;
-        int uiY  = H - (int)(H * 0.14);
+        // Barra centrata in basso
+        int barW = 400, barH = 22;
+        int uiX  = GameState.LARGHEZZA_GIOCO / 2 - barW / 2;
+        int uiY  = GameState.ALTEZZA_GIOCO - 55;
 
-        // Pannello sfondo
+        // Sfondo barra
         g2.setColor(new Color(15, 5, 5, 220));
-        g2.fillRoundRect(uiX - 8, uiY - barH - 14, barW + 16, barH + 26, 8, 8);
+        g2.fillRoundRect(uiX - 8, uiY - 30, barW + 16, barH + 38, 8, 8);
         g2.setColor(new Color(100, 20, 20));
         g2.setStroke(new BasicStroke(1.5f));
-        g2.drawRoundRect(uiX - 8, uiY - barH - 14, barW + 16, barH + 26, 8, 8);
+        g2.drawRoundRect(uiX - 8, uiY - 30, barW + 16, barH + 38, 8, 8);
         g2.setStroke(new BasicStroke(1f));
 
         // Nome boss
-        int fontSize = Math.max(11, H / 35);
-        g2.setFont(new Font("Consolas", Font.BOLD, fontSize));
+        g2.setFont(new Font("Consolas", Font.BOLD, 14));
         g2.setColor(new Color(255, 200, 80));
         FontMetrics fm = g2.getFontMetrics();
-        g2.drawString(nomeBoss, uiX + (barW - fm.stringWidth(nomeBoss)) / 2, uiY - 4);
+        g2.drawString(nomeBoss, uiX + (barW - fm.stringWidth(nomeBoss)) / 2, uiY - 12);
 
-        // Barra vita
+        // Sfondo barra vita
         g2.setColor(new Color(40, 10, 10));
         g2.fillRect(uiX, uiY, barW, barH);
+
+        // Riempimento vita con gradiente colore
         float perc = (float) bossCorrente.getVita() / bossCorrente.getVitaMax();
+        int riempito = (int)(barW * perc);
         Color colVita = perc > 0.5f ? new Color(200, 40, 40)
                 : perc > 0.25f ? new Color(220, 120, 0)
                 : new Color(255, 40, 40);
         g2.setColor(colVita);
-        g2.fillRect(uiX, uiY, (int)(barW * perc), barH);
+        g2.fillRect(uiX, uiY, riempito, barH);
+
+        // Bordo barra
         g2.setColor(new Color(80, 20, 20));
         g2.drawRect(uiX, uiY, barW, barH);
 
-        // HP text
-        g2.setFont(new Font("Consolas", Font.BOLD, Math.max(10, H / 40)));
+        // Testo HP centrato sulla barra
+        g2.setFont(new Font("Consolas", Font.BOLD, 13));
         g2.setColor(Color.WHITE);
-        String hp = bossCorrente.getVita() + " / " + bossCorrente.getVitaMax();
-        g2.drawString(hp, uiX + (barW - g2.getFontMetrics().stringWidth(hp)) / 2, uiY + barH - 2);
+        String hp = bossCorrente.getVita() + " / " + bossCorrente.getVitaMax() + " HP";
+        g2.drawString(hp, uiX + (barW - g2.getFontMetrics().stringWidth(hp)) / 2, uiY + 16);
 
-        // Timer
+        // Timer limite
+        g2.setFont(new Font("Consolas", Font.BOLD, 18));
         boolean blink = (System.currentTimeMillis() / 400) % 2 == 0;
-        g2.setFont(new Font("Consolas", Font.BOLD, Math.max(12, H / 28)));
         g2.setColor(state.tempoRimanenteBoss < 600
-                ? (blink ? Color.RED : new Color(200, 80, 80))
+                ? (blink ? Color.RED : new Color(200,80,80))
                 : new Color(200, 200, 200));
         g2.drawString("⏱ " + (state.tempoRimanenteBoss / 60) + "s",
-                W - (int)(W * 0.1), H - (int)(H * 0.06));
+                GameState.LARGHEZZA_GIOCO - 90, GameState.ALTEZZA_GIOCO - 28);
     }
+
     // ── Utilità UI ────────────────────────────────────────────────────────────
 
     /** Sfondo scuro pieno con leggero alone centrale */
-    private void sfondoOverlay(Graphics2D g2, int W, int H, Color base) {
+    private void sfondoOverlay(Graphics2D g2, Color base) {
         g2.setColor(base);
-        g2.fillRect(0, 0, W, H);
+        g2.fillRect(0, 0, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
+        int W = GameState.LARGHEZZA_GIOCO, H = GameState.ALTEZZA_GIOCO;
         for (int r = 250; r > 0; r -= 12) {
             int alpha = (int)(15 * (1.0 - r / 250.0));
             g2.setColor(new Color(60, 60, 140, alpha));
