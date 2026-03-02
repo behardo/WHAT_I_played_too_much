@@ -18,7 +18,12 @@ public class MenuButton {
 
     // ── Dati ─────────────────────────────────────────────────────────────────
     public final String    label;
-    public final Rectangle bounds;
+    public Rectangle bounds;
+
+    /** Aggiorna posizione e dimensione del bottone (per layout fluido). */
+    public void setBounds(int x, int y, int w, int h) {
+        this.bounds = new Rectangle(x, y, w, h);
+    }
     public       boolean   hover     = false;
     public       boolean   disabilitato = false;
 
