@@ -111,9 +111,9 @@ public class ResourceLoader {
         imgShopDoor            = load("/shop_door.png");
 
         // Nemici base (compatibilità)
-        imgNemico              = load("/nemico.png");
-        imgNemico2             = load("/nemico2.png");
-        imgBoss                = load("/boss.png");
+        imgNemico              = load("/nemico_m1.png");
+        imgNemico2             = load("/nemico_forte_m1.png");
+        imgBoss                = load("/boss_m1.png");
         imgBossProjectile      = load("/bullet.png");
 
         // ── Proiettili per personaggio ────────────────────────────────────────
