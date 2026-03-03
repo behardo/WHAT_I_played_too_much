@@ -315,9 +315,10 @@ public class GameLoop {
                 : roomMgr.getNemiciCorrenti();
 
         // Nemici vs giocatore — update con lista per separazione
+        int[][] ostacoli = roomMgr.getOstacoliCorrenti();
         for (int i = 0; i < nemici.size(); i++) {
             Nemico n = nemici.get(i);
-            n.update(state.x, state.y, nemici);
+            n.update(state.x, state.y, nemici, ostacoli);
 
             if (n.toccaGiocatore(state.x, state.y, GameState.PG_SIZE)) {
                 state.riceviDanno();
@@ -367,6 +368,10 @@ public class GameLoop {
         int tx = dropPixelX / GameState.TILE_SIZE;
         int ty = dropPixelY / GameState.TILE_SIZE;
 
+        // Sposta su una tile libera se quella di drop è un ostacolo o un muro
+        int[] tile = trovaTileLibera(tx, ty);
+        tx = tile[0]; ty = tile[1];
+
         if (state.vite < state.viteMaxGiocatore) {
             roomMgr.getCureCorrenti().add(
                     new Cura(tx, ty, GameState.TILE_SIZE, curaImageRef));
@@ -374,6 +379,23 @@ public class GameLoop {
             roomMgr.getMoneteCorrenti().add(
                     new Moneta(tx, ty, GameState.TILE_SIZE, monetaImageRef));
         }
+    }
+
+    /** Trova la tile libera più vicina a (tx,ty) — non muro, non ostacolo. */
+    private int[] trovaTileLibera(int tx, int ty) {
+        if (!TileSet.isMuro(tx, ty) && !roomMgr.isOstacolo(tx, ty)) return new int[]{tx, ty};
+        // Cerca a spirale
+        for (int r = 1; r <= 4; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dy = -r; dy <= r; dy++) {
+                    if (Math.abs(dx) != r && Math.abs(dy) != r) continue;
+                    int nx = tx + dx, ny = ty + dy;
+                    if (!TileSet.isMuro(nx, ny) && !roomMgr.isOstacolo(nx, ny))
+                        return new int[]{nx, ny};
+                }
+            }
+        }
+        return new int[]{tx, ty}; // fallback
     }
 
     // Immagini drop (impostate da WhatIvePlayedTooMuch dopo ResourceLoader)

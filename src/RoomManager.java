@@ -102,23 +102,21 @@ public class RoomManager {
         List<Shopkeeper> nuoviShopkeepers = new ArrayList<>();
         List<ShopItem>   nuoveItems       = new ArrayList<>();
 
+        // Ostacoli: solo stanze normali dopo la prima — generati PRIMA dei nemici
+        int[][] ostacoli = null;
+        if (state.stanzaNelMondo < GameState.STANZA_BOSS && state.stanzaNelMondo > 1) {
+            ostacoli = generaOstacoli();
+        }
+
         if (state.stanzaNelMondo == GameState.STANZA_BOSS && !state.bossSpawnato) {
             generaStanzaBoss(nuoviNemici);
 
         } else if (state.stanzaNelMondo == GameState.STANZA_BOSS
                 && state.bossSpawnato && !state.bossSconfitto) {
-            // Boss già spawnato ma non sconfitto: rientra, ricrea il boss
             generaStanzaBoss(nuoviNemici);
 
         } else if (state.stanzaNelMondo < GameState.STANZA_BOSS) {
-            // Stanza normale con nemici (non esiste più la stanza 4 shop fissa)
-            generaStanzaNormale(nuoviNemici);
-        }
-
-        // Ostacoli: solo stanze normali dopo la prima
-        int[][] ostacoli = null;
-        if (state.stanzaNelMondo < GameState.STANZA_BOSS && state.stanzaNelMondo > 1) {
-            ostacoli = generaOstacoli();
+            generaStanzaNormale(nuoviNemici, ostacoli);
         }
 
         nemiciPerStanza.add(nuoviNemici);
@@ -147,13 +145,13 @@ public class RoomManager {
         items.add(new ShopItem(9, 2, GameState.TILE_SIZE, "DANNO",    7, res.imgItemDamage));
     }
 
-    private void generaStanzaNormale(List<Nemico> nemici) {
+    private void generaStanzaNormale(List<Nemico> nemici, int[][] ostacoli) {
         int m     = state.mondoAttuale;
         int quanti = StatNemico.quantiNemici(m, state.stanzaNelMondo, random);
         float probForte = StatNemico.probNemicoForte(m);
 
         for (int i = 0; i < quanti; i++) {
-            int[] pos  = trovaPosizioneSicura();
+            int[] pos  = trovaPosizioneSicura(ostacoli);
             boolean forte = random.nextFloat() < probForte;
 
             if (forte) {
@@ -319,9 +317,8 @@ public class RoomManager {
      * Trova coordinate di spawn sicure (lontane dalle porte).
      * @return array [x, y] in coordinate tile
      */
-    private int[] trovaPosizioneSicura() {
+    private int[] trovaPosizioneSicura(int[][] ostacoli) {
         int safeX, safeY;
-        // Spawn giocatore: colonna 2, riga centrale
         int pgTileX = GameState.OFFSET + 1;
         int pgTileY = GameState.OFFSET + GameState.RIG_GIOCO / 2;
         int maxTentativi = 300;
@@ -329,8 +326,8 @@ public class RoomManager {
             safeX = random.nextInt(GameState.COL_GIOCO) + GameState.OFFSET;
             safeY = random.nextInt(GameState.RIG_GIOCO) + GameState.OFFSET;
             if (TileSet.isMuro(safeX, safeY)) { maxTentativi--; continue; }
-            // Ostacoli esistenti
-            if (isOstacolo(safeX, safeY)) { maxTentativi--; continue; }
+            // Ostacoli passati esplicitamente
+            if (isOstacoloIn(safeX, safeY, ostacoli)) { maxTentativi--; continue; }
             // Buffer 5 tile dalla porta sinistra
             if (safeX <= GameState.OFFSET + 4) { maxTentativi--; continue; }
             // Buffer 5 tile dalla porta destra
@@ -340,11 +337,17 @@ public class RoomManager {
             if (dx*dx + dy*dy < 25) { maxTentativi--; continue; }
             return new int[]{safeX, safeY};
         } while (maxTentativi > 0);
-        // Fallback al centro se non trovato
         return new int[]{GameState.COL_TOTALI/2, GameState.RIG_TOTALI/2};
     }
 
-    private boolean isOstacolo(int col, int rig) {
+    /** Controlla ostacoli passati come parametro (usato durante la generazione). */
+    private boolean isOstacoloIn(int col, int rig, int[][] ostacoli) {
+        if (ostacoli == null) return false;
+        for (int[] o : ostacoli) if (o[0]==col && o[1]==rig) return true;
+        return false;
+    }
+
+    public boolean isOstacolo(int col, int rig) {
         if (ostacoliStanzaCorrente == null) return false;
         for (int[] o : ostacoliStanzaCorrente)
             if (o[0] == col && o[1] == rig) return true;

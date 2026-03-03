@@ -937,36 +937,35 @@ public class RenderEngine {
         if (bossCorrente == null) return;
 
         String[] nomiUI = {
-                "⚒ BRUTALE", "🌑 OMBRA", "🔥 CARICA", "💀 FINALE"
+                "GRUNKY", "🌑 SUINESICE", "STEAM KING", "THE ALL KNOWING"
         };
         String nomeBoss = nomiUI[((state.mondoAttuale - 1) % 4)];
 
-        // Posiziona la barra boss nella banda superiore (sopra l'area di gioco)
-        int bandaT  = goy;
-        int barW    = (int)(gW * 0.6);
-        int barH    = Math.max(16, (int)(gH * 0.05));
-        int fontSize = Math.max(11, H / 35);
-        int hpFs    = Math.max(10, H / 40);
-        int pad     = Math.max(8, barH / 2);          // padding interno proporzionale
-        int panH    = fontSize + pad + barH + hpFs + pad * 2;
+        // Barra boss: larga 50% della stanza, centrata, nella banda superiore
+        int barW    = (int)(gW * 0.5);
+        int barH    = Math.max(18, (int)(goy * 0.35));  // usa la banda superiore
+        int fontSize = Math.max(12, (int)(goy * 0.30));
+        int hpFs    = Math.max(10, (int)(goy * 0.22));
+        int padX    = Math.max(12, barW / 20);
+        int padY    = Math.max(6,  (int)(goy * 0.08));
+        int panW    = barW + padX * 2;
+        int panH    = padY + fontSize + padY / 2 + barH + padY / 2 + hpFs + padY;
         int uiX     = gox + gW / 2 - barW / 2;
-
-        // Y del pannello: centrato nella banda superiore se c'è spazio, altrimenti a 4px dal bordo
-        int panY = bandaT >= panH + 8
-                ? goy - panH - (bandaT - panH) / 2
-                : goy + 4;
+        // Centra il pannello verticalmente nella banda superiore
+        int panY    = (goy - panH) / 2;
+        if (panY < 2) panY = 2;
 
         // coordinate interne
-        int nomeY = panY + pad + fontSize;
-        int barY  = nomeY + pad / 2;
+        int nomeY = panY + padY + fontSize;
+        int barY  = nomeY + padY / 2;
         int hpY   = barY + barH + hpFs;
 
         // Pannello sfondo
         g2.setColor(new Color(15, 5, 5, 220));
-        g2.fillRoundRect(uiX - pad, panY, barW + pad * 2, panH, 12, 12);
+        g2.fillRoundRect(uiX - padX, panY, panW, panH, 12, 12);
         g2.setColor(new Color(100, 20, 20));
         g2.setStroke(new BasicStroke(1.5f));
-        g2.drawRoundRect(uiX - pad, panY, barW + pad * 2, panH, 12, 12);
+        g2.drawRoundRect(uiX - padX, panY, panW, panH, 12, 12);
         g2.setStroke(new BasicStroke(1f));
 
         // Nome boss
