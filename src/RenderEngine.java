@@ -97,7 +97,7 @@ public class RenderEngine {
         ui.btnEsciMenu.draw(g2);
 
         // Footer hint
-        g2.setFont(new Font("Arial", Font.ITALIC, 14));
+        g2.setFont(new Font("Arial", Font.PLAIN, 14));
         g2.setColor(new Color(90, 90, 120));
         g2.drawString("F11 = Fullscreen", 20, H - 15);
         g2.drawString("v1.0", W - 50, H - 15);
@@ -150,7 +150,6 @@ public class RenderEngine {
         g2.setColor(new Color(150, 230, 150));
         g2.drawString(imp.volumeEffetti + "%", sliderX + sliderW + 8, s+RH + SH/2 + 6);
         ui.btnEffPiu.draw(g2);
-
 
         // ── Indietro ──────────────────────────────────────────────────────────
         ui.btnChiudiImpostazioni.draw(g2);
@@ -312,12 +311,12 @@ public class RenderEngine {
                 g2.drawString(pg.nome, rx + (rw - fmL.stringWidth(pg.nome))/2, nomeY);
                 // Lucchetto
                 int lockFs = (int)(rh * 0.18);
-                g2.setFont(new Font("Serif", Font.PLAIN, lockFs));
+                g2.setFont(new Font("Arial", Font.PLAIN, lockFs));
                 g2.setColor(new Color(100, 100, 130));
                 g2.drawString("\uD83D\uDD12",
                         rx + rw/2 - lockFs/2, ry + (int)(rh * 0.70));
                 // Testo sblocco
-                g2.setFont(new Font("Arial", Font.ITALIC, smallFs));
+                g2.setFont(new Font("Arial", Font.PLAIN, smallFs));
                 g2.setColor(new Color(120, 120, 150));
                 String[] righe = state.sistemaPersonaggi.testoSblocco(i).split("\n");
                 for (int rr = 0; rr < righe.length; rr++) {
@@ -330,13 +329,14 @@ public class RenderEngine {
             }
 
             // Card sbloccata — icona
-            if (segreto) {
+            if (pg.imgIcona != null) {
+                g2.drawImage(pg.imgIcona, imgX, imgY, imgSize, imgSize, null);
+            } else if (segreto) {
+                // Fallback stella solo se icona_p4.png non è presente
                 g2.setFont(new Font("Serif", Font.BOLD, (int)(rh * 0.25)));
                 g2.setColor(new Color(255, 215, 0));
                 g2.drawString("\u2605",
                         rx + rw/2 - (int)(rh * 0.12), imgY + imgSize - (int)(rh*0.03));
-            } else if (pg.imgIcona != null) {
-                g2.drawImage(pg.imgIcona, imgX, imgY, imgSize, imgSize, null);
             } else {
                 g2.setColor(new Color(150, 150, 180));
                 g2.fillOval(imgX, imgY, imgSize, imgSize);
@@ -349,13 +349,13 @@ public class RenderEngine {
             g2.drawString(pg.nome, rx + (rw - fm.stringWidth(pg.nome))/2, nomeY);
 
             // Descrizione
-            g2.setFont(new Font("Arial", Font.ITALIC, smallFs));
+            g2.setFont(new Font("Arial", Font.PLAIN, smallFs));
             g2.setColor(segreto ? new Color(255, 180, 0) : new Color(170, 170, 200));
             FontMetrics fmD = g2.getFontMetrics();
             g2.drawString(pg.descrizione, rx + (rw - fmD.stringWidth(pg.descrizione))/2, descY);
 
             // Stats
-            g2.setFont(new Font("Arial", Font.BOLD, smallFs));
+            g2.setFont(new Font("Consolas", Font.BOLD, smallFs));
             int icoS = smallFs;
             if (res.imgCuore != null)
                 g2.drawImage(res.imgCuore, rx + 5, statsY - icoS + 2, icoS, icoS, null);
@@ -432,7 +432,7 @@ public class RenderEngine {
             g2.drawString(nomi[i], rect.x + (rect.width - fm.stringWidth(nomi[i]))/2, nomeY);
 
             // Descrizione
-            g2.setFont(new Font("Arial", Font.ITALIC, descFs));
+            g2.setFont(new Font("Arial", Font.PLAIN, descFs));
             g2.setColor(new Color(190, 190, 210));
             FontMetrics fmD = g2.getFontMetrics();
             g2.drawString(desc1[i], rect.x + (rect.width - fmD.stringWidth(desc1[i]))/2, d1Y);
@@ -507,14 +507,14 @@ public class RenderEngine {
         drawTextCentered(g2, t, W/2, goY, goFs);
 
         // Stats
-        g2.setFont(new Font("Consolas", Font.PLAIN, 20));
+        g2.setFont(new Font("Arial", Font.PLAIN, 20));
         g2.setColor(new Color(200, 180, 180));
         String stats = "Mondo " + state.mondoAttuale + "  •  Stanza " + state.stanzaNelMondo
                 + "  •  Monete " + state.monete;
         g2.drawString(stats, W/2 - g2.getFontMetrics().stringWidth(stats)/2, H/2 + 10);
 
         if (state.modalitaScelta == GameState.Modalita.INFINITA) {
-            g2.setFont(new Font("Arial", Font.ITALIC, 18));
+            g2.setFont(new Font("Arial", Font.PLAIN, 18));
             g2.setColor(new Color(180, 160, 100));
             int tot = (state.mondoAttuale - 1) * GameState.STANZA_BOSS + state.stanzaNelMondo;
             String inf = "Stanze totali superate: " + tot;
@@ -668,16 +668,23 @@ public class RenderEngine {
         return (H - (int)(GameState.ALTEZZA_GIOCO * gameScale(W, H))) / 2;
     }
 
-    // ── BitmapFont helpers ────────────────────────────────────────────────────
+    // ── Font helpers ──────────────────────────────────────────────────────────
+
+
 
     /**
-     * Disegna testo usando il BitmapFont se disponibile, altrimenti il font Java corrente.
-     * @param altPx  altezza desiderata in pixel (usata per scalare il bitmap font)
+     * Disegna testo usando (in ordine di priorità):
+     *  1. fontCustom (PHONIXEA.ttf) se caricato
+     *  2. BitmapFont (font.png) se disponibile
+     *  3. Font Java corrente come fallback
      */
     private void drawText(Graphics2D g2, String testo, int x, int y, int altPx) {
-        if (res.bitmapFont != null && res.bitmapFont.isDisponibile()) {
+        if (res.fontCustom != null) {
+            java.awt.Font f = res.fontCustom.deriveFont((float) altPx);
+            g2.setFont(f);
+            g2.drawString(testo, x, y);
+        } else if (res.bitmapFont != null && res.bitmapFont.isDisponibile()) {
             float sc = res.bitmapFont.scalaPer(altPx);
-            // Il baseline di drawString è in basso; il BitmapFont usa top-left
             int topY = y - (int)(res.bitmapFont.getCharH() * sc);
             res.bitmapFont.disegna(g2, testo.toUpperCase(), x, topY, sc);
         } else {
@@ -686,7 +693,12 @@ public class RenderEngine {
     }
 
     private void drawTextCentered(Graphics2D g2, String testo, int centroX, int y, int altPx) {
-        if (res.bitmapFont != null && res.bitmapFont.isDisponibile()) {
+        if (res.fontCustom != null) {
+            java.awt.Font f = res.fontCustom.deriveFont((float) altPx);
+            g2.setFont(f);
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(testo, centroX - fm.stringWidth(testo)/2, y);
+        } else if (res.bitmapFont != null && res.bitmapFont.isDisponibile()) {
             float sc = res.bitmapFont.scalaPer(altPx);
             int topY = y - (int)(res.bitmapFont.getCharH() * sc);
             res.bitmapFont.disegnaCentrato(g2, testo.toUpperCase(), centroX, topY, sc);
@@ -712,6 +724,27 @@ public class RenderEngine {
                     if (ts.imgPavimento != null)
                         g2.drawImage(ts.imgPavimento, px, py, GameState.TILE_SIZE, GameState.TILE_SIZE, null);
                     else { g2.setColor(ts.coloreTemaFondo); g2.fillRect(px, py, GameState.TILE_SIZE, GameState.TILE_SIZE); }
+                }
+            }
+        }
+
+        // ── Ostacoli inagibili sovrapposti alle tile ─────────────────────────────
+        int[][] ostacoli = roomMgr.getOstacoliCorrenti();
+        if (ostacoli != null && state.statoGioco == GameState.StatoGioco.GIOCO) {
+            for (int[] o : ostacoli) {
+                int ox = o[0] * GameState.TILE_SIZE;
+                int oy = o[1] * GameState.TILE_SIZE;
+                if (res.imgOstacolo != null) {
+                    g2.drawImage(res.imgOstacolo, ox, oy, GameState.TILE_SIZE, GameState.TILE_SIZE, null);
+                } else {
+                    // Fallback: rettangolo scuro con X
+                    g2.setColor(new Color(40, 20, 10, 200));
+                    g2.fillRect(ox + 4, oy + 4, GameState.TILE_SIZE - 8, GameState.TILE_SIZE - 8);
+                    g2.setColor(new Color(100, 50, 20));
+                    g2.setStroke(new java.awt.BasicStroke(3));
+                    g2.drawLine(ox + 8, oy + 8, ox + GameState.TILE_SIZE - 8, oy + GameState.TILE_SIZE - 8);
+                    g2.drawLine(ox + GameState.TILE_SIZE - 8, oy + 8, ox + 8, oy + GameState.TILE_SIZE - 8);
+                    g2.setStroke(new java.awt.BasicStroke(1));
                 }
             }
         }
@@ -827,7 +860,7 @@ public class RenderEngine {
             cx += state.vite * (ico + 3) + 12;
             if (res.imgMoneta != null) g2.drawImage(res.imgMoneta, cx, cy - ico/2, ico, ico, null);
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, fs));
+            g2.setFont(res.fontCustom != null ? res.fontCustom.deriveFont(Font.BOLD, (float)fs) : new Font("Consolas", Font.BOLD, fs));
             g2.drawString("" + state.monete, cx + ico + 4, cy + fs/3);
             cx += ico + 4 + g2.getFontMetrics().stringWidth("" + state.monete) + 18;
             TileSet ts = TileSet.perMondo(state.mondoAttuale, res);
@@ -858,7 +891,7 @@ public class RenderEngine {
             ly += state.vite * (ico + 3) + 14;
             if (res.imgMoneta != null) g2.drawImage(res.imgMoneta, lx - ico/2, ly, ico, ico, null);
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, fs));
+            g2.setFont(res.fontCustom != null ? res.fontCustom.deriveFont(Font.BOLD, (float)fs) : new Font("Consolas", Font.BOLD, fs));
             g2.drawString("" + state.monete, lx - ico/2, ly + ico + fs + 2);
             ly += ico + fs + 16;
             TileSet ts = TileSet.perMondo(state.mondoAttuale, res);
@@ -883,7 +916,7 @@ public class RenderEngine {
             cx += state.vite * (ico + 2) + 8;
             if (res.imgMoneta != null) g2.drawImage(res.imgMoneta, cx, goy + pad, ico, ico, null);
             g2.setColor(Color.WHITE);
-            g2.setFont(new Font("Arial", Font.BOLD, fs));
+            g2.setFont(res.fontCustom != null ? res.fontCustom.deriveFont(Font.BOLD, (float)fs) : new Font("Consolas", Font.BOLD, fs));
             g2.drawString("" + state.monete, cx + ico + 3, goy + pad + ico - 2);
             TileSet ts = TileSet.perMondo(state.mondoAttuale, res);
             g2.setFont(new Font("Consolas", Font.BOLD, fs));
@@ -908,57 +941,66 @@ public class RenderEngine {
         };
         String nomeBoss = nomiUI[((state.mondoAttuale - 1) % 4)];
 
-        // Posiziona la barra boss nella banda nera sotto il gioco (se esiste),
-        // altrimenti incollata al bordo inferiore dell'area di gioco
-        int bandaB = H - goy - gH;
-        int barW = (int)(gW * 0.6);
-        int barH = Math.max(14, (int)(gH * 0.05));
-        int uiX  = gox + gW/2 - barW/2;
-        int uiY  = bandaB >= 40
-                ? goy + gH + (bandaB - barH * 2 - 18) / 2
-                : goy + gH - barH - 8;
+        // Posiziona la barra boss nella banda superiore (sopra l'area di gioco)
+        int bandaT  = goy;
+        int barW    = (int)(gW * 0.6);
+        int barH    = Math.max(16, (int)(gH * 0.05));
+        int fontSize = Math.max(11, H / 35);
+        int hpFs    = Math.max(10, H / 40);
+        int pad     = Math.max(8, barH / 2);          // padding interno proporzionale
+        int panH    = fontSize + pad + barH + hpFs + pad * 2;
+        int uiX     = gox + gW / 2 - barW / 2;
+
+        // Y del pannello: centrato nella banda superiore se c'è spazio, altrimenti a 4px dal bordo
+        int panY = bandaT >= panH + 8
+                ? goy - panH - (bandaT - panH) / 2
+                : goy + 4;
+
+        // coordinate interne
+        int nomeY = panY + pad + fontSize;
+        int barY  = nomeY + pad / 2;
+        int hpY   = barY + barH + hpFs;
 
         // Pannello sfondo
         g2.setColor(new Color(15, 5, 5, 220));
-        g2.fillRoundRect(uiX - 8, uiY - barH - 14, barW + 16, barH + 26, 8, 8);
+        g2.fillRoundRect(uiX - pad, panY, barW + pad * 2, panH, 12, 12);
         g2.setColor(new Color(100, 20, 20));
         g2.setStroke(new BasicStroke(1.5f));
-        g2.drawRoundRect(uiX - 8, uiY - barH - 14, barW + 16, barH + 26, 8, 8);
+        g2.drawRoundRect(uiX - pad, panY, barW + pad * 2, panH, 12, 12);
         g2.setStroke(new BasicStroke(1f));
 
         // Nome boss
-        int fontSize = Math.max(11, H / 35);
         g2.setFont(new Font("Consolas", Font.BOLD, fontSize));
         g2.setColor(new Color(255, 200, 80));
         FontMetrics fm = g2.getFontMetrics();
-        g2.drawString(nomeBoss, uiX + (barW - fm.stringWidth(nomeBoss)) / 2, uiY - 4);
+        g2.drawString(nomeBoss, uiX + (barW - fm.stringWidth(nomeBoss)) / 2, nomeY);
 
         // Barra vita
         g2.setColor(new Color(40, 10, 10));
-        g2.fillRect(uiX, uiY, barW, barH);
+        g2.fillRect(uiX, barY, barW, barH);
         float perc = (float) bossCorrente.getVita() / bossCorrente.getVitaMax();
         Color colVita = perc > 0.5f ? new Color(200, 40, 40)
                 : perc > 0.25f ? new Color(220, 120, 0)
                 : new Color(255, 40, 40);
         g2.setColor(colVita);
-        g2.fillRect(uiX, uiY, (int)(barW * perc), barH);
+        g2.fillRect(uiX, barY, (int)(barW * perc), barH);
         g2.setColor(new Color(80, 20, 20));
-        g2.drawRect(uiX, uiY, barW, barH);
+        g2.drawRect(uiX, barY, barW, barH);
 
         // HP text
-        g2.setFont(new Font("Consolas", Font.BOLD, Math.max(10, H / 40)));
+        g2.setFont(new Font("Consolas", Font.BOLD, hpFs));
         g2.setColor(Color.WHITE);
         String hp = bossCorrente.getVita() + " / " + bossCorrente.getVitaMax();
-        g2.drawString(hp, uiX + (barW - g2.getFontMetrics().stringWidth(hp)) / 2, uiY + barH - 2);
+        g2.drawString(hp, uiX + (barW - g2.getFontMetrics().stringWidth(hp)) / 2, hpY);
 
-        // Timer
+        // Timer — in alto a destra
         boolean blink = (System.currentTimeMillis() / 400) % 2 == 0;
         g2.setFont(new Font("Consolas", Font.BOLD, Math.max(12, H / 28)));
         g2.setColor(state.tempoRimanenteBoss < 600
                 ? (blink ? Color.RED : new Color(200, 80, 80))
                 : new Color(200, 200, 200));
         g2.drawString("⏱ " + (state.tempoRimanenteBoss / 60) + "s",
-                W - (int)(W * 0.1), H - (int)(H * 0.06));
+                W - (int)(W * 0.1), goy + (int)(H * 0.04));
     }
     // ── Utilità UI ────────────────────────────────────────────────────────────
 

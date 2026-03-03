@@ -24,6 +24,9 @@ public class RoomManager {
     public final List<List<Moneta>>    monetePerStanza            = new ArrayList<>();
     public final List<List<Shopkeeper>> shopkeepersPerStanza      = new ArrayList<>();
     public final List<List<ShopItem>>  shopItemsPerStanza         = new ArrayList<>();
+    // Ostacoli inagibili per stanza: lista di [col, rig] in coordinate tile
+    public final List<int[][]>         ostacoliPerStanza          = new ArrayList<>();
+    public       int[][]               ostacoliStanzaCorrente     = null;
 
     // ── Dipendenze ────────────────────────────────────────────────────────────
     private final GameState     state;
@@ -56,6 +59,7 @@ public class RoomManager {
         monetePerStanza.add(new ArrayList<>());
         shopkeepersPerStanza.add(new ArrayList<>());
         shopItemsPerStanza.add(new ArrayList<>());
+        ostacoliPerStanza.add(null); // stanza 1: nessun ostacolo
     }
 
     /**
@@ -68,6 +72,8 @@ public class RoomManager {
         monetePerStanza.clear();
         shopkeepersPerStanza.clear();
         shopItemsPerStanza.clear();
+        ostacoliPerStanza.clear();
+        ostacoliStanzaCorrente = null;
         memoriaColoriMondo1.clear();
         memoriaColoriMondo2.clear();
         resetShop();
@@ -109,11 +115,18 @@ public class RoomManager {
             generaStanzaNormale(nuoviNemici);
         }
 
+        // Ostacoli: solo stanze normali dopo la prima
+        int[][] ostacoli = null;
+        if (state.stanzaNelMondo < GameState.STANZA_BOSS && state.stanzaNelMondo > 1) {
+            ostacoli = generaOstacoli();
+        }
+
         nemiciPerStanza.add(nuoviNemici);
         curePerStanza.add(nuoveCure);
         monetePerStanza.add(nuoveMonete);
         shopkeepersPerStanza.add(nuoviShopkeepers);
         shopItemsPerStanza.add(nuoveItems);
+        ostacoliPerStanza.add(ostacoli);
     }
 
     private void generaStanzaBoss(List<Nemico> nemici) {
@@ -283,6 +296,11 @@ public class RoomManager {
     public List<Moneta>     getMoneteCorrenti()       { return monetePerStanza.get(state.indiceStanzaMemoria); }
     public List<Shopkeeper> getShopkeepersCorrenti()  { return shopkeepersPerStanza.get(state.indiceStanzaMemoria); }
     public List<ShopItem>   getShopItemsCorrenti()    { return shopItemsPerStanza.get(state.indiceStanzaMemoria); }
+    public int[][]          getOstacoliCorrenti() {
+        int idx = state.indiceStanzaMemoria;
+        ostacoliStanzaCorrente = (idx < ostacoliPerStanza.size()) ? ostacoliPerStanza.get(idx) : null;
+        return ostacoliStanzaCorrente;
+    }
 
     // ── Utilità ───────────────────────────────────────────────────────────────
 
@@ -303,17 +321,63 @@ public class RoomManager {
      */
     private int[] trovaPosizioneSicura() {
         int safeX, safeY;
-        boolean safe;
+        // Spawn giocatore: colonna 2, riga centrale
+        int pgTileX = GameState.OFFSET + 1;
+        int pgTileY = GameState.OFFSET + GameState.RIG_GIOCO / 2;
+        int maxTentativi = 300;
         do {
             safeX = random.nextInt(GameState.COL_GIOCO) + GameState.OFFSET;
             safeY = random.nextInt(GameState.RIG_GIOCO) + GameState.OFFSET;
-            safe  = true;
-            // Zona porta sinistra
-            if (safeX >= GameState.OFFSET && safeX <= GameState.OFFSET + 2 && safeY == 3) safe = false;
-            // Zona porta destra
-            if (safeX >= GameState.COL_TOTALI - 4 && safeX <= GameState.COL_TOTALI - 1 && safeY == 3) safe = false;
-        } while (!safe);
-        return new int[]{safeX, safeY};
+            if (TileSet.isMuro(safeX, safeY)) { maxTentativi--; continue; }
+            // Ostacoli esistenti
+            if (isOstacolo(safeX, safeY)) { maxTentativi--; continue; }
+            // Buffer 5 tile dalla porta sinistra
+            if (safeX <= GameState.OFFSET + 4) { maxTentativi--; continue; }
+            // Buffer 5 tile dalla porta destra
+            if (safeX >= GameState.COL_TOTALI - GameState.OFFSET - 5) { maxTentativi--; continue; }
+            // Distanza minima 5 tile dal giocatore
+            int dx = safeX - pgTileX, dy = safeY - pgTileY;
+            if (dx*dx + dy*dy < 25) { maxTentativi--; continue; }
+            return new int[]{safeX, safeY};
+        } while (maxTentativi > 0);
+        // Fallback al centro se non trovato
+        return new int[]{GameState.COL_TOTALI/2, GameState.RIG_TOTALI/2};
+    }
+
+    private boolean isOstacolo(int col, int rig) {
+        if (ostacoliStanzaCorrente == null) return false;
+        for (int[] o : ostacoliStanzaCorrente)
+            if (o[0] == col && o[1] == rig) return true;
+        return false;
+    }
+
+    /**
+     * Genera 2-4 tile ostacolo casuali, garantendo che il corridoio
+     * orizzontale delle porte (riga centrale ±1 tile ai bordi) rimanga libero.
+     */
+    private int[][] generaOstacoli() {
+        int portaY = GameState.OFFSET + GameState.RIG_GIOCO / 2;
+        int quanti = 2 + random.nextInt(3); // 2, 3 o 4
+        List<int[]> lista = new ArrayList<>();
+        int tentativi = 0;
+        while (lista.size() < quanti && tentativi < 300) {
+            tentativi++;
+            int col = random.nextInt(GameState.COL_GIOCO) + GameState.OFFSET;
+            int rig = random.nextInt(GameState.RIG_GIOCO) + GameState.OFFSET;
+            if (TileSet.isMuro(col, rig)) continue;
+            // Non bloccare le 5 colonne attorno alle porte sulla riga centrale
+            if (rig == portaY && col <= GameState.OFFSET + 4) continue;
+            if (rig == portaY && col >= GameState.COL_TOTALI - GameState.OFFSET - 5) continue;
+            // Non nella zona spawn giocatore (prime 4 colonne)
+            if (col <= GameState.OFFSET + 3) continue;
+            // Non vicino alla porta destra (ultime 4 colonne)
+            if (col >= GameState.COL_TOTALI - GameState.OFFSET - 4) continue;
+            // No duplicati
+            boolean dup = false;
+            for (int[] o : lista) if (o[0]==col && o[1]==rig) { dup=true; break; }
+            if (!dup) lista.add(new int[]{col, rig});
+        }
+        return lista.toArray(new int[0][]);
     }
 
     // ── Interfaccia callback ──────────────────────────────────────────────────

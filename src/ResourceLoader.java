@@ -16,12 +16,15 @@ public class ResourceLoader {
     public BufferedImage imgPersonaggioVeloce;
     public BufferedImage imgPersonaggioForte;
     public BufferedImage imgPersonaggioTank;
+    public BufferedImage imgPersonaggioGod;
+    public BufferedImage imgOstacolo;          // ostacolo.png — sovrapposto alla tile
 
     // ── Icone selezione personaggio ───────────────────────────────────────────
     public BufferedImage imgIconaP0;
     public BufferedImage imgIconaP1;
     public BufferedImage imgIconaP2;
     public BufferedImage imgIconaP3;
+    public BufferedImage imgIconaP4;
 
     // ── Icone selezione modalità ──────────────────────────────────────────────
     public BufferedImage imgIconaStoria;
@@ -58,6 +61,7 @@ public class ResourceLoader {
     public BufferedImage   imgSfondoGameOver;
     // ── Font bitmap ───────────────────────────────────────────────────────────
     public BitmapFont      bitmapFont;
+    public java.awt.Font   fontCustom;   // PHONIXEA.ttf se presente
 
     // Mantenuti per compatibilità con codice esistente
     public BufferedImage imgNemico;
@@ -89,12 +93,15 @@ public class ResourceLoader {
         imgPersonaggioVeloce   = load("/personaggio_veloce.png");
         imgPersonaggioForte    = load("/personaggio_forte.png");
         imgPersonaggioTank     = load("/personaggio_tank.png");
+        imgPersonaggioGod      = load("/personaggio_god.png");
+        imgOstacolo            = load("/ostacolo.png");
 
         // Icone selezione
         imgIconaP0             = load("/icona_p0.png");
         imgIconaP1             = load("/icona_p1.png");
         imgIconaP2             = load("/icona_p2.png");
         imgIconaP3             = load("/icona_p3.png");
+        imgIconaP4             = load("/icona_p4.png");
         imgIconaStoria         = load("/icona_storia.png");
         imgIconaInfinita       = load("/icona_infinita.png");
 
@@ -111,9 +118,9 @@ public class ResourceLoader {
         imgShopDoor            = load("/shop_door.png");
 
         // Nemici base (compatibilità)
-        imgNemico              = load("/nemico_m1.png");
-        imgNemico2             = load("/nemico_forte_m1.png");
-        imgBoss                = load("/boss_m1.png");
+        imgNemico              = load("/nemico.png");
+        imgNemico2             = load("/nemico2.png");
+        imgBoss                = load("/boss.png");
         imgBossProjectile      = load("/bullet.png");
 
         // ── Proiettili per personaggio ────────────────────────────────────────
@@ -141,10 +148,14 @@ public class ResourceLoader {
         // ── Font bitmap ───────────────────────────────────────────────────────
         bitmapFont = new BitmapFont(load("/font.png"));
 
+        // Font TTF custom — prova PHONIXEA.ttf, poi .otf come fallback
+        fontCustom = caricaFontTTF("/PHONIXEA.ttf");
+        if (fontCustom == null) fontCustom = caricaFontTTF("/PHONIXEA.otf");
+
         // ── Nemici per mondo specifico ────────────────────────────────────────
         // Mondo 1 — usa gli sprite base come fallback
         imgNemicoPerMondo[0]      = caricaConFallback("/nemico_m1.png",      imgNemico);
-        imgNemicoFortePerMondo[0] = caricaConFallback("/nemico_m2.png", imgNemico2);
+        imgNemicoFortePerMondo[0] = caricaConFallback("/nemico_forte_m1.png", imgNemico2);
         imgBossPerMondo[0]        = caricaConFallback("/boss_m1.png",         imgBoss);
 
         // Mondo 2 — fogne/buio
@@ -247,6 +258,7 @@ public class ResourceLoader {
             case 1  -> imgPersonaggioVeloce  != null ? imgPersonaggioVeloce  : imgPersonaggioDefault;
             case 2  -> imgPersonaggioForte   != null ? imgPersonaggioForte   : imgPersonaggioDefault;
             case 3  -> imgPersonaggioTank    != null ? imgPersonaggioTank    : imgPersonaggioDefault;
+            case 4  -> imgPersonaggioGod     != null ? imgPersonaggioGod     : imgPersonaggioDefault;
             default -> imgPersonaggioDefault;
         };
     }
@@ -257,7 +269,19 @@ public class ResourceLoader {
             case 1  -> imgIconaP1 != null ? imgIconaP1 : imgPersonaggioVeloce;
             case 2  -> imgIconaP2 != null ? imgIconaP2 : imgPersonaggioForte;
             case 3  -> imgIconaP3 != null ? imgIconaP3 : imgPersonaggioTank;
+            case 4  -> imgPersonaggioGod != null ? imgPersonaggioGod : imgPersonaggioDefault;
             default -> imgPersonaggioDefault;
         };
+    }
+
+    /** Carica un font TTF/OTF dalla cartella risorse. Ritorna null se non trovato. */
+    private java.awt.Font caricaFontTTF(String path) {
+        try (java.io.InputStream is = getClass().getResourceAsStream(path)) {
+            if (is == null) return null;
+            return java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, is);
+        } catch (Exception e) {
+            System.out.println("[ResourceLoader] Font non trovato: " + path);
+            return null;
+        }
     }
 }

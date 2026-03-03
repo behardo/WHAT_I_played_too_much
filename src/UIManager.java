@@ -100,8 +100,7 @@ public class UIManager {
             btnMusPiu             = b("+",        CX2+SW+155,  s,         SW,  SH, nVerde, hVerde, bVerde, bVerH);
             btnEffMeno            = b("-",        CX2,         s+RH,      SW,  SH, nRosso, hRosso, bRosso, bRosH);
             btnEffPiu             = b("+",        CX2+SW+155,  s+RH,      SW,  SH, nVerde, hVerde, bVerde, bVerH);
-
-            btnChiudiImpostazioni = b("INDIETRO", W/2-100,     s+RH*3+10, 200, BH, nDark,  hBlu,   bBlu,   bBluH);
+            btnChiudiImpostazioni = b("INDIETRO", W/2-100,     s+RH*2+10, 200, BH, nDark,  hBlu,   bBlu,   bBluH);
 
             _impLabelX = LX;   _impCtrlX = CX2;  _impSw = SW;
             _impStartY = s;    _impRigaH = RH;   _impSh = SH;
@@ -136,13 +135,13 @@ public class UIManager {
     // ── Inizializzazione ──────────────────────────────────────────────────────
 
     private void inizializzaPersonaggi(ResourceLoader res) {
-        listaPersonaggi.add(new DatiPersonaggio("BELLGERD", 3, 6.0f, 1,
+        listaPersonaggi.add(new DatiPersonaggio("VLAD", 5, 6.0f, 1,
                 res.getIconaPerIndice(0), res.imgPersonaggioDefault, "Equilibrato.",
                 res.getBulletPerPG(0)));
-        listaPersonaggi.add(new DatiPersonaggio("VLAD",     2, 8.5f, 1,
+        listaPersonaggi.add(new DatiPersonaggio("PAUL",     2, 8.5f, 1,
                 res.getIconaPerIndice(1), res.imgPersonaggioVeloce,  "Veloce ma fragile.",
                 res.getBulletPerPG(1)));
-        listaPersonaggi.add(new DatiPersonaggio("PAUL",     3, 4.5f, 2,
+        listaPersonaggi.add(new DatiPersonaggio("BELLGERD",     3, 4.5f, 2,
                 res.getIconaPerIndice(2), res.imgPersonaggioForte,   "Lento ma potente.",
                 res.getBulletPerPG(2)));
         listaPersonaggi.add(new DatiPersonaggio("JUICY",    5, 3.5f, 1,
@@ -150,8 +149,10 @@ public class UIManager {
                 res.getBulletPerPG(3)));
         // Segreto — indice 4, visibile solo con combo B x5
         listaPersonaggi.add(new DatiPersonaggio(
-                "G.O.D.", 99, 12.0f, 25,
-                null, res.imgPersonaggioDefault, "???",
+                "D.I.T.T.O", 15, 12.0f, 50,
+                res.getIconaPerIndice(4),
+                res.imgPersonaggioGod != null ? res.imgPersonaggioGod : res.imgPersonaggioDefault,
+                "???",
                 res.getBulletPerPG(4)));
     }
 
@@ -221,7 +222,7 @@ public class UIManager {
         btnMusPiu.setBounds(CX2+SW+(int)(W*0.142), si, SW, SH);
         btnEffMeno.setBounds(CX2,       si+RH,      SW, SH);
         btnEffPiu.setBounds(CX2+SW+(int)(W*0.142), si+RH, SW, SH);
-        btnChiudiImpostazioni.setBounds(W/2-(int)(W*0.092), si+RH*3+(int)(H*0.022), (int)(W*0.184), BH);
+        btnChiudiImpostazioni.setBounds(W/2-(int)(W*0.092), si+RH*2+10, (int)(W*0.185), BH);
         _impLabelX = LX; _impCtrlX = CX2; _impSw = SW;
         _impStartY = si; _impRigaH = RH;  _impSh = SH;
 

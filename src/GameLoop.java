@@ -123,8 +123,8 @@ public class GameLoop {
         }
 
         // ── Movimento verticale ───────────────────────────────────────────────
-        if (state.up    && state.y > minY) state.y -= state.velocita;
-        if (state.down  && state.y < maxY) state.y += state.velocita;
+        if (state.up    && state.y > minY) { state.y -= state.velocita; if (collideOstacolo()) state.y += state.velocita; }
+        if (state.down  && state.y < maxY) { state.y += state.velocita; if (collideOstacolo()) state.y -= state.velocita; }
 
         // Porta nord shop: stanza 1 del nuovo mondo, shop sbloccato, giocatore in cima
         boolean inZonaPortaNord = state.x > (GameState.LARGHEZZA_GIOCO / 2f - GameState.TILE_SIZE)
@@ -145,6 +145,7 @@ public class GameLoop {
         if (state.left) {
             if (state.x > minX) {
                 state.x -= state.velocita;
+                if (collideOstacolo()) state.x += state.velocita;
             } else if (inZonaPorta && state.indiceStanzaMemoria > 0) {
                 // Bloccato se boss fight attiva (boss spawned e non sconfitto)
                 boolean bossAttivo = state.stanzaNelMondo == GameState.STANZA_BOSS
@@ -161,6 +162,7 @@ public class GameLoop {
         if (state.right) {
             if (state.x < maxX) {
                 state.x += state.velocita;
+                if (collideOstacolo()) state.x -= state.velocita;
             } else if (inZonaPorta) {
                 gestisciTransizioneDestra(maxX);
             }
@@ -172,6 +174,26 @@ public class GameLoop {
      * La stanza boss si considera pulita solo dopo bossSconfitto.
      * La stanza 1 (ingresso) è sempre pulita.
      */
+    /** True se il giocatore si sovrappone a una tile ostacolo. */
+    private boolean collideOstacolo() {
+        int[][] ostacoli = roomMgr.getOstacoliCorrenti();
+        if (ostacoli == null) return false;
+        final int T = GameState.TILE_SIZE;
+        final int margin = 4; // pixel di tolleranza ai bordi
+        int pgX1 = (int)state.x + margin;
+        int pgY1 = (int)state.y + margin;
+        int pgX2 = (int)state.x + GameState.PG_SIZE - margin;
+        int pgY2 = (int)state.y + GameState.PG_SIZE - margin;
+        for (int[] o : ostacoli) {
+            int ox1 = o[0] * T + margin;
+            int oy1 = o[1] * T + margin;
+            int ox2 = (o[0]+1) * T - margin;
+            int oy2 = (o[1]+1) * T - margin;
+            if (pgX1 < ox2 && pgX2 > ox1 && pgY1 < oy2 && pgY2 > oy1) return true;
+        }
+        return false;
+    }
+
     private boolean stanzaPulita() {
         if (state.stanzaNelMondo == 1) return true;
         return roomMgr.getNemiciCorrenti().isEmpty();

@@ -45,20 +45,12 @@ public class ShopkeeperNemico extends Nemico {
     public void draw(Graphics2D g2, BufferedImage ignoredSprite) {
         if (morto) return;
 
-        // Sprite con tinta rossa
-        if (imgSk != null) {
-            g2.drawImage(imgSk, (int) x, (int) y, size, size, null);
-            g2.setColor(new Color(220, 0, 0, 100));
-            g2.fillRect((int) x, (int) y, size, size);
-        } else {
-            g2.setColor(new Color(180, 0, 0));
-            g2.fillRect((int) x, (int) y, size, size);
-        }
+
 
         // Etichetta "TRADITORE!" sopra
         g2.setFont(new Font("Consolas", Font.BOLD, 11));
         g2.setColor(Color.RED);
-        g2.drawString("TRADITORE!", (int) x - 5, (int) y - 4);
+        g2.drawString("NON SCAPPARE!!!", (int) x - 5, (int) y - 4);
     }
 
     @Override
