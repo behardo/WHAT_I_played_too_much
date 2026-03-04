@@ -4,39 +4,55 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Boss.java — estende Nemico.
+ * Boss.java — Quattro boss con comportamenti completamente distinti.
  *
- * Boss diversi per mondo (parametro mondoAttuale):
- *  Mondo 1 — Boss LENTO: insegue diretto, spara a intervalli lunghi
- *  Mondo 2 — Boss MULTIPLO: spara 4 proiettili a croce
- *  Mondo 3 — Boss CARICA: ogni tot frame scatta in avanti velocemente
- *  Mondo 4 — Boss FINALE: spara spirale + velocità crescente
- *
- * Tutti i boss scalano vita/danno col mondo.
+ *  Tipo 1 — BRUTALE  : insegue diretto, spara 3 proiettili a ventaglio
+ *  Tipo 2 — OMBRA    : si muove a scatti, spara a 8 direzioni
+ *  Tipo 3 — CARICA   : carica verso il giocatore + bruciatura al contatto
+ *                       + proiettili di fuoco
+ *  Tipo 4 — FINALE   : si muove SPECULARMENTE al giocatore,
+ *                       può schivare proiettili in arrivo (prob. bassa),
+ *                       alterna spirale e burst mirato
  */
 public class Boss extends Nemico {
 
-    // ── Dimensione e tipo ─────────────────────────────────────────────────────
     private static final int TAGLIA_BOSS = 96;
-    private final int tipo;   // = mondoAttuale % 4  (1-4)
+    private final int tipo;
 
     // ── Proiettili ────────────────────────────────────────────────────────────
     private final List<BossProjectile> proiettili = new ArrayList<>();
-    private BufferedImage[] imgProiettiliPerTipo = new BufferedImage[4]; // indice 0-3
+    private BufferedImage[] imgProiettiliPerTipo   = new BufferedImage[4];
     private int cooldownSparo = 0;
-
-    // Delay sparo per tipo
     private final int DELAY_SPARO;
+    private float angoloSpirale = 0f;
 
-    // ── Carica (tipo 3) ───────────────────────────────────────────────────────
+    // ── Tipo 2 — scatti ───────────────────────────────────────────────────────
+    private int timerScatto = 0;
+    private boolean inScatto = false;
+    private float scattoDx = 0, scattoDy = 0;
+    private static final int INTERVALLO_SCATTO = 90;
+    private static final int DURATA_SCATTO     = 8;
+
+    // ── Tipo 3 — carica + burn ────────────────────────────────────────────────
     private int timerCarica = 0;
     private boolean inCarica = false;
     private float caricaDx = 0, caricaDy = 0;
-    private static final int INTERVALLO_CARICA = 150;
-    private static final int DURATA_CARICA     = 20;
+    private static final int INTERVALLO_CARICA = 140;
+    private static final int DURATA_CARICA     = 22;
+    private Runnable onBurnPlayer = null;
+    private int cooldownBurn = 0;
 
-    // ── Spirale (tipo 4) ──────────────────────────────────────────────────────
-    private float angoloproiettile = 0f;
+    // ── Tipo 4 — specchio + schivata ─────────────────────────────────────────
+    private float dodgeDx = 0, dodgeDy = 0;
+    private int   timerDodge = 0;
+    private int   timerBurst = 0;
+    private boolean modoBurst = false;
+    private static final float PROB_SCHIVATA = 0.015f;
+    private static final int   DURATA_DODGE  = 18;
+    private static final float VEL_DODGE     = 7f;
+    private static final int   CICLO_BURST   = 200;
+    private List<Pugno> pugniAttivi = null;
+    private boolean setupDone = false;
 
     // ── Costruttore ───────────────────────────────────────────────────────────
     public Boss(int tileX, int tileY, int tileSize, int vita, int mondoAttuale) {
@@ -44,193 +60,271 @@ public class Boss extends Nemico {
         this.size       = TAGLIA_BOSS;
         this.dimensione = TAGLIA_BOSS;
         this.tipo       = ((mondoAttuale - 1) % 4) + 1;
-        // Velocità crescente per mondo
         this.velocita   = StatNemico.velocitaBoss(mondoAttuale);
-        // Delay sparo: diminuisce col mondo
-        this.DELAY_SPARO = Math.max(40, 90 - (mondoAttuale - 1) * 12);
-        // Centra nella tile
+        this.DELAY_SPARO = Math.max(35, 85 - (mondoAttuale - 1) * 12);
         this.x -= (TAGLIA_BOSS - tileSize) / 2f;
         this.y -= (TAGLIA_BOSS - tileSize) / 2f;
     }
 
-    /** Carica lo stesso proiettile per tutti i tipi (compatibilità). */
+    // ── Setters esterni ───────────────────────────────────────────────────────
+    public void setOnBurnPlayer(Runnable cb)     { this.onBurnPlayer = cb; }
+    public void setPugniAttiviRef(List<Pugno> l) { this.pugniAttivi  = l; }
+    public boolean isSetupDone()  { return setupDone; }
+    public void    markSetupDone(){ setupDone = true; }
+
+    // ── Proiettili ────────────────────────────────────────────────────────────
     public void caricaProiettile(BufferedImage img) {
         java.util.Arrays.fill(imgProiettiliPerTipo, img);
     }
-    /** Carica proiettili specifici per tipo (1-4). */
-    public void caricaProiettiliPerTipo(java.awt.image.BufferedImage[] imgs) {
+    public void caricaProiettiliPerTipo(BufferedImage[] imgs) {
         for (int i = 0; i < 4 && i < imgs.length; i++)
             imgProiettiliPerTipo[i] = imgs[i];
     }
     private BufferedImage getImgProiettile() {
         BufferedImage img = imgProiettiliPerTipo[tipo - 1];
-        if (img == null) img = imgProiettiliPerTipo[0]; // fallback al tipo 1
-        return img;
+        return img != null ? img : imgProiettiliPerTipo[0];
     }
 
     // ── Update ────────────────────────────────────────────────────────────────
-
     @Override
     public void update(float pgX, float pgY, List<Nemico> altri) {
         if (morto) return;
-
         switch (tipo) {
-            case 1 -> updateTipo1(pgX, pgY);
-            case 2 -> updateTipo2(pgX, pgY);
-            case 3 -> updateTipo3(pgX, pgY);
-            case 4 -> updateTipo4(pgX, pgY);
+            case 1 -> updateBrutale(pgX, pgY);
+            case 2 -> updateOmbra(pgX, pgY);
+            case 3 -> updateCarica(pgX, pgY);
+            case 4 -> updateFinale(pgX, pgY);
         }
-
-        // Aggiorna proiettili
-        for (int i = 0; i < proiettili.size(); i++) {
+        for (int i = proiettili.size() - 1; i >= 0; i--) {
             BossProjectile p = proiettili.get(i);
+            if (tipo == 4) p.aggiornaTarget(pgX, pgY);
             p.update();
-            if (p.x < 64 || p.x > GameState.LARGHEZZA_GIOCO - 64
-                    || p.y < 64 || p.y > GameState.ALTEZZA_GIOCO - 64) {
-                proiettili.remove(i--);
-            }
+            if (p.x < 32 || p.x > GameState.LARGHEZZA_GIOCO - 32
+                    || p.y < 32 || p.y > GameState.ALTEZZA_GIOCO - 32)
+                proiettili.remove(i);
         }
-
+        if (cooldownBurn > 0) cooldownBurn--;
         clampBordi();
     }
 
     @Override
-    public void update(float pgX, float pgY) { update(pgX, pgY, java.util.Collections.emptyList()); }
+    public void update(float pgX, float pgY) {
+        update(pgX, pgY, java.util.Collections.emptyList());
+    }
 
-    // Tipo 1: lento, spara diretto
-    private void updateTipo1(float pgX, float pgY) {
+    // ── TIPO 1 — BRUTALE: ventaglio a 3 proiettili ───────────────────────────
+    private void updateBrutale(float pgX, float pgY) {
         muoviVerso(pgX, pgY, velocita);
         if (--cooldownSparo <= 0) {
-            spara(pgX, pgY, 1);
+            sparaVentaglio(pgX, pgY, 3, 25f, BossProjectile.Tipo.NORMAL);
             cooldownSparo = DELAY_SPARO;
         }
     }
 
-    // Tipo 2: medio, spara a croce (4 direzioni)
-    private void updateTipo2(float pgX, float pgY) {
-        muoviVerso(pgX, pgY, velocita);
-        if (--cooldownSparo <= 0) {
-            sparaCroce();
-            cooldownSparo = DELAY_SPARO;
-        }
-    }
-
-    // Tipo 3: si carica verso il giocatore ogni tot frame
-    private void updateTipo3(float pgX, float pgY) {
-        if (inCarica) {
-            x += caricaDx * 9f;
-            y += caricaDy * 9f;
-            if (--timerCarica <= 0) inCarica = false;
+    // ── TIPO 2 — OMBRA: scatti + 8 direzioni ─────────────────────────────────
+    private void updateOmbra(float pgX, float pgY) {
+        if (inScatto) {
+            x += scattoDx * 14f;
+            y += scattoDy * 14f;
+            if (--timerScatto <= 0) { inScatto = false; timerScatto = 0; }
         } else {
-            muoviVerso(pgX, pgY, velocita * 0.6f);
-            timerCarica++;
-            if (timerCarica >= INTERVALLO_CARICA) {
-                // Prepara la carica
-                float dx   = pgX - x, dy = pgY - y;
-                float dist = (float) Math.sqrt(dx * dx + dy * dy);
-                if (dist > 1f) { caricaDx = dx / dist; caricaDy = dy / dist; }
+            muoviVerso(pgX, pgY, velocita * 0.5f);
+            if (++timerScatto >= INTERVALLO_SCATTO) {
+                float dx = pgX - x, dy = pgY - y;
+                float d  = (float) Math.sqrt(dx * dx + dy * dy);
+                if (d > 1f) { scattoDx = dx / d; scattoDy = dy / d; }
+                inScatto    = true;
+                timerScatto = DURATA_SCATTO;
+                spara8Direzioni();
+            }
+        }
+        if (--cooldownSparo <= 0) {
+            spara8Direzioni();
+            cooldownSparo = DELAY_SPARO + 20;
+        }
+    }
+
+    // ── TIPO 3 — CARICA + BURN ────────────────────────────────────────────────
+    private void updateCarica(float pgX, float pgY) {
+        if (inCarica) {
+            x += caricaDx * 10f;
+            y += caricaDy * 10f;
+            if (--timerCarica <= 0) inCarica = false;
+            controllaContattoBurn(pgX, pgY);
+        } else {
+            muoviVerso(pgX, pgY, velocita * 0.55f);
+            if (++timerCarica >= INTERVALLO_CARICA) {
+                float dx = pgX - x, dy = pgY - y;
+                float d  = (float) Math.sqrt(dx * dx + dy * dy);
+                if (d > 1f) { caricaDx = dx / d; caricaDy = dy / d; }
                 inCarica    = true;
                 timerCarica = DURATA_CARICA;
             }
         }
         if (--cooldownSparo <= 0) {
-            spara(pgX, pgY, 1);
+            sparaVentaglio(pgX, pgY, 3, 18f, BossProjectile.Tipo.FUOCO);
             cooldownSparo = DELAY_SPARO;
         }
     }
 
-    // Tipo 4: spara spirale + accelera
-    private void updateTipo4(float pgX, float pgY) {
-        // Velocità crescente con vita bassa
-        float multVel = 1f + (1f - (float) vitaAttuale / vitaMax) * 1.5f;
-        muoviVerso(pgX, pgY, velocita * multVel);
+    private void controllaContattoBurn(float pgX, float pgY) {
+        if (cooldownBurn > 0) return;
+        float cx   = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
+        float dist = (float) Math.sqrt((cx - pgX) * (cx - pgX) + (cy - pgY) * (cy - pgY));
+        if (dist < TAGLIA_BOSS * 0.85f) {
+            if (onBurnPlayer != null) onBurnPlayer.run();
+            cooldownBurn = 90;
+        }
+    }
+
+    // ── TIPO 4 — FINALE ───────────────────────────────────────────────────────
+    private void updateFinale(float pgX, float pgY) {
+        // Schivata
+        if (timerDodge > 0) {
+            x += dodgeDx * VEL_DODGE;
+            y += dodgeDy * VEL_DODGE;
+            timerDodge--;
+        } else {
+            if (pugniAttivi != null && Math.random() < PROB_SCHIVATA) {
+                float cx = x + TAGLIA_BOSS / 2f, cy2 = y + TAGLIA_BOSS / 2f;
+                for (Pugno p : pugniAttivi) {
+                    float dx = cx - p.x, dy = cy2 - p.y;
+                    if (dx * dx + dy * dy < 160 * 160) {
+                        float norm = (float) Math.sqrt(dx * dx + dy * dy);
+                        if (norm > 0.1f) {
+                            dodgeDx = -dy / norm;
+                            dodgeDy =  dx / norm;
+                            if (Math.random() < 0.5) { dodgeDx = -dodgeDx; dodgeDy = -dodgeDy; }
+                        }
+                        timerDodge = DURATA_DODGE;
+                        break;
+                    }
+                }
+            }
+            // Movimento specchio rispetto al centro stanza
+            float cx = GameState.LARGHEZZA_GIOCO / 2f;
+            float cy = GameState.ALTEZZA_GIOCO  / 2f;
+            float targetX = 2 * cx - pgX - TAGLIA_BOSS / 2f;
+            float targetY = 2 * cy - pgY - TAGLIA_BOSS / 2f;
+            muoviVerso(targetX, targetY, velocita * 1.1f);
+        }
+
+        // Alterna spirale / burst
+        if (++timerBurst > CICLO_BURST) { modoBurst = !modoBurst; timerBurst = 0; }
         if (--cooldownSparo <= 0) {
-            sparaSpirale();
-            cooldownSparo = DELAY_SPARO;
+            if (modoBurst) sparaBurst(pgX, pgY, 5, 8f);
+            else           sparaSpirale();
+            cooldownSparo = modoBurst ? DELAY_SPARO / 2 : DELAY_SPARO;
         }
     }
 
-    // ── Movimento ─────────────────────────────────────────────────────────────
+    // ── Metodi di sparo ───────────────────────────────────────────────────────
 
+    private float cx() { return x + TAGLIA_BOSS / 2f; }
+    private float cy() { return y + TAGLIA_BOSS / 2f; }
+
+    private void sparaVentaglio(float pgX, float pgY, int n, float semiAngleDeg, BossProjectile.Tipo t) {
+        float base  = (float) Math.atan2(pgY - cy(), pgX - cx());
+        float step  = n > 1 ? (float) Math.toRadians(semiAngleDeg * 2 / (n - 1)) : 0;
+        float start = base - (float) Math.toRadians(semiAngleDeg);
+        for (int i = 0; i < n; i++) {
+            float a = start + step * i;
+            proiettili.add(new BossProjectile(cx(), cy(),
+                    cx() + (float) Math.cos(a) * 200,
+                    cy() + (float) Math.sin(a) * 200,
+                    getImgProiettile(), t));
+        }
+    }
+
+    private void spara8Direzioni() {
+        for (int i = 0; i < 8; i++) {
+            float a = (float)(i * Math.PI / 4);
+            proiettili.add(new BossProjectile(cx(), cy(),
+                    cx() + (float) Math.cos(a) * 200,
+                    cy() + (float) Math.sin(a) * 200,
+                    getImgProiettile(), BossProjectile.Tipo.CROCE));
+        }
+    }
+
+    private void sparaSpirale() {
+        for (int i = 0; i < 3; i++) {
+            float a = angoloSpirale + (float)(i * Math.PI * 2 / 3);
+            proiettili.add(new BossProjectile(cx(), cy(),
+                    cx() + (float) Math.cos(a) * 200,
+                    cy() + (float) Math.sin(a) * 200,
+                    getImgProiettile(), BossProjectile.Tipo.FINALE));
+        }
+        angoloSpirale += 0.28f;
+    }
+
+    private void sparaBurst(float pgX, float pgY, int n, float spreadDeg) {
+        float base = (float) Math.atan2(pgY - cy(), pgX - cx());
+        for (int i = 0; i < n; i++) {
+            float jitter = (float)((Math.random() - 0.5) * Math.toRadians(spreadDeg));
+            float a = base + jitter;
+            proiettili.add(new BossProjectile(cx(), cy(),
+                    cx() + (float) Math.cos(a) * 200,
+                    cy() + (float) Math.sin(a) * 200,
+                    getImgProiettile(), BossProjectile.Tipo.FINALE));
+        }
+    }
+
+    // ── Movimento ────────────────────────────────────────────────────────────
     private void muoviVerso(float tx, float ty, float vel) {
         float dx = tx - x, dy = ty - y;
         float d  = (float) Math.sqrt(dx * dx + dy * dy);
         if (d > 1f) { x += (dx / d) * vel; y += (dy / d) * vel; }
     }
 
-    // ── Sparo ─────────────────────────────────────────────────────────────────
-
-    private void spara(float tx, float ty, int n) {
-        float cx = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
-        proiettili.add(new BossProjectile(cx, cy, tx, ty, getImgProiettile()));
-    }
-
-    private void sparaCroce() {
-        float cx = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
-        float[][] dirs = {{1,0},{-1,0},{0,1},{0,-1}};
-        for (float[] d : dirs)
-            proiettili.add(new BossProjectile(cx, cy, cx + d[0]*100, cy + d[1]*100, getImgProiettile()));
-    }
-
-    private void sparaSpirale() {
-        float cx = x + TAGLIA_BOSS / 2f, cy = y + TAGLIA_BOSS / 2f;
-        for (int i = 0; i < 3; i++) {
-            float a = angoloproiettile + (float)(i * Math.PI * 2 / 3);
-            float tx = cx + (float) Math.cos(a) * 100;
-            float ty = cy + (float) Math.sin(a) * 100;
-            proiettili.add(new BossProjectile(cx, cy, tx, ty, getImgProiettile()));
-        }
-        angoloproiettile += 0.3f;
-    }
-
-    // ── Collisione proiettili col giocatore ───────────────────────────────────
-
-    public boolean controllaCollisioneProiettili(float pgX, float pgY, int pgSize) {
+    // ── Collisioni ────────────────────────────────────────────────────────────
+    public BossProjectile.Tipo controllaCollisioneProiettiliConTipo(float pgX, float pgY, int pgSize) {
         Rectangle hbPG = new Rectangle((int) pgX, (int) pgY, pgSize, pgSize);
-        for (int i = 0; i < proiettili.size(); i++) {
+        for (int i = proiettili.size() - 1; i >= 0; i--) {
             if (proiettili.get(i).getHitbox().intersects(hbPG)) {
+                BossProjectile.Tipo t = proiettili.get(i).getTipo();
                 proiettili.remove(i);
-                return true;
+                return t;
             }
         }
-        return false;
+        return null;
+    }
+
+    public boolean controllaCollisioneProiettili(float pgX, float pgY, int pgSize) {
+        return controllaCollisioneProiettiliConTipo(pgX, pgY, pgSize) != null;
     }
 
     // ── Draw ──────────────────────────────────────────────────────────────────
-
     @Override
     public void draw(Graphics2D g2, BufferedImage img) {
         if (morto) return;
-
-        // Effetto lampeggio rosso se vita bassa
         boolean lampeggia = vitaAttuale < vitaMax * 0.25f
                 && (System.currentTimeMillis() / 150) % 2 == 0;
 
+        if (tipo == 3 && inCarica) {
+            g2.setColor(new Color(255, 120, 0, 100));
+            g2.fillOval((int) x - 8, (int) y - 8, TAGLIA_BOSS + 16, TAGLIA_BOSS + 16);
+        }
+        if (tipo == 4 && timerDodge > 0) {
+            g2.setColor(new Color(160, 0, 255, 80));
+            g2.fillOval((int) x - 10, (int) y - 10, TAGLIA_BOSS + 20, TAGLIA_BOSS + 20);
+        }
+
         if (img != null) {
+            g2.drawImage(img, (int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS, null);
             if (lampeggia) {
-                // Tinta rossa sopra lo sprite
-                g2.drawImage(img, (int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS, null);
                 g2.setColor(new Color(255, 0, 0, 80));
                 g2.fillRect((int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS);
-            } else {
-                g2.drawImage(img, (int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS, null);
             }
         } else {
-            // Colore diverso per tipo
-            Color[] colori = {Color.MAGENTA, new Color(0,150,200), new Color(200,80,0), new Color(150,0,150)};
+            Color[] colori = { Color.MAGENTA, new Color(0,150,200), new Color(220,80,0), new Color(150,0,200) };
             g2.setColor(lampeggia ? Color.RED : colori[tipo - 1]);
             g2.fillRect((int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS);
         }
-
-        // Disegna proiettili
         for (BossProjectile p : proiettili) p.draw(g2);
     }
 
     @Override
     public Rectangle getHitbox() { return new Rectangle((int) x, (int) y, TAGLIA_BOSS, TAGLIA_BOSS); }
 
-    // ── Barra vita boss (offset più grande per taglia) ────────────────────────
-    public void disegnaBarraVitaBoss(Graphics2D g2) {
-        disegnaBarraVita(g2, -14);
-    }
+    public void disegnaBarraVitaBoss(Graphics2D g2) { disegnaBarraVita(g2, -14); }
 }

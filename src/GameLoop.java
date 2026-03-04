@@ -19,6 +19,7 @@ public class GameLoop {
     private final GameState   state;
     private final RoomManager roomMgr;
     private UIManager ui;  // Per proiettile per PG
+    private ResourceLoader res;  // Per sprite shopkeeper dialogo
 
     // Lista pugni condivisa con RenderEngine
     public final List<Pugno> pugniAttivi = new ArrayList<>();
@@ -43,6 +44,10 @@ public class GameLoop {
      * Chiamato SOLO quando statoGioco == GIOCO.
      */
     public void tick() {
+        // Blocca il gameplay durante i dialoghi narrazione (boss intro / shopkeeper)
+        if (state.dialogoNarrazione.isAttivo()) return;
+        if (state.mostraDialogoCasa) return;
+
         state.tickTimerBoss();
         state.tickInvulnerabilita();
         aggiornaMov();
@@ -60,35 +65,53 @@ public class GameLoop {
         if (!roomMgr.inStanzaShop) return;
         java.util.List<Shopkeeper> sks = roomMgr.getShopkeeperShop();
         if (sks.isEmpty() && roomMgr.getShopNemici().isEmpty()) return;
-        if (sks.isEmpty()) {
-            // Shopkeeper già trasformato in nemico, aggiornalo
-            return;
-        }
+        if (sks.isEmpty()) return;
 
         Shopkeeper sk = sks.get(0);
         DialogoShopkeeper dialogo = state.dialogoShopkeeper;
 
         dialogo.aggiorna(state.x, state.y, sk.getX(), sk.getY());
 
+        // Quando il dialogo base si attiva, costruiamo il DialogoNarrazione JRPG
+        if (dialogo.getStato() == DialogoShopkeeper.Stato.MOSTRA_DIALOGO
+                && !state.dialogoNarrazione.isAttivo()
+                && !state.dialogoShopkeeperNarrazioneAvviata) {
+            state.dialogoShopkeeperNarrazioneAvviata = true;
+            java.awt.image.BufferedImage sprPg = res.getImgGiocatorePerIndice(state.indicePersonaggioSelezionato);
+            java.awt.image.BufferedImage sprSk = shopkeeperImgRef;
+            state.dialogoNarrazione.pulisci();
+            state.dialogoNarrazione.aggiungi("NEGOZIANTE", sprSk,
+                    "Ehi! Non toccare la merce se non hai intenzione di comprare.", false);
+            state.dialogoNarrazione.aggiungi(state.nomePersonaggioCorrente(), sprPg,
+                    "Rilassati, sto solo dando un'occhiata...", true);
+            state.dialogoNarrazione.aggiungi("NEGOZIANTE", sprSk,
+                    "Vuoi attaccarmi?!", false);
+            state.dialogoNarrazione.avvia();
+        }
+
         if (dialogo.getStato() == DialogoShopkeeper.Stato.ATTACCO) {
-            float skX = sk.getX();
-            float skY = sk.getY();
+            float skX = sk.getX(), skY = sk.getY();
             sks.clear();
             roomMgr.getItemsShop().clear();
             state.monete += 20;
-            // Spawna lo ShopkeeperNemico arrabbiato
-            // Usa sprite dedicato per il nemico (shopkeeper_nemico.png se disponibile)
-            java.awt.image.BufferedImage imgSKN = shopkeeperNemicoImgRef != null ? shopkeeperNemicoImgRef : shopkeeperImgRef;
+            java.awt.image.BufferedImage imgSKN = shopkeeperNemicoImgRef != null
+                    ? shopkeeperNemicoImgRef : shopkeeperImgRef;
             roomMgr.getShopNemici().add(new ShopkeeperNemico(skX, skY, imgSKN));
             dialogo.consuma();
+            state.dialogoNarrazione.pulisci();
+            state.dialogoShopkeeperNarrazioneAvviata = false;
         } else if (dialogo.getStato() == DialogoShopkeeper.Stato.RIFIUTO) {
             dialogo.consuma();
+            state.dialogoNarrazione.pulisci();
+            state.dialogoShopkeeperNarrazioneAvviata = false;
         }
     }
 
     // Immagine shopkeeper per ShopkeeperNemico (impostata da WhatIvePlayedTooMuch)
     private java.awt.image.BufferedImage shopkeeperImgRef;
     private java.awt.image.BufferedImage shopkeeperNemicoImgRef;
+    public void setResourceLoader(ResourceLoader r) { this.res = r; }
+
     public void setShopkeeperImage(java.awt.image.BufferedImage img) {
         this.shopkeeperImgRef = img;
     }
@@ -243,6 +266,7 @@ public class GameLoop {
             }
             if (imgBullet == null && pungnoImageRef != null) imgBullet = pungnoImageRef.img;
             pugniAttivi.add(new Pugno(state.x, state.y, dirX, dirY, imgBullet, state.dannoPugno));
+            state.audio.suonaEffetto(AudioManager.SFX_SPARO);
             state.cooldownSparo = GameState.SPARO_DELAY;
         }
     }
@@ -318,15 +342,49 @@ public class GameLoop {
         int[][] ostacoli = roomMgr.getOstacoliCorrenti();
         for (int i = 0; i < nemici.size(); i++) {
             Nemico n = nemici.get(i);
+
+            // Setup boss al primo frame (burn callback + pugni ref)
+            if (n instanceof Boss b && !b.isSetupDone()) {
+                b.setOnBurnPlayer(() -> {
+                    state.burnAttivo = true;
+                    state.burnTimer  = GameState.BURN_DURATA;
+                    state.burnTick   = 0;
+                });
+                b.setPugniAttiviRef(pugniAttivi);
+                b.markSetupDone();
+            }
+
             n.update(state.x, state.y, nemici, ostacoli);
 
             if (n.toccaGiocatore(state.x, state.y, GameState.PG_SIZE)) {
                 state.riceviDanno();
             }
             if (n instanceof Boss b) {
-                if (b.controllaCollisioneProiettili(state.x, state.y, GameState.PG_SIZE)) {
+                BossProjectile.Tipo colpito =
+                        b.controllaCollisioneProiettiliConTipo(state.x, state.y, GameState.PG_SIZE);
+                if (colpito != null) {
                     state.riceviDanno();
+                    // Proiettile di fuoco → applica burn
+                    if (colpito == BossProjectile.Tipo.FUOCO) {
+                        state.burnAttivo = true;
+                        state.burnTimer  = GameState.BURN_DURATA;
+                        state.burnTick   = 0;
+                    }
                 }
+            }
+        }
+
+        // Aggiorna effetto burn
+        if (state.burnAttivo) {
+            state.burnTimer--;
+            state.burnTick++;
+            if (state.burnTick >= GameState.BURN_INTERVALLO) {
+                state.burnTick = 0;
+                if (state.vite > 0) state.vite -= GameState.BURN_DANNO;
+            }
+            if (state.burnTimer <= 0) {
+                state.burnAttivo = false;
+                state.burnTimer  = 0;
             }
         }
 
@@ -351,9 +409,11 @@ public class GameLoop {
                     boolean isBoss = n instanceof Boss;
 
                     nemici.remove(j--);
+                    state.audio.suonaEffetto(AudioManager.SFX_MORTE_NEMICO);
 
                     if (isBoss) {
                         state.bossSconfitto = true;
+                        state.audio.suonaMusica(AudioManager.VITTORIA);
                     } else if (nemici.isEmpty() && !roomMgr.inStanzaShop
                             && state.stanzaNelMondo != GameState.STANZA_BOSS) {
                         spawnDrop((int) dropX, (int) dropY);

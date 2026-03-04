@@ -37,6 +37,7 @@ public class InputHandler {
                     case CONTROLLI             -> { if (k == KeyEvent.VK_ESCAPE) state.statoGioco = GameState.StatoGioco.MENU; }
                     case SELEZIONE_PERSONAGGIO -> gestisciSelezionePG(k);
                     case SELEZIONE_MODALITA    -> gestisciSelezioneModalita(k);
+                    case TETRIS                -> gestisciTetris(k);
                     case PAUSA                 -> gestisciPausa(k);
                     case GIOCO                 -> gestisciGioco(k, true);
                     case VITTORIA_STORIA,
@@ -168,21 +169,46 @@ public class InputHandler {
     }
 
     private void gestisciGioco(int k, boolean pressed) {
-        // Dialogo shopkeeper ha priorità sugli altri input
-        if (state.dialogoShopkeeper.isVisibile()) {
+        // 1. Dialogo Casa (singola pagina)
+        if (state.mostraDialogoCasa
+                && (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE
+                || k == KeyEvent.VK_ESCAPE)) {
+            state.mostraDialogoCasa = false;
+            return;
+        }
+
+        // 2. DialogoNarrazione (JRPG multi-pagina: boss + shopkeeper introduzione)
+        if (state.dialogoNarrazione.isAttivo()) {
+            if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE || k == KeyEvent.VK_Z) {
+                boolean finito = state.dialogoNarrazione.avanza();
+                // Se finito e siamo in stanza shop, mostra la scelta Sì/No
+                if (finito && state.dialogoShopkeeperNarrazioneAvviata) {
+                    // Forza lo stato MOSTRA_DIALOGO del vecchio sistema
+                    // (già in MOSTRA_DIALOGO, non serve fare nulla —
+                    //  gestisciShopkeeperScelta() se ne occupa al prossimo input)
+                }
+            }
+            return; // blocca tutto il resto durante la narrazione
+        }
+
+        // 3. Scelta Sì/No shopkeeper (appare dopo che la narrazione è finita)
+        if (state.dialogoShopkeeperNarrazioneAvviata
+                && state.dialogoShopkeeper.isVisibile()) {
             if (k == KeyEvent.VK_LEFT  || k == KeyEvent.VK_A)     state.dialogoShopkeeper.spostaScelta(-1);
             if (k == KeyEvent.VK_RIGHT || k == KeyEvent.VK_D)     state.dialogoShopkeeper.spostaScelta(1);
             if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE) state.dialogoShopkeeper.conferma();
             if (k == KeyEvent.VK_ESCAPE)                           state.dialogoShopkeeper.annulla();
-            return; // blocca movimento durante il dialogo
-        }
-
-        if (k == KeyEvent.VK_ESCAPE) {
-            state.statoPrecedente  = GameState.StatoGioco.GIOCO;
-            state.statoGioco       = GameState.StatoGioco.PAUSA;
-            state.indiceBtnPausa   = 0;  // seleziona "RIPRENDI" di default
             return;
         }
+
+        // 4. Pausa
+        if (k == KeyEvent.VK_ESCAPE) {
+            state.statoPrecedente = GameState.StatoGioco.GIOCO;
+            state.statoGioco      = GameState.StatoGioco.PAUSA;
+            state.indiceBtnPausa  = 0;
+            return;
+        }
+
         toggleMovimento(k, pressed);
         toggleSparo(k, pressed);
     }
@@ -295,7 +321,35 @@ public class InputHandler {
         DatiPersonaggio pg = ui.getPersonaggioSelezionato(state.indicePersonaggioSelezionato);
         state.resetTotale(pg);
         roomMgr.resetCompleto();
-        state.statoGioco = GameState.StatoGioco.GIOCO;
+        // Avvia il mini-Tetris prima di entrare nel gioco
+        state.tetris     = new TetrisGame();
+        state.statoGioco = GameState.StatoGioco.TETRIS;
+    }
+
+    /** Avvia il gioco vero dopo il Tetris, applicando il power-up Casa. */
+    private void avviaGiocoDopTetris() {
+        state.powerUpCasa      = state.tetris != null ? state.tetris.getPowerUp() : state.powerUpCasa;
+        state.tetris           = null;
+        state.mostraDialogoCasa = true;  // mostra dialogo "WHAT? I'VE PLAYED TOO MUCH"
+        state.statoGioco       = GameState.StatoGioco.GIOCO;
+    }
+
+    private void gestisciTetris(int k) {
+        if (state.tetris == null) { avviaGiocoDopTetris(); return; }
+        TetrisGame t = state.tetris;
+        if (t.completato || t.gameOver) {
+            if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE
+                    || k == KeyEvent.VK_ESCAPE) avviaGiocoDopTetris();
+            return;
+        }
+        switch (k) {
+            case KeyEvent.VK_A, KeyEvent.VK_LEFT  -> t.muoviSinistra();
+            case KeyEvent.VK_D, KeyEvent.VK_RIGHT -> t.muoviDestra();
+            case KeyEvent.VK_W, KeyEvent.VK_UP    -> t.ruota();
+            case KeyEvent.VK_S, KeyEvent.VK_DOWN  -> t.scendiForzato();
+            case KeyEvent.VK_SPACE                -> t.cadutaIstantanea();
+            case KeyEvent.VK_ESCAPE               -> avviaGiocoDopTetris(); // salta
+        }
     }
 
     public void toggleMovimento(int k, boolean pressed) {

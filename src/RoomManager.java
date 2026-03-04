@@ -1,4 +1,5 @@
 import java.awt.Color;
+import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -115,6 +116,12 @@ public class RoomManager {
                 && state.bossSpawnato && !state.bossSconfitto) {
             generaStanzaBoss(nuoviNemici);
 
+        } else if (state.stanzaNelMondo == 1 && state.mondoAttuale == 1
+                && !state.stanzaCasaVisitata) {
+            // Stanza Casa — power-up gratuiti basati sul punteggio Tetris
+            generaStanzaCasa(nuoveItems);
+            state.stanzaCasaVisitata = true;
+
         } else if (state.stanzaNelMondo < GameState.STANZA_BOSS) {
             generaStanzaNormale(nuoviNemici, ostacoli);
         }
@@ -127,6 +134,29 @@ public class RoomManager {
         ostacoliPerStanza.add(ostacoli);
     }
 
+    private void generaStanzaCasa(List<ShopItem> items) {
+        String pu = state.powerUpCasa;
+        int cx = GameState.COL_TOTALI / 2; // colonna centrale
+        int ry = GameState.OFFSET + GameState.RIG_GIOCO / 2; // riga centrale
+
+        switch (pu) {
+            case "CURA" ->
+                    items.add(new ShopItem(cx, ry, GameState.TILE_SIZE, "CURA",     0, res.imgCura));
+            case "VELOCITA" ->
+                    items.add(new ShopItem(cx, ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed));
+            case "DANNO" ->
+                    items.add(new ShopItem(cx, ry, GameState.TILE_SIZE, "DANNO",    0, res.imgItemDamage));
+            case "TUTTO" -> {
+                items.add(new ShopItem(cx - 2, ry, GameState.TILE_SIZE, "CURA",     0, res.imgCura));
+                items.add(new ShopItem(cx,     ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed));
+                items.add(new ShopItem(cx + 2, ry, GameState.TILE_SIZE, "DANNO",    0, res.imgItemDamage));
+            }
+            default ->
+                // NESSUNO — solo una cura di base come consolazione
+                    items.add(new ShopItem(cx, ry, GameState.TILE_SIZE, "CURA", 0, res.imgCura));
+        }
+    }
+
     private void generaStanzaBoss(List<Nemico> nemici) {
         int vitaBoss = StatNemico.vitaBoss(state.mondoAttuale);
         Boss b = new Boss(7, 2, GameState.TILE_SIZE, vitaBoss, state.mondoAttuale);
@@ -136,6 +166,65 @@ public class RoomManager {
         state.bossSpawnato       = true;
         state.bossSconfitto      = false;
         state.tempoRimanenteBoss = GameState.TEMPO_BOSS_DEFAULT;
+
+        // ── Dialogo pre-boss ───────────────────────────────────────────────────
+        int tipoBoss = (state.mondoAttuale - 1) % 4; // 0-3
+        BufferedImage sprPg   = res.getImgGiocatorePerIndice(state.indicePersonaggioSelezionato);
+        BufferedImage sprBoss = res.imgBossPerMondo[tipoBoss];
+        String nomePg = state.nomePersonaggioCorrente();
+
+        state.dialogoNarrazione.pulisci();
+        switch (tipoBoss) {
+            case 0 -> { // BRUTALE
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "C'MON, I DON'T HAVE TIME — I'M ALREADY LATE!!!!!",
+                        true);
+            }
+            case 1 -> { // OMBRA
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "So this is where you end up if you keep playing video games...",
+                        true);
+            }
+            case 2 -> { // CARICA
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "Get out of my way. I don't care if you are a KING!",
+                        true);
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "I'm the one who's going to dethrone you!",
+                        true);
+                state.dialogoNarrazione.aggiungi("CARICA", sprBoss,
+                        "*angrily makes teapot noises*",
+                        false);
+            }
+            case 3 -> { // FINALE
+                state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
+                        "Yeah... it's me.",
+                        false);
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "Are you the mastermind behind all this mess?",
+                        true);
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "Huh?!",
+                        true);
+                state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
+                        "I know everything you're going to say, do, or whatever your next action will be.",
+                        false);
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "Do you have some kind of power?",
+                        true);
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "Aw, c'mon man — my mind is going to melt at this rate...",
+                        true);
+                state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
+                        "You're NEVER going to make it TO WORK!!!!!!!",
+                        false);
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "Who's going to explain this to my BOSS...",
+                        true);
+            }
+        }
+        if (state.dialogoNarrazione.getTotale() > 0)
+            state.dialogoNarrazione.avvia();
     }
 
     private void generaStanzaShop(List<Shopkeeper> shopkeepers, List<ShopItem> items) {
@@ -218,6 +307,8 @@ public class RoomManager {
         resetCompleto();
         state.resetGiocatore();
         state.dialogoShopkeeper.reset();
+        state.dialogoNarrazione.pulisci();
+        state.dialogoShopkeeperNarrazioneAvviata = false;
 
         if (eventListener != null) eventListener.onCambioMondo(state.mondoAttuale);
     }

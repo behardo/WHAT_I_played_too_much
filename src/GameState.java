@@ -13,7 +13,7 @@ public class GameState {
     public enum StatoGioco {
         MENU, IMPOSTAZIONI, CONTROLLI,
         SELEZIONE_PERSONAGGIO, SELEZIONE_MODALITA,
-        GIOCO, VITTORIA_STORIA, GAME_OVER, PAUSA
+        TETRIS, GIOCO, VITTORIA_STORIA, GAME_OVER, PAUSA
     }
 
     public enum Modalita { STORIA, INFINITA }
@@ -25,6 +25,9 @@ public class GameState {
 
     // ── Impostazioni (dati persistenti tra le schermate) ──────────────────────
     public final Impostazioni impostazioni = new Impostazioni();
+
+    // ── Audio ─────────────────────────────────────────────────────────────────
+    public final AudioManager audio = new AudioManager(WhatIvePlayedTooMuch.class);
 
     // ── Sistema personaggi (sblocchi + combo segreto) ─────────────────────────
     public final SistemaPersonaggi sistemaPersonaggi = new SistemaPersonaggi();
@@ -48,6 +51,24 @@ public class GameState {
 
     // ── Progressione mondo/stanza ─────────────────────────────────────────────
     public int     mondoAttuale        = 1;
+
+    // ── Tetris pre-run ────────────────────────────────────────────────────────
+    public TetrisGame tetris           = null;   // istanza attiva solo durante TETRIS
+    public String     powerUpCasa      = "NESSUNO"; // risultato tetris
+    public boolean    stanzaCasaVisitata = false;
+    public boolean    mostraDialogoCasa  = false; // dialogo "WHAT? I'VE PLAYED TOO MUCH"
+
+    // ── Dialogo narrazione (JRPG multi-pagina) ────────────────────────────────
+    public final DialogoNarrazione dialogoNarrazione = new DialogoNarrazione();
+    public boolean dialogoShopkeeperNarrazioneAvviata = false;
+
+    // ── Effetto bruciatura (boss 3) ───────────────────────────────────────────
+    public boolean burnAttivo  = false;
+    public int     burnTimer   = 0;          // frame rimanenti di burn
+    public int     burnTick    = 0;          // contatore per danno periodico
+    public static final int BURN_DURATA    = 180; // 3 secondi a 60fps
+    public static final int BURN_INTERVALLO = 40; // danno ogni ~0.66s
+    public static final int BURN_DANNO      = 1;
     public int     stanzaNelMondo      = 1;
     public int     indiceStanzaMemoria = 0;
     public boolean bossSpawnato        = false;
@@ -73,8 +94,12 @@ public class GameState {
     public static final int TEMPO_BOSS_DEFAULT = 120 * 60; // 120 secondi
 
     // ── Selezione personaggio / modalità ──────────────────────────────────────
-    public int indicePersonaggioSelezionato = 0;
-    public int indiceModalitaSelezionata    = 0;
+    public int    indicePersonaggioSelezionato = 0;
+    public int    indiceModalitaSelezionata    = 0;
+    public String nomePGCorrente               = "BELLGERD";
+
+    /** Nome del personaggio corrente per i dialoghi. */
+    public String nomePersonaggioCorrente() { return nomePGCorrente; }
 
     // ── Costanti layout ───────────────────────────────────────────────────────
     public static final int TILE_SIZE      = 64;
@@ -134,6 +159,7 @@ public class GameState {
      */
     public void resetTotale(DatiPersonaggio pg) {
         applicaDatiPersonaggio(pg);
+        nomePGCorrente       = pg != null ? pg.nome.toUpperCase() : "BELLGERD";
         mondoAttuale         = 1;
         stanzaNelMondo       = 1;
         indiceStanzaMemoria  = 0;
@@ -142,6 +168,13 @@ public class GameState {
         bossSconfitto        = false;
         shopSbloccato        = false;
         sistemaPersonaggi.resetCompleto(); // nuova partita: azzera anche sblocchi
+        tetris             = null;
+        powerUpCasa        = "NESSUNO";
+        stanzaCasaVisitata = false;
+        mostraDialogoCasa  = false;
+        dialogoNarrazione.pulisci();
+        dialogoShopkeeperNarrazioneAvviata = false;
+        burnAttivo = false; burnTimer = 0; burnTick = 0;
         resetGiocatore();
     }
 

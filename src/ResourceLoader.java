@@ -18,6 +18,8 @@ public class ResourceLoader {
     public BufferedImage imgPersonaggioTank;
     public BufferedImage imgPersonaggioGod;
     public BufferedImage imgOstacolo;          // ostacolo.png — sovrapposto alla tile
+    public BufferedImage[] imgOstacoloPerMondo = new BufferedImage[4]; // ostacolo_m1..4.png
+    public BufferedImage imgBurn;              // burn.png — effetto bruciatura sul PG
 
     // ── Icone selezione personaggio ───────────────────────────────────────────
     public BufferedImage imgIconaP0;
@@ -32,6 +34,8 @@ public class ResourceLoader {
 
     // ── Ambiente ──────────────────────────────────────────────────────────────
     public BufferedImage imgPorta;
+    public BufferedImage imgMuroCasa;
+    public BufferedImage imgPavimentoCasa;
     public BufferedImage imgMuroMondo1;
     public BufferedImage imgPavimentoMondo1;
     public BufferedImage imgMuroMondo2;
@@ -95,6 +99,11 @@ public class ResourceLoader {
         imgPersonaggioTank     = load("/personaggio_tank.png");
         imgPersonaggioGod      = load("/personaggio_god.png");
         imgOstacolo            = load("/ostacolo.png");
+        imgBurn                = load("/burn.png");
+        imgOstacoloPerMondo[0] = caricaConFallback("/ostacolo_m1.png", imgOstacolo);
+        imgOstacoloPerMondo[1] = caricaConFallback("/ostacolo_m2.png", imgOstacolo);
+        imgOstacoloPerMondo[2] = caricaConFallback("/ostacolo_m3.png", imgOstacolo);
+        imgOstacoloPerMondo[3] = caricaConFallback("/ostacolo_m4.png", imgOstacolo);
 
         // Icone selezione
         imgIconaP0             = load("/icona_p0.png");
@@ -107,6 +116,8 @@ public class ResourceLoader {
 
         // Ambiente
         imgPorta               = load("/porta.png");
+        imgMuroCasa            = caricaConFallback("/muro_casa.png",       null);
+        imgPavimentoCasa       = caricaConFallback("/pavimento_casa.png",  null);
         imgMuroMondo1          = load("/muro.png");
         imgPavimentoMondo1     = load("/pavimento.png");
         imgMuroMondo2          = load("/muro2.png");

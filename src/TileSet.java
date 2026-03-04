@@ -43,6 +43,16 @@ public class TileSet {
      * In modalità infinita oltre il mondo 4 i temi si alternano.
      */
     public static TileSet perMondo(int mondo, ResourceLoader res) {
+        // Mondo 0 = stanza Casa speciale
+        if (mondo == 0) return new TileSet(
+                "CASA",
+                res.imgMuroCasa      != null ? res.imgMuroCasa      : res.imgMuroMondo1,
+                res.imgPavimentoCasa != null ? res.imgPavimentoCasa : res.imgPavimentoMondo1,
+                new Color(120, 90, 60),
+                new Color(180, 140, 100),
+                new Color(255, 220, 130)
+        );
+
         // Normalizza al ciclo di 4 mondi per infinita
         int temaIndex = ((mondo - 1) % 4) + 1;
 

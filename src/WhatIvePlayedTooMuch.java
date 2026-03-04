@@ -26,7 +26,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
     // ── Dipendenze ────────────────────────────────────────────────────────────
     private final GameState         state;
     private final ResourceLoader    res;
-    final UIManager ui;
+    UIManager ui;
     private final RoomManager       roomMgr;
     private final FullscreenManager fullscreen;
     private final InputHandler      input;
@@ -43,6 +43,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         // 1. Dati fondamentali
         state      = new GameState();
         res        = new ResourceLoader(this);
+        state.audio.stampaStatoCaricamento(); // debug: mostra quali clip sono caricate
 
         // 2. UI e layout
         ui         = new UIManager(res);
@@ -58,6 +59,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
 
         // 6. Game loop (dipende da state, roomMgr)
         gameLoop   = new GameLoop(state, roomMgr, ui);
+        gameLoop.setResourceLoader(res);
         gameLoop.setPungoImage(res.imgPugno);
         gameLoop.setShopkeeperImage(res.imgShopkeeper);
         gameLoop.setShopkeeperNemicoImage(res.imgShopkeeperNemico);
@@ -101,6 +103,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         new Timer(16, this).start();
     }
 
+    /** Accesso al UIManager per aggiornamenti layout esterni (già dichiarato sopra). */
 
     /** Forza ricalcolo layout bottoni con dimensioni reali. */
     public void forceLayoutUpdate(int w, int h) {
@@ -113,6 +116,13 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
     public void actionPerformed(ActionEvent e) {
         if (state.statoGioco == GameState.StatoGioco.GIOCO) {
             gameLoop.tick();
+        } else if (state.statoGioco == GameState.StatoGioco.TETRIS
+                && state.tetris != null) {
+            state.tetris.update();
+            // Auto-avanza se il tetris è finito (tempo scaduto)
+            if (state.tetris.completato && !state.tetris.gameOver) {
+                // aspetta input giocatore per ENTER — non avanza automaticamente
+            }
         }
         repaint();
     }
