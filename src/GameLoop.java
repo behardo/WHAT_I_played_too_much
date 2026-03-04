@@ -342,18 +342,6 @@ public class GameLoop {
         int[][] ostacoli = roomMgr.getOstacoliCorrenti();
         for (int i = 0; i < nemici.size(); i++) {
             Nemico n = nemici.get(i);
-
-            // Setup boss al primo frame (burn callback + pugni ref)
-            if (n instanceof Boss b && !b.isSetupDone()) {
-                b.setOnBurnPlayer(() -> {
-                    state.burnAttivo = true;
-                    state.burnTimer  = GameState.BURN_DURATA;
-                    state.burnTick   = 0;
-                });
-                b.setPugniAttiviRef(pugniAttivi);
-                b.markSetupDone();
-            }
-
             n.update(state.x, state.y, nemici, ostacoli);
 
             if (n.toccaGiocatore(state.x, state.y, GameState.PG_SIZE)) {
@@ -364,7 +352,6 @@ public class GameLoop {
                         b.controllaCollisioneProiettiliConTipo(state.x, state.y, GameState.PG_SIZE);
                 if (colpito != null) {
                     state.riceviDanno();
-                    // Proiettile di fuoco → applica burn
                     if (colpito == BossProjectile.Tipo.FUOCO) {
                         state.burnAttivo = true;
                         state.burnTimer  = GameState.BURN_DURATA;

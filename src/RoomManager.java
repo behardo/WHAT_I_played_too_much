@@ -136,32 +136,56 @@ public class RoomManager {
 
     private void generaStanzaCasa(List<ShopItem> items) {
         String pu = state.powerUpCasa;
-        int cx = GameState.COL_TOTALI / 2; // colonna centrale
-        int ry = GameState.OFFSET + GameState.RIG_GIOCO / 2; // riga centrale
+        int cx = GameState.COL_TOTALI / 2;
+        int ry = GameState.OFFSET + GameState.RIG_GIOCO / 2;
 
         switch (pu) {
-            case "CURA" ->
-                    items.add(new ShopItem(cx, ry, GameState.TILE_SIZE, "CURA",     0, res.imgCura));
-            case "VELOCITA" ->
-                    items.add(new ShopItem(cx, ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed));
-            case "DANNO" ->
-                    items.add(new ShopItem(cx, ry, GameState.TILE_SIZE, "DANNO",    0, res.imgItemDamage));
-            case "TUTTO" -> {
-                items.add(new ShopItem(cx - 2, ry, GameState.TILE_SIZE, "CURA",     0, res.imgCura));
-                items.add(new ShopItem(cx,     ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed));
-                items.add(new ShopItem(cx + 2, ry, GameState.TILE_SIZE, "DANNO",    0, res.imgItemDamage));
+            case "CURA" -> {
+                ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "CURA", 0, res.imgCura);
+                si.setMostraPrezzo(false);
+                items.add(si);
             }
-            default ->
-                // NESSUNO — solo una cura di base come consolazione
-                    items.add(new ShopItem(cx, ry, GameState.TILE_SIZE, "CURA", 0, res.imgCura));
+            case "VELOCITA" -> {
+                ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed);
+                si.setMostraPrezzo(false);
+                items.add(si);
+            }
+            case "DANNO" -> {
+                ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "DANNO", 0, res.imgItemDamage);
+                si.setMostraPrezzo(false);
+                items.add(si);
+            }
+            case "TUTTO" -> {
+                ShopItem s1 = new ShopItem(cx - 2, ry, GameState.TILE_SIZE, "CURA",     0, res.imgCura);
+                ShopItem s2 = new ShopItem(cx,     ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed);
+                ShopItem s3 = new ShopItem(cx + 2, ry, GameState.TILE_SIZE, "DANNO",    0, res.imgItemDamage);
+                s1.setMostraPrezzo(false);
+                s2.setMostraPrezzo(false);
+                s3.setMostraPrezzo(false);
+                items.add(s1); items.add(s2); items.add(s3);
+            }
+            default -> {
+                // NESSUNO — cura base di consolazione
+                ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "CURA", 0, res.imgCura);
+                si.setMostraPrezzo(false);
+                items.add(si);
+            }
         }
     }
 
     private void generaStanzaBoss(List<Nemico> nemici) {
         int vitaBoss = StatNemico.vitaBoss(state.mondoAttuale);
         Boss b = new Boss(7, 2, GameState.TILE_SIZE, vitaBoss, state.mondoAttuale);
-        b.caricaProiettile(res.imgBossProjectile); // fallback
+        b.caricaProiettile(res.imgBossProjectile);
         b.caricaProiettiliPerTipo(res.imgProiettilePerBoss);
+        // Burn callback — si attiva quando boss 3 tocca il giocatore durante carica
+        b.setOnBurnPlayer(() -> {
+            state.burnAttivo = true;
+            state.burnTimer  = GameState.BURN_DURATA;
+            state.burnTick   = 0;
+        });
+        // Pugni ref per la schivata del boss 4 — impostati da GameLoop dopo
+        if (pugniAttiviRef != null) b.setPugniAttiviRef(pugniAttiviRef);
         nemici.add(b);
         state.bossSpawnato       = true;
         state.bossSconfitto      = false;
@@ -177,49 +201,49 @@ public class RoomManager {
         switch (tipoBoss) {
             case 0 -> { // BRUTALE
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "C'MON, I DON'T HAVE TIME — I'M ALREADY LATE!!!!!",
+                        "Dai, non ho tempo - sono gia in ritardo!",
                         true);
             }
             case 1 -> { // OMBRA
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "So this is where you end up if you keep playing video games...",
+                        "Quindi e qui che si finisce a forza di giocare ai videogiochi...",
                         true);
             }
             case 2 -> { // CARICA
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Get out of my way. I don't care if you are a KING!",
+                        "Levati di mezzo. Non mi interessa se sei un re.",
                         true);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "I'm the one who's going to dethrone you!",
+                        "Saro io a spodestarti!",
                         true);
                 state.dialogoNarrazione.aggiungi("CARICA", sprBoss,
-                        "*angrily makes teapot noises*",
+                        "*rumore di tegliera arrabbiata*",
                         false);
             }
             case 3 -> { // FINALE
                 state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
-                        "Yeah... it's me.",
+                        "Si... sono io.",
                         false);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Are you the mastermind behind all this mess?",
+                        "Sei tu il responsabile di tutto questo casino?",
                         true);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Huh?!",
+                        "Cosa?!",
                         true);
                 state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
-                        "I know everything you're going to say, do, or whatever your next action will be.",
+                        "So gia tutto quello che stai per dire, fare o qualsiasi cosa tu voglia tentare.",
                         false);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Do you have some kind of power?",
+                        "Hai qualche potere?",
                         true);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Aw, c'mon man — my mind is going to melt at this rate...",
+                        "Beh... il mio cervello sta per fondere a questo ritmo.",
                         true);
                 state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
-                        "You're NEVER going to make it TO WORK!!!!!!!",
+                        "Non arriverai MAI in ufficio!!!",
                         false);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Who's going to explain this to my BOSS...",
+                        "Chi lo spieghera al mio capo...",
                         true);
             }
         }

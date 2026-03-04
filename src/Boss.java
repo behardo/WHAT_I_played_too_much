@@ -47,12 +47,9 @@ public class Boss extends Nemico {
     private int   timerDodge = 0;
     private int   timerBurst = 0;
     private boolean modoBurst = false;
-    private static final float PROB_SCHIVATA = 0.015f;
-    private static final int   DURATA_DODGE  = 18;
-    private static final float VEL_DODGE     = 7f;
     private static final int   CICLO_BURST   = 200;
     private List<Pugno> pugniAttivi = null;
-    private boolean setupDone = false;
+    private boolean primoSparoLog = false; // debug
 
     // ── Costruttore ───────────────────────────────────────────────────────────
     public Boss(int tileX, int tileY, int tileSize, int vita, int mondoAttuale) {
@@ -69,8 +66,6 @@ public class Boss extends Nemico {
     // ── Setters esterni ───────────────────────────────────────────────────────
     public void setOnBurnPlayer(Runnable cb)     { this.onBurnPlayer = cb; }
     public void setPugniAttiviRef(List<Pugno> l) { this.pugniAttivi  = l; }
-    public boolean isSetupDone()  { return setupDone; }
-    public void    markSetupDone(){ setupDone = true; }
 
     // ── Proiettili ────────────────────────────────────────────────────────────
     public void caricaProiettile(BufferedImage img) {
@@ -105,6 +100,13 @@ public class Boss extends Nemico {
         }
         if (cooldownBurn > 0) cooldownBurn--;
         clampBordi();
+    }
+
+    /** Override a 4 parametri — chiamato da GameLoop con lista ostacoli.
+     *  Il Boss ignora gli ostacoli (troppo grande) ma deve eseguire la sua IA. */
+    @Override
+    public void update(float pgX, float pgY, List<Nemico> altri, int[][] ostacoli) {
+        update(pgX, pgY, altri);
     }
 
     @Override
@@ -177,44 +179,130 @@ public class Boss extends Nemico {
         }
     }
 
-    // ── TIPO 4 — FINALE ───────────────────────────────────────────────────────
+    // ── Tipo 4 — FINALE ──────────────────────────────────────────────────────
+    // Fase 1 (vita > 66%): movimento specchio + spirale
+    // Fase 2 (vita 33-66%): specchio più aggressivo + burst + schivata frequente
+    // Fase 3 (vita < 33%): FURIA — insegue direttamente + schivata quasi certa
+    //                       + spirale veloce + burst simultaneo
+    private static final float PROB_SCHIVATA_F1 = 0.08f;  // ~1 ogni 12 frame con pugno vicino
+    private static final float PROB_SCHIVATA_F2 = 0.22f;  // ~1 ogni 5 frame
+    private static final float PROB_SCHIVATA_F3 = 0.55f;  // più di 1 su 2
+    private static final float DIST_DODGE_TRIGGER = 200f; // px — distanza pugno che triggera dodge
+    private static final int   DURATA_DODGE_F1 = 14;
+    private static final int   DURATA_DODGE_F2 = 20;
+    private static final int   DURATA_DODGE_F3 = 26;
+    private static final float VEL_DODGE_BASE  = 8f;
+
+    private int fase4 = 1;  // 1, 2 o 3
+    private int cooldownDodge = 0; // cooldown minimo tra schivate successive
+
     private void updateFinale(float pgX, float pgY) {
-        // Schivata
+        // Calcola fase in base alla vita rimanente
+        float vitaPerc = (float) vitaAttuale / vitaMax;
+        fase4 = vitaPerc > 0.66f ? 1 : vitaPerc > 0.33f ? 2 : 3;
+
+        float multVel = switch (fase4) {
+            case 2 -> 1.3f;
+            case 3 -> 1.7f;
+            default -> 1.0f;
+        };
+
+        if (cooldownDodge > 0) cooldownDodge--;
+
+        // ── Schivata ──────────────────────────────────────────────────────────
         if (timerDodge > 0) {
-            x += dodgeDx * VEL_DODGE;
-            y += dodgeDy * VEL_DODGE;
+            x += dodgeDx * VEL_DODGE_BASE * (fase4 == 3 ? 1.4f : 1f);
+            y += dodgeDy * VEL_DODGE_BASE * (fase4 == 3 ? 1.4f : 1f);
             timerDodge--;
-        } else {
-            if (pugniAttivi != null && Math.random() < PROB_SCHIVATA) {
-                float cx = x + TAGLIA_BOSS / 2f, cy2 = y + TAGLIA_BOSS / 2f;
-                for (Pugno p : pugniAttivi) {
-                    float dx = cx - p.x, dy = cy2 - p.y;
-                    if (dx * dx + dy * dy < 160 * 160) {
-                        float norm = (float) Math.sqrt(dx * dx + dy * dy);
-                        if (norm > 0.1f) {
-                            dodgeDx = -dy / norm;
-                            dodgeDy =  dx / norm;
-                            if (Math.random() < 0.5) { dodgeDx = -dodgeDx; dodgeDy = -dodgeDy; }
-                        }
-                        timerDodge = DURATA_DODGE;
-                        break;
-                    }
+        } else if (cooldownDodge <= 0 && pugniAttivi != null && !pugniAttivi.isEmpty()) {
+            float bossCx = x + TAGLIA_BOSS / 2f;
+            float bossCy = y + TAGLIA_BOSS / 2f;
+            float prob = switch (fase4) {
+                case 2 -> PROB_SCHIVATA_F2;
+                case 3 -> PROB_SCHIVATA_F3;
+                default -> PROB_SCHIVATA_F1;
+            };
+
+            // Cerca il pugno più vicino (in avvicinamento non verificabile senza getter,
+            // ma la distanza < soglia è già un buon trigger)
+            Pugno pugnoTarget = null;
+            float distMin = DIST_DODGE_TRIGGER;
+            for (Pugno p : pugniAttivi) {
+                float dx = bossCx - p.x, dy = bossCy - p.y;
+                float dist = (float) Math.sqrt(dx * dx + dy * dy);
+                if (dist < distMin) {
+                    distMin = dist;
+                    pugnoTarget = p;
                 }
             }
-            // Movimento specchio rispetto al centro stanza
-            float cx = GameState.LARGHEZZA_GIOCO / 2f;
-            float cy = GameState.ALTEZZA_GIOCO  / 2f;
-            float targetX = 2 * cx - pgX - TAGLIA_BOSS / 2f;
-            float targetY = 2 * cy - pgY - TAGLIA_BOSS / 2f;
-            muoviVerso(targetX, targetY, velocita * 1.1f);
+
+            if (pugnoTarget != null && Math.random() < prob) {
+                float dx = bossCx - pugnoTarget.x, dy = bossCy - pugnoTarget.y;
+                float norm = (float) Math.sqrt(dx * dx + dy * dy);
+                if (norm > 0.1f) {
+                    // Schiva perpendicolarmente alla traiettoria del pugno
+                    dodgeDx = -dy / norm;
+                    dodgeDy =  dx / norm;
+                    if (Math.random() < 0.5) { dodgeDx = -dodgeDx; dodgeDy = -dodgeDy; }
+                }
+                timerDodge = switch (fase4) {
+                    case 2 -> DURATA_DODGE_F2;
+                    case 3 -> DURATA_DODGE_F3;
+                    default -> DURATA_DODGE_F1;
+                };
+                cooldownDodge = timerDodge + 8; // non schivare di nuovo subito
+            }
+
+            // Movimento base (anche quando non schiva)
+            muoviFinale(pgX, pgY, multVel);
+        } else {
+            muoviFinale(pgX, pgY, multVel);
         }
 
-        // Alterna spirale / burst
+        // ── Sparo ─────────────────────────────────────────────────────────────
         if (++timerBurst > CICLO_BURST) { modoBurst = !modoBurst; timerBurst = 0; }
         if (--cooldownSparo <= 0) {
-            if (modoBurst) sparaBurst(pgX, pgY, 5, 8f);
-            else           sparaSpirale();
-            cooldownSparo = modoBurst ? DELAY_SPARO / 2 : DELAY_SPARO;
+            switch (fase4) {
+                case 1 -> {
+                    sparaSpirale();
+                    cooldownSparo = DELAY_SPARO;
+                }
+                case 2 -> {
+                    if (modoBurst) sparaBurst(pgX, pgY, 6, 12f);
+                    else           sparaSpirale();
+                    cooldownSparo = modoBurst ? DELAY_SPARO * 2 / 3 : DELAY_SPARO;
+                }
+                case 3 -> {
+                    // Furia: spara entrambi simultaneamente
+                    sparaSpirale();
+                    sparaBurst(pgX, pgY, 8, 20f);
+                    cooldownSparo = Math.max(20, DELAY_SPARO / 2);
+                }
+            }
+        }
+    }
+
+    /** Logica di movimento del boss finale in base alla fase. */
+    private void muoviFinale(float pgX, float pgY, float multVel) {
+        float cx = GameState.LARGHEZZA_GIOCO / 2f;
+        float cy = GameState.ALTEZZA_GIOCO   / 2f;
+
+        if (fase4 == 3) {
+            // Furia: insegue direttamente il giocatore invece di muoversi specchio
+            muoviVerso(pgX, pgY, velocita * multVel);
+        } else {
+            // Specchio rispetto al centro stanza, con deriva laterale in fase 2
+            float targetX = 2 * cx - pgX - TAGLIA_BOSS / 2f;
+            float targetY = 2 * cy - pgY - TAGLIA_BOSS / 2f;
+
+            if (fase4 == 2) {
+                // Aggiunge un offset oscillante che rende il movimento imprevedibile
+                float t = (float)(System.currentTimeMillis() % 3000) / 3000f;
+                float wave = (float) Math.sin(t * Math.PI * 2) * 80f;
+                targetX += wave;
+                targetY += (float) Math.cos(t * Math.PI * 2) * 40f;
+            }
+            muoviVerso(targetX, targetY, velocita * multVel);
         }
     }
 
@@ -233,6 +321,11 @@ public class Boss extends Nemico {
                     cx() + (float) Math.cos(a) * 200,
                     cy() + (float) Math.sin(a) * 200,
                     getImgProiettile(), t));
+        }
+        if (!primoSparoLog) {
+            primoSparoLog = true;
+            System.out.println("[Boss" + tipo + "] Primo sparo! pos=(" + (int)x + "," + (int)y
+                    + ") proiettili=" + proiettili.size() + " img=" + getImgProiettile());
         }
     }
 
@@ -307,6 +400,13 @@ public class Boss extends Nemico {
         if (tipo == 4 && timerDodge > 0) {
             g2.setColor(new Color(160, 0, 255, 80));
             g2.fillOval((int) x - 10, (int) y - 10, TAGLIA_BOSS + 20, TAGLIA_BOSS + 20);
+        }
+        // Fase 3: alone rosso pulsante
+        if (tipo == 4 && fase4 == 3) {
+            long t = System.currentTimeMillis();
+            int alpha = 60 + (int)(50 * Math.sin(t * 0.008));
+            g2.setColor(new Color(255, 30, 30, alpha));
+            g2.fillOval((int) x - 14, (int) y - 14, TAGLIA_BOSS + 28, TAGLIA_BOSS + 28);
         }
 
         if (img != null) {

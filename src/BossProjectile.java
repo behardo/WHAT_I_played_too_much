@@ -97,32 +97,68 @@ public class BossProjectile {
     }
 
     private void disegnaFallback(Graphics2D g2) {
-        int ix = (int) x - SIZE / 2, iy = (int) y - SIZE / 2;
+        int cx = (int) x, cy = (int) y;
         switch (tipo) {
             case FUOCO -> {
-                // Palla di fuoco pulsante
-                float pulse = 0.8f + 0.2f * (float) Math.sin(tick * 0.4f);
-                int sz = (int)(SIZE * pulse);
-                g2.setColor(new Color(255, 60,  0));
-                g2.fillOval(ix, iy, sz, sz);
-                g2.setColor(new Color(255, 200, 0, 180));
-                g2.fillOval(ix + 4, iy + 4, sz - 8, sz - 8);
+                // Palla di fuoco grande con glow
+                float pulse = 0.85f + 0.15f * (float) Math.sin(tick * 0.35f);
+                int outer = (int)(SIZE * 1.6f * pulse);
+                int inner = (int)(SIZE * 0.9f * pulse);
+                // Alone esterno
+                g2.setColor(new Color(255, 60, 0, 60));
+                g2.fillOval(cx - outer/2, cy - outer/2, outer, outer);
+                // Corpo arancione
+                g2.setColor(new Color(255, 100, 0));
+                g2.fillOval(cx - SIZE/2, cy - SIZE/2, SIZE, SIZE);
+                // Nucleo giallo
+                g2.setColor(new Color(255, 230, 50, 220));
+                g2.fillOval(cx - inner/2, cy - inner/2, inner, inner);
+                // Bordo scuro
+                g2.setColor(new Color(180, 40, 0));
+                g2.setStroke(new BasicStroke(2f));
+                g2.drawOval(cx - SIZE/2, cy - SIZE/2, SIZE, SIZE);
+                g2.setStroke(new BasicStroke(1f));
             }
             case FINALE -> {
-                // Sfera viola con alone
-                g2.setColor(new Color(120, 0, 200, 100));
-                g2.fillOval(ix - 4, iy - 4, SIZE + 8, SIZE + 8);
-                g2.setColor(new Color(200, 100, 255));
-                g2.fillOval(ix, iy, SIZE, SIZE);
+                // Sfera viola con alone pulsante e stella
+                int outer2 = (int)(SIZE * 1.8f);
+                g2.setColor(new Color(100, 0, 180, 50));
+                g2.fillOval(cx - outer2/2, cy - outer2/2, outer2, outer2);
+                g2.setColor(new Color(160, 0, 255, 130));
+                g2.fillOval(cx - SIZE/2 - 4, cy - SIZE/2 - 4, SIZE + 8, SIZE + 8);
+                g2.setColor(new Color(220, 140, 255));
+                g2.fillOval(cx - SIZE/2, cy - SIZE/2, SIZE, SIZE);
+                // Croce di luce al centro
+                g2.setColor(new Color(255, 200, 255, 200));
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawLine(cx - SIZE/3, cy, cx + SIZE/3, cy);
+                g2.drawLine(cx, cy - SIZE/3, cx, cy + SIZE/3);
+                g2.setStroke(new BasicStroke(1f));
             }
             case CROCE -> {
-                g2.setColor(new Color(50, 180, 255));
-                g2.fillRect(ix, iy + SIZE / 2 - 3, SIZE, 6);
-                g2.fillRect(ix + SIZE / 2 - 3, iy, 6, SIZE);
+                // Proiettile blu a croce con glow
+                g2.setColor(new Color(30, 120, 255, 70));
+                g2.fillOval(cx - SIZE/2 - 4, cy - SIZE/2 - 4, SIZE + 8, SIZE + 8);
+                g2.setColor(new Color(80, 180, 255));
+                g2.fillOval(cx - SIZE/2, cy - SIZE/2, SIZE, SIZE);
+                g2.setColor(Color.WHITE);
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawLine(cx - SIZE/2 + 2, cy, cx + SIZE/2 - 2, cy);
+                g2.drawLine(cx, cy - SIZE/2 + 2, cx, cy + SIZE/2 - 2);
+                g2.setStroke(new BasicStroke(1f));
             }
             default -> {
+                // Proiettile rosso classico con bordo
+                g2.setColor(new Color(255, 60, 60, 80));
+                g2.fillOval(cx - SIZE/2 - 3, cy - SIZE/2 - 3, SIZE + 6, SIZE + 6);
                 g2.setColor(new Color(255, 80, 80));
-                g2.fillOval(ix, iy, SIZE, SIZE);
+                g2.fillOval(cx - SIZE/2, cy - SIZE/2, SIZE, SIZE);
+                g2.setColor(new Color(255, 200, 200, 180));
+                g2.fillOval(cx - SIZE/4, cy - SIZE/4, SIZE/2, SIZE/2);
+                g2.setColor(new Color(200, 30, 30));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawOval(cx - SIZE/2, cy - SIZE/2, SIZE, SIZE);
+                g2.setStroke(new BasicStroke(1f));
             }
         }
     }

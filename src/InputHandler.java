@@ -328,10 +328,14 @@ public class InputHandler {
 
     /** Avvia il gioco vero dopo il Tetris, applicando il power-up Casa. */
     private void avviaGiocoDopTetris() {
-        state.powerUpCasa      = state.tetris != null ? state.tetris.getPowerUp() : state.powerUpCasa;
-        state.tetris           = null;
-        state.mostraDialogoCasa = true;  // mostra dialogo "WHAT? I'VE PLAYED TOO MUCH"
-        state.statoGioco       = GameState.StatoGioco.GIOCO;
+        state.powerUpCasa       = state.tetris != null ? state.tetris.getPowerUp() : state.powerUpCasa;
+        state.tetris            = null;
+        state.mostraDialogoCasa = true;
+        state.statoGioco        = GameState.StatoGioco.GIOCO;
+        // Genera la stanza 1 (Casa) — mondoAttuale=1, stanzaNelMondo=1, stanzaCasaVisitata=false
+        // RoomManager la riconosce e genera la stanza Casa con gli items del Tetris
+        roomMgr.resetCompleto();
+        roomMgr.generaNuovaStanza();
     }
 
     private void gestisciTetris(int k) {

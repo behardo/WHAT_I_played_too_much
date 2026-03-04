@@ -519,8 +519,8 @@ public class RenderEngine {
         // Stats
         g2.setFont(new Font("Arial", Font.PLAIN, 20));
         g2.setColor(new Color(200, 180, 180));
-        String stats = "Mondo " + state.mondoAttuale + "  •  Stanza " + state.stanzaNelMondo
-                + "  •  Monete " + state.monete;
+        String stats = "Mondo " + state.mondoAttuale + "  |  Stanza " + state.stanzaNelMondo
+                + "  |  Monete " + state.monete;
         g2.drawString(stats, W/2 - g2.getFontMetrics().stringWidth(stats)/2, H/2 + 10);
 
         if (state.modalitaScelta == GameState.Modalita.INFINITA) {
@@ -669,7 +669,7 @@ public class RenderEngine {
         g2.fillRect(lcdX, lcdY, lcdW, lcdH);
 
         // Logo "GAME BOY" style sotto la griglia dentro il body
-        String logo = "◆ WHAT TETRIS ◆";
+        String logo = "WHAT TETRIS";
         int logoFs = Math.max(9, (int)(cellH * 0.55f));
         // Riduci se troppo largo per il body
         g2.setFont(cf.apply((float) logoFs));
@@ -783,7 +783,7 @@ public class RenderEngine {
             int iFs = Math.max(9, (int)(cellH * 0.55f));
             g2.setFont(cfl.apply((float) iFs));
             g2.setColor(new Color(80, 80, 110));
-            String istr = "A/D muovi  •  W ruota  •  S scendi  •  SPAZIO caduta  •  ESC salta";
+            String istr = "A/D muovi   W ruota   S scendi   SPAZIO caduta   ESC salta";
             FontMetrics fmI = g2.getFontMetrics();
             g2.drawString(istr, W / 2 - fmI.stringWidth(istr) / 2,
                     shellY + shellH + (int)(cellH * 0.9f));
@@ -937,10 +937,10 @@ public class RenderEngine {
             // Soglia prossimo premio
             String soglia = switch (pu) {
                 case "TUTTO"    -> "";
-                case "DANNO"    -> "6000→TUTTO";
-                case "VELOCITA" -> "3000→DANNO";
-                case "CURA"     -> "1500→VEL";
-                default         -> "500→CURA";
+                case "DANNO"    -> "6000: TUTTO";
+                case "VELOCITA" -> "3000: DANNO";
+                case "CURA"     -> "1500: VEL";
+                default         -> "500: CURA";
             };
             if (!soglia.isEmpty()) {
                 int sFs = Math.max(8, (int)(labelFs * 0.80f));
@@ -992,6 +992,8 @@ public class RenderEngine {
             g2.setTransform(baseTransform);
             disegnaHUD(g2, W, H);
             state.dialogoShopkeeper.disegna(g2);
+            if (state.dialogoShopkeeper.isVisibile())
+                disegnaSceltaShopkeeper(g2, W, H);
             // Dialogo narrazione shopkeeper (JRPG) — sopra il vecchio dialogo
             if (state.dialogoNarrazione.isAttivo())
                 disegnaDialogoNarrazione(g2, W, H);
@@ -1046,10 +1048,21 @@ public class RenderEngine {
             }
         }
 
-        // Targa "SHOP" in cima
+        // Targa "NEGOZIO" in cima con font custom
+        String negozioTxt = "NEGOZIO";
+        Font fontNegozio = res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, 30f)
+                : new Font("Consolas", Font.BOLD, 28);
+        g2.setFont(fontNegozio);
+        FontMetrics fmN = g2.getFontMetrics();
+        int negX = W / 2 - fmN.stringWidth(negozioTxt) / 2;
+        int negY = GameState.TILE_SIZE - 10;
+        // Ombra
+        g2.setColor(new Color(0, 0, 0, 160));
+        g2.drawString(negozioTxt, negX + 2, negY + 2);
+        // Testo dorato
         g2.setColor(new Color(255, 215, 0));
-        g2.setFont(new Font("Consolas", Font.BOLD, 28));
-        g2.drawString("✦  NEGOZIO  ✦", W / 2 - 110, GameState.TILE_SIZE - 10);
+        g2.drawString(negozioTxt, negX, negY);
 
         // Porta sud (per uscire) al centro in basso
         int portaSudX = (GameState.COL_TOTALI / 2) * GameState.TILE_SIZE;
@@ -1275,6 +1288,166 @@ public class RenderEngine {
 
     // ── Dialogo Narrazione JRPG (condiviso boss + shopkeeper) ────────────────
 
+    // ── Scelta attacco shopkeeper — stesso stile del dialogo narrazione ───────
+
+    private void disegnaSceltaShopkeeper(Graphics2D g2, int W, int H) {
+        if (!state.dialogoShopkeeper.isVisibile()) return;
+
+        // ── Dim overlay ───────────────────────────────────────────────────────
+        g2.setColor(new Color(0, 0, 0, 130));
+        g2.fillRect(0, 0, W, H);
+
+        // ── Layout box (identico al dialogo narrazione) ───────────────────────
+        int boxH  = (int)(H * 0.30f);
+        int boxY  = H - boxH - (int)(H * 0.03f);
+        int boxX  = (int)(W * 0.04f);
+        int boxW  = W - boxX * 2;
+        int pad   = (int)(W * 0.018f);
+        int sprSz = boxH - pad * 2;
+        int sprX  = boxX + pad;
+        int sprY  = boxY + pad;
+        int txtX  = sprX + sprSz + pad;
+        int txtW  = boxW - sprSz - pad * 3;
+
+        // Colore bordo rosso-arancio (come nemico/boss)
+        Color borderColor = new Color(220, 80, 60);
+        Color bgColor     = new Color(22, 8, 8, 248);
+
+        // Ombra
+        g2.setColor(new Color(0, 0, 0, 190));
+        g2.fillRoundRect(boxX + 5, boxY + 5, boxW, boxH, 18, 18);
+
+        // Sfondo
+        g2.setColor(bgColor);
+        g2.fillRoundRect(boxX, boxY, boxW, boxH, 18, 18);
+
+        // Bordo esterno
+        g2.setStroke(new BasicStroke(2.5f));
+        g2.setColor(borderColor);
+        g2.drawRoundRect(boxX, boxY, boxW, boxH, 18, 18);
+        // Bordo interno
+        g2.setColor(new Color(borderColor.getRed(), borderColor.getGreen(),
+                borderColor.getBlue(), 70));
+        g2.drawRoundRect(boxX + 3, boxY + 3, boxW - 6, boxH - 6, 15, 15);
+        g2.setStroke(new BasicStroke(1f));
+
+        // ── Sprite shopkeeper ─────────────────────────────────────────────────
+        BufferedImage sprSk = res.imgShopkeeper;
+        if (sprSk != null) {
+            g2.setColor(new Color(20, 15, 35));
+            g2.fillRoundRect(sprX - 3, sprY - 3, sprSz + 6, sprSz + 6, 8, 8);
+            g2.setColor(new Color(borderColor.getRed(), borderColor.getGreen(),
+                    borderColor.getBlue(), 180));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRoundRect(sprX - 3, sprY - 3, sprSz + 6, sprSz + 6, 8, 8);
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawImage(sprSk, sprX, sprY, sprSz, sprSz, null);
+        }
+
+        // ── Nome (font custom) ────────────────────────────────────────────────
+        int nomeFs = Math.max(13, (int)(H * 0.028f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, (float) nomeFs)
+                : new Font("Consolas", Font.BOLD, nomeFs));
+        FontMetrics fmN = g2.getFontMetrics();
+        String nomeShop = "NEGOZIANTE";
+        int nomeBgW = fmN.stringWidth(nomeShop) + 18;
+        Color nomeColor = new Color(255, 120, 80);
+        g2.setColor(new Color(nomeColor.getRed() / 4, nomeColor.getGreen() / 4,
+                nomeColor.getBlue() / 4, 210));
+        g2.fillRoundRect(txtX - 2, sprY - 2, nomeBgW, fmN.getHeight() + 4, 6, 6);
+        g2.setColor(nomeColor);
+        g2.drawString(nomeShop, txtX + 6, sprY + fmN.getAscent());
+
+        // ── Testo domanda ─────────────────────────────────────────────────────
+        int testoFs = Math.max(11, (int)(H * 0.022f));
+        g2.setFont(new Font("Consolas", Font.BOLD, testoFs));
+        FontMetrics fmT = g2.getFontMetrics();
+        int lineY = sprY + fmN.getHeight() + (int)(H * 0.013f);
+
+        // Riga 1: domanda
+        String domanda = "Vuoi attaccare il negoziante?";
+        disegnaRigaDialogo(g2, domanda, txtX, lineY);
+        lineY += fmT.getHeight() + 3;
+
+        // Riga 2: conseguenza in grigio
+        int avvFs = Math.max(9, (int)(H * 0.017f));
+        g2.setFont(new Font("Consolas", Font.PLAIN, avvFs));
+        g2.setColor(new Color(180, 130, 120));
+        g2.drawString("Otterrai 20 monete, ma perderai lo shop.", txtX, lineY);
+
+        // ── Bottoni SI / NO nello stile del box ──────────────────────────────
+        int btnW   = (int)(txtW * 0.28f);
+        int btnH   = Math.max(30, (int)(H * 0.055f));
+        int btnGap = (int)(txtW * 0.06f);
+        int btnY   = boxY + boxH - btnH - pad;
+        int btnX0  = txtX;
+
+        int scelta = state.dialogoShopkeeper.getScelta(); // 0=No, 1=Si
+
+        String[] etichette = { "NO", "SI" };
+        Color[] coloriSfondo = {
+                new Color(20, 50, 20),
+                new Color(60, 15, 15)
+        };
+        Color[] coloriSel = {
+                new Color(40, 120, 40),
+                new Color(150, 30, 30)
+        };
+        Color[] coloriBordo = {
+                new Color(60, 180, 60),
+                new Color(220, 60, 60)
+        };
+
+        for (int i = 0; i < 2; i++) {
+            boolean sel = (i == scelta);
+            int bx = btnX0 + i * (btnW + btnGap);
+
+            // Ombra
+            g2.setColor(new Color(0, 0, 0, 120));
+            g2.fillRoundRect(bx + 3, btnY + 3, btnW, btnH, 10, 10);
+
+            // Sfondo
+            g2.setColor(sel ? coloriSel[i] : coloriSfondo[i]);
+            g2.fillRoundRect(bx, btnY, btnW, btnH, 10, 10);
+
+            // Bordo
+            g2.setStroke(new BasicStroke(sel ? 2.5f : 1f));
+            g2.setColor(sel ? coloriBordo[i] : new Color(80, 80, 80));
+            g2.drawRoundRect(bx, btnY, btnW, btnH, 10, 10);
+            g2.setStroke(new BasicStroke(1f));
+
+            // Glow se selezionato
+            if (sel) {
+                g2.setColor(new Color(coloriBordo[i].getRed(),
+                        coloriBordo[i].getGreen(), coloriBordo[i].getBlue(), 40));
+                g2.fillRoundRect(bx - 3, btnY - 3, btnW + 6, btnH + 6, 13, 13);
+            }
+
+            // Testo bottone (font custom)
+            int btnFs = Math.max(12, (int)(H * 0.025f));
+            g2.setFont(res.fontCustom != null
+                    ? res.fontCustom.deriveFont(Font.BOLD, (float) btnFs)
+                    : new Font("Consolas", Font.BOLD, btnFs));
+            FontMetrics fmB = g2.getFontMetrics();
+            g2.setColor(sel ? Color.WHITE : new Color(160, 160, 160));
+            int lx = bx + (btnW - fmB.stringWidth(etichette[i])) / 2;
+            int ly = btnY + (btnH + fmB.getAscent() - fmB.getDescent()) / 2;
+            // Ombra testo
+            g2.setColor(new Color(0, 0, 0, 140));
+            g2.drawString(etichette[i], lx + 1, ly + 1);
+            g2.setColor(sel ? Color.WHITE : new Color(160, 160, 160));
+            g2.drawString(etichette[i], lx, ly);
+        }
+
+        // ── Hint tasti ────────────────────────────────────────────────────────
+        int hintFs = Math.max(9, (int)(H * 0.015f));
+        g2.setFont(new Font("Consolas", Font.ITALIC, hintFs));
+        g2.setColor(new Color(120, 100, 100));
+        String hint = "A/D per scegliere   INVIO per confermare   ESC per annullare";
+        g2.drawString(hint, boxX + pad, boxY + boxH - 6);
+    }
+
     private void disegnaDialogoNarrazione(Graphics2D g2, int W, int H) {
         DialogoNarrazione.Pagina pag = state.dialogoNarrazione.getPagina();
         if (pag == null) return;
@@ -1385,7 +1558,7 @@ public class RenderEngine {
             g2.setFont(new Font("Arial", Font.ITALIC, hFs));
             g2.setColor(new Color(borderColor.getRed(), borderColor.getGreen(),
                     borderColor.getBlue(), 200));
-            String hint = cur < tot ? "▼  INVIO per continuare" : "▼  INVIO per iniziare";
+            String hint = cur < tot ? "[ INVIO per continuare ]" : "[ INVIO per iniziare ]";
             FontMetrics fmH = g2.getFontMetrics();
             g2.drawString(hint, boxX + boxW - fmH.stringWidth(hint) - pad,
                     boxY + boxH - pad / 2);
@@ -1511,7 +1684,7 @@ public class RenderEngine {
             int hintFs = Math.max(9, (int)(H * 0.016));
             g2.setFont(new Font("Arial", Font.ITALIC, hintFs));
             g2.setColor(new Color(160, 120, 220));
-            String hint = "▼  INVIO per continuare";
+            String hint = "[ INVIO per continuare ]";
             g2.drawString(hint,
                     boxX + boxW - g2.getFontMetrics().stringWidth(hint) - pad,
                     boxY + boxH - pad / 2);
@@ -1533,8 +1706,7 @@ public class RenderEngine {
         g2.setFont(res.fontCustom != null ? res.fontCustom.deriveFont(Font.BOLD, (float)fs)
                 : new Font("Consolas", Font.BOLD, fs));
         g2.setColor(new Color(255, 200, 80));
-        String txt = "★  CASA  —  " + (state.powerUpCasa.equals("NESSUNO")
-                ? "Raccogli la cura!" : "Power-up: " + state.powerUpCasa);
+        String txt = "CASA";
         FontMetrics fm = g2.getFontMetrics();
         g2.drawString(txt, W/2 - fm.stringWidth(txt)/2, banY + banH/2 + fm.getAscent()/2 - 2);
     }
@@ -1667,7 +1839,7 @@ public class RenderEngine {
         if (bossCorrente == null) return;
 
         String[] nomiUI = {
-                "⚒ BRUTALE", "🌑 OMBRA", "🔥 CARICA", "💀 FINALE"
+                "MANNIE", "PRESAGIO", "RE FORNO", "YABBADUHLON"
         };
         String nomeBoss = nomiUI[((state.mondoAttuale - 1) % 4)];
 
@@ -1765,6 +1937,8 @@ public class RenderEngine {
 
     /** Restituisce il TileSet corretto: Casa (mondo 0) nella stanza 1 del mondo 1. */
     private TileSet tileSetCorrente() {
+        // La stanza Casa è: mondo 1, stanza 1, dopo il Tetris (stanzaCasaVisitata viene
+        // impostato da RoomManager appena genera la stanza, prima del rendering)
         boolean isCasa = state.mondoAttuale == 1
                 && state.stanzaNelMondo == 1
                 && state.stanzaCasaVisitata;
