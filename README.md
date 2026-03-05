@@ -18,7 +18,7 @@ Un roguelike 2D in Java. Sei in ritardo al lavoro. Invece di andarci, hai passat
 ## Struttura di una run
 
 **1. Tetris**
-Prima di entrare si gioca una partita a Tetris da 40 secondi. Il punteggio determina il power-up iniziale.
+Prima di entrare si gioca una partita a Tetris da 2 minuti. Il punteggio determina il power-up iniziale.
 
 **2. Casa**
 La prima stanza. Contiene il power-up guadagnato col Tetris. Raccoglilo e parti.
