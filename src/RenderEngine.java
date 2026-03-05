@@ -77,6 +77,7 @@ public class RenderEngine {
                 disegnaGameOver(g2, panelWidth, panelHeight);
             }
             case VITTORIA_STORIA       -> disegnaVittoriaStoria(g2, panelWidth, panelHeight);
+            case UFFICIO               -> disegnaUfficio(g2, panelWidth, panelHeight);
         }
     }
 
@@ -204,9 +205,10 @@ public class RenderEngine {
 
         // Colonna 1: movimento e sparo
         disegnaTastoInfo(g2, col1X, startY,           "W A S D",     "Movimento");
-        disegnaTastoInfo(g2, col1X, startY + rigaH,   "↑ ↓ ← →",    "Sparo");
-        disegnaTastoInfo(g2, col1X, startY + rigaH*2, "ESC",         "Pausa");
-        disegnaTastoInfo(g2, col1X, startY + rigaH*3, "F11",         "Fullscreen");
+        disegnaTastoInfo(g2, col1X, startY + rigaH,   "Frecce",      "Sparo");
+        disegnaTastoInfo(g2, col1X, startY + rigaH*2, "Z",           "Melee (dopo negozio)");
+        disegnaTastoInfo(g2, col1X, startY + rigaH*3, "ESC",         "Pausa");
+        disegnaTastoInfo(g2, col1X, startY + rigaH*4, "F11",         "Fullscreen");
 
         // Colonna 2: azioni durante pausa
         disegnaTastoInfo(g2, col2X, startY,           "INVIO",       "Conferma");
@@ -495,43 +497,125 @@ public class RenderEngine {
     // ── Game Over ─────────────────────────────────────────────────────────────
 
     private void disegnaGameOver(Graphics2D g2, int W, int H) {
-        if (res.imgSfondoGameOver != null) {
-            g2.drawImage(res.imgSfondoGameOver, 0, 0, W, H, null);
-            g2.setColor(new Color(0, 0, 0, 140));
-            g2.fillRect(0, 0, W, H);
-        } else {
-            g2.setColor(new Color(0, 0, 0, 185));
-            g2.fillRect(0, 0, W, H);
+        long ms = System.currentTimeMillis();
+
+        // ── Sfondo — cielo notturno con gradiente ─────────────────────────────
+        for (int y = 0; y < H; y++) {
+            float t = (float) y / H;
+            int r = (int)(8  + 18  * (1 - t));
+            int gv = (int)(8  + 12  * (1 - t));
+            int b  = (int)(28 + 40  * (1 - t));
+            g2.setColor(new Color(Math.min(r,255), Math.min(gv,255), Math.min(b,255)));
+            g2.drawLine(0, y, W, y);
         }
 
-        // Titolo rosso con ombra
-        g2.setFont(new Font("Consolas", Font.BOLD, 62));
-        FontMetrics fm = g2.getFontMetrics();
-        String t = "GAME OVER";
-        int tx = W/2 - fm.stringWidth(t)/2;
-        int goFs = (int)(H * 0.12);
-        int goY  = (int)(H * 0.42);
-        g2.setColor(new Color(100, 0, 0));
-        drawTextCentered(g2, t, W/2 + 4, goY + 4, goFs);
-        g2.setColor(new Color(220, 40, 40));
-        drawTextCentered(g2, t, W/2, goY, goFs);
+        // ── Luna ──────────────────────────────────────────────────────────────
+        float lunaPulse = 0.97f + 0.03f * (float)Math.sin(ms * 0.0008);
+        int lunaR = (int)(W * 0.055f * lunaPulse);
+        int lunaX = (int)(W * 0.72f), lunaY = (int)(H * 0.18f);
+        // Alone lunare
+        for (int r = lunaR + 45; r > lunaR; r -= 6) {
+            float a = 1f - (float)(r - lunaR) / 45f;
+            g2.setColor(new Color(180, 200, 255, (int)(25 * a)));
+            g2.fillOval(lunaX - r, lunaY - r, r * 2, r * 2);
+        }
+        g2.setColor(new Color(210, 220, 255));
+        g2.fillOval(lunaX - lunaR, lunaY - lunaR, lunaR * 2, lunaR * 2);
+        // Ombra sulla luna
+        g2.setColor(new Color(15, 15, 35, 160));
+        g2.fillOval(lunaX - lunaR + lunaR/3, lunaY - lunaR, lunaR * 2, lunaR * 2);
 
-        // Stats
-        g2.setFont(new Font("Arial", Font.PLAIN, 20));
-        g2.setColor(new Color(200, 180, 180));
+        // ── Stelle ────────────────────────────────────────────────────────────
+        java.util.Random rng = new java.util.Random(42);
+        for (int i = 0; i < 60; i++) {
+            int sx = rng.nextInt(W);
+            int sy = rng.nextInt((int)(H * 0.55f));
+            float blink = 0.5f + 0.5f * (float)Math.sin(ms * 0.002 + i * 1.3);
+            g2.setColor(new Color(200, 210, 255, (int)(120 * blink)));
+            g2.fillRect(sx, sy, 2, 2);
+        }
+
+        // ── Pioggia ───────────────────────────────────────────────────────────
+        int rainSeed = (int)(ms / 30);
+        java.util.Random rainRng = new java.util.Random(rainSeed);
+        g2.setStroke(new BasicStroke(1f));
+        for (int i = 0; i < 120; i++) {
+            int rx = rainRng.nextInt(W + 40) - 20;
+            int ry = (int)((rainRng.nextInt(H) + (ms / 15.0)) % H);
+            int rl = 8 + rainRng.nextInt(14);
+            int alpha = 60 + rainRng.nextInt(80);
+            g2.setColor(new Color(150, 180, 255, alpha));
+            g2.drawLine(rx, ry, rx - 3, ry + rl);
+        }
+        g2.setStroke(new BasicStroke(1f));
+
+        // ── Silhouette edificio ufficio — finestre spente ─────────────────────
+        int edH = (int)(H * 0.32f);
+        g2.setColor(new Color(12, 12, 20));
+        g2.fillRect(0, H - edH, W, edH);
+        // Poche finestre con luce — solo quelle dell'ufficio in cima
+        g2.setColor(new Color(255, 220, 80, 90));
+        int finW2 = (int)(W * 0.022f), finH2 = (int)(H * 0.035f);
+        int[] liteWindows = {2, 5}; // solo 2 finestre accese
+        for (int col : liteWindows) {
+            int fx = (int)(W * 0.09f * col) - finW2 / 2;
+            int fy = H - edH + (int)(H * 0.055f);
+            g2.fillRect(fx, fy, finW2, finH2);
+        }
+        // Finestre buie
+        g2.setColor(new Color(20, 25, 40, 180));
+        for (int col = 1; col <= 9; col++) {
+            for (int row = 1; row <= 4; row++) {
+                if (col != 2 || row != 1) {
+                    int fx = (int)(W * 0.09f * col) - finW2 / 2;
+                    int fy = H - edH + (int)(H * 0.055f * row);
+                    g2.fillRect(fx, fy, finW2, finH2);
+                }
+            }
+        }
+
+        // ── Pozzanghera riflesso luna ─────────────────────────────────────────
+        g2.setColor(new Color(30, 40, 70, 120));
+        g2.fillOval(W/2 - 60, H - 28, 120, 18);
+        g2.setColor(new Color(180, 200, 255, 40));
+        g2.fillOval(W/2 - 20, H - 25, 40, 10);
+
+        // ── Testo principale ──────────────────────────────────────────────────
+        int titFs = Math.max(22, (int)(H * 0.10f));
+        // Ombra
+        g2.setColor(new Color(0, 0, 30, 200));
+        drawTextCentered(g2, "NON CE L'HAI FATTA.", W/2 + 3, (int)(H * 0.46f) + 3, titFs);
+        // Testo
+        g2.setColor(new Color(200, 215, 255));
+        drawTextCentered(g2, "NON CE L'HAI FATTA.", W/2, (int)(H * 0.46f), titFs);
+
+        // ── Sottotitolo ───────────────────────────────────────────────────────
+        int subFs = Math.max(12, (int)(H * 0.028f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.PLAIN, (float) subFs)
+                : new Font("Consolas", Font.PLAIN, subFs));
+        g2.setColor(new Color(160, 175, 220, 210));
+        String sub = "L'ufficio aspettera ancora.";
+        drawTextCentered(g2, sub, W/2, (int)(H * 0.46f) + titFs + 10, subFs);
+
+        // ── Stats ─────────────────────────────────────────────────────────────
+        int stFs = Math.max(10, (int)(H * 0.024f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, (float) stFs)
+                : new Font("Consolas", Font.BOLD, stFs));
+        g2.setColor(new Color(140, 155, 200, 200));
         String stats = "Mondo " + state.mondoAttuale + "  |  Stanza " + state.stanzaNelMondo
                 + "  |  Monete " + state.monete;
-        g2.drawString(stats, W/2 - g2.getFontMetrics().stringWidth(stats)/2, H/2 + 10);
+        drawTextCentered(g2, stats, W/2, (int)(H * 0.46f) + titFs + 10 + subFs + 18, stFs);
 
         if (state.modalitaScelta == GameState.Modalita.INFINITA) {
-            g2.setFont(new Font("Arial", Font.PLAIN, 18));
-            g2.setColor(new Color(180, 160, 100));
             int tot = (state.mondoAttuale - 1) * GameState.STANZA_BOSS + state.stanzaNelMondo;
-            String inf = "Stanze totali superate: " + tot;
-            g2.drawString(inf, W/2 - g2.getFontMetrics().stringWidth(inf)/2, H/2 + 35);
+            g2.setColor(new Color(180, 160, 100, 200));
+            drawTextCentered(g2, "Stanze totali: " + tot, W/2,
+                    (int)(H * 0.46f) + titFs + 10 + subFs + 18 + stFs + 14, stFs);
         }
 
-        // Bottoni
+        // ── Bottoni ───────────────────────────────────────────────────────────
         ui.btnRiprova.draw(g2);
         ui.btnMenuPrincipaleGO.draw(g2);
         ui.btnEsciGO.draw(g2);
@@ -539,41 +623,181 @@ public class RenderEngine {
 
     // ── Vittoria Storia ───────────────────────────────────────────────────────
 
-    private void disegnaVittoriaStoria(Graphics2D g2, int W, int H) {
-        if (res.imgSfondoVittoria != null) {
-            g2.drawImage(res.imgSfondoVittoria, 0, 0, W, H, null);
-            g2.setColor(new Color(0, 0, 0, 100));
-            g2.fillRect(0, 0, W, H);
+    // ── Stanza Ufficio ────────────────────────────────────────────────────────
+
+    private void disegnaUfficio(Graphics2D g2, int W, int H) {
+        // Sfondo ufficio — grigio caldo con finestra
+        g2.setColor(new Color(45, 45, 55));
+        g2.fillRect(0, 0, W, H);
+
+        // Finestra sulla parete di fondo (luce diurna)
+        int finW = (int)(W * 0.25f), finH = (int)(H * 0.30f);
+        int finX = W / 2 - finW / 2, finY = (int)(H * 0.08f);
+        g2.setColor(new Color(180, 220, 255, 80));
+        g2.fillRect(finX, finY, finW, finH);
+        g2.setColor(new Color(200, 240, 255, 140));
+        g2.fillRect(finX + 10, finY + 10, finW / 2 - 12, finH / 2 - 12);
+        g2.fillRect(finX + finW / 2 + 2, finY + 10, finW / 2 - 12, finH / 2 - 12);
+        g2.fillRect(finX + 10, finY + finH / 2 + 2, finW / 2 - 12, finH / 2 - 12);
+        g2.fillRect(finX + finW / 2 + 2, finY + finH / 2 + 2, finW / 2 - 12, finH / 2 - 12);
+        // Cornice finestra
+        g2.setColor(new Color(100, 85, 70));
+        g2.setStroke(new BasicStroke(4f));
+        g2.drawRect(finX, finY, finW, finH);
+        g2.drawLine(finX + finW / 2, finY, finX + finW / 2, finY + finH);
+        g2.drawLine(finX, finY + finH / 2, finX + finW, finY + finH / 2);
+        g2.setStroke(new BasicStroke(1f));
+
+        // Pavimento
+        g2.setColor(new Color(100, 75, 50));
+        g2.fillRect(0, (int)(H * 0.72f), W, H);
+        g2.setColor(new Color(120, 90, 60));
+        int listW = W / 8;
+        for (int i = 0; i < 9; i++) {
+            g2.drawLine(i * listW, (int)(H * 0.72f), i * listW, H);
+        }
+
+        // Scrivania del Capo
+        int deskW = (int)(W * 0.35f), deskH = (int)(H * 0.12f);
+        int deskX = W / 2 - deskW / 2, deskY = (int)(H * 0.58f);
+        g2.setColor(new Color(90, 60, 30));
+        g2.fillRect(deskX, deskY, deskW, deskH);
+        g2.setColor(new Color(120, 85, 45));
+        g2.fillRect(deskX + 4, deskY + 4, deskW - 8, 18);
+        g2.setColor(new Color(60, 40, 20));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawRect(deskX, deskY, deskW, deskH);
+        g2.setStroke(new BasicStroke(1f));
+
+        // NPC Capo
+        int capoSize = (int)(H * 0.28f);
+        int capoX = W / 2 - capoSize / 2;
+        int capoY = deskY - capoSize + 10;
+        if (res.imgCapo != null) {
+            g2.drawImage(res.imgCapo, capoX, capoY, capoSize, capoSize, null);
         } else {
-            g2.setColor(new Color(10, 40, 10));
-            g2.fillRect(0, 0, W, H);
-            for (int r = 280; r > 0; r -= 12) {
-                int alpha = (int)(20 * (1.0 - r / 280.0));
-                g2.setColor(new Color(200, 180, 0, alpha));
-                g2.fillOval(W/2 - r, H/2 - r - 40, r*2, r*2);
+            // Fallback: omino seduto con giacca
+            g2.setColor(new Color(40, 60, 100));
+            g2.fillRoundRect(capoX + capoSize/4, capoY + capoSize/3,
+                    capoSize/2, capoSize * 2/3, 8, 8);
+            g2.setColor(new Color(220, 180, 140));
+            int tH = capoSize / 3;
+            g2.fillOval(capoX + capoSize/3, capoY, capoSize/3, tH);
+            g2.setColor(new Color(30, 30, 40));
+            g2.fillOval(capoX + capoSize/3 + tH/6, capoY + tH/3, tH/5, tH/5);
+            g2.fillOval(capoX + capoSize/2 + 2, capoY + tH/3, tH/5, tH/5);
+        }
+
+        // Banner "UFFICIO" in alto
+        String banTxt = "UFFICIO";
+        int banFs = Math.max(18, (int)(H * 0.042f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, (float) banFs)
+                : new Font("Consolas", Font.BOLD, banFs));
+        FontMetrics fmBan = g2.getFontMetrics();
+        int banW = fmBan.stringWidth(banTxt) + 30;
+        int banX = W / 2 - banW / 2;
+        int banY = 12;
+        g2.setColor(new Color(30, 30, 50, 210));
+        g2.fillRoundRect(banX, banY, banW, banFs + 16, 10, 10);
+        g2.setColor(new Color(255, 215, 0));
+        g2.drawString(banTxt, W / 2 - fmBan.stringWidth(banTxt) / 2, banY + banFs + 2);
+
+        // Dialogo col Capo (usa stesso sistema narrazione JRPG)
+        if (state.dialogoNarrazione.isAttivo()) {
+            disegnaDialogoNarrazione(g2, W, H);
+        } else {
+            // Fallback hint se dialogo non avviato ancora
+            g2.setFont(new Font("Consolas", Font.ITALIC, Math.max(10, (int)(H * 0.018f))));
+            g2.setColor(new Color(200, 200, 200, 160));
+            String hint2 = "[ INVIO per continuare ]";
+            g2.drawString(hint2, W / 2 - g2.getFontMetrics().stringWidth(hint2) / 2,
+                    H - 20);
+        }
+    }
+
+    // ── Schermata Finale ──────────────────────────────────────────────────────
+
+    private void disegnaVittoriaStoria(Graphics2D g2, int W, int H) {
+        // Sfondo — cielo mattutino con sole che sorge
+        for (int y = 0; y < H; y++) {
+            float t = (float) y / H;
+            int r = (int)(255 * (1 - t * 0.3f));
+            int gv = (int)(200 + 55 * (1 - t));
+            int b  = (int)(120 + 100 * (1 - t));
+            g2.setColor(new Color(Math.min(r, 255), Math.min(gv, 255), Math.min(b, 255)));
+            g2.drawLine(0, y, W, y);
+        }
+
+        // Sole
+        long ms = System.currentTimeMillis();
+        float pulse = 0.96f + 0.04f * (float) Math.sin(ms * 0.002);
+        int solR = (int)(W * 0.09f * pulse);
+        int solX = W / 2, solY = (int)(H * 0.28f);
+        for (int r = solR + 50; r > solR; r -= 8) {
+            float a = 1f - (float)(r - solR) / 50f;
+            g2.setColor(new Color(255, 220, 80, (int)(40 * a)));
+            g2.fillOval(solX - r, solY - r, r * 2, r * 2);
+        }
+        g2.setColor(new Color(255, 230, 100));
+        g2.fillOval(solX - solR, solY - solR, solR * 2, solR * 2);
+
+        // Silhouette edificio ufficio in basso
+        g2.setColor(new Color(30, 30, 40));
+        int edH = (int)(H * 0.30f);
+        g2.fillRect(0, H - edH, W, edH);
+        // Finestre illuminate
+        g2.setColor(new Color(255, 230, 100, 180));
+        int finW2 = (int)(W * 0.025f), finH2 = (int)(H * 0.04f);
+        for (int col = 1; col <= 8; col++) {
+            for (int row = 1; row <= 3; row++) {
+                if ((col + row) % 3 != 0) {
+                    int fx = (int)(W * 0.08f * col) - finW2 / 2;
+                    int fy = H - edH + (int)(H * 0.06f * row);
+                    g2.fillRect(fx, fy, finW2, finH2);
+                }
             }
         }
 
-        int vitFs  = (int)(H * 0.115);
-        int vitY   = (int)(H * 0.40);
-        g2.setColor(new Color(80, 60, 0));
-        drawTextCentered(g2, "STORIA COMPLETATA!", W/2 + 3, vitY + 3, vitFs);
-        g2.setColor(new Color(255, 220, 0));
-        drawTextCentered(g2, "STORIA COMPLETATA!", W/2, vitY, vitFs);
+        // Testo principale con font custom
+        int titFs = Math.max(22, (int)(H * 0.10f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, (float) titFs)
+                : new Font("Consolas", Font.BOLD, titFs));
+        // Ombra
+        g2.setColor(new Color(80, 50, 0, 160));
+        drawTextCentered(g2, "SEI ARRIVATO.", W / 2 + 3, (int)(H * 0.52f) + 3, titFs);
+        // Testo principale
+        g2.setColor(new Color(255, 240, 180));
+        drawTextCentered(g2, "SEI ARRIVATO.", W / 2, (int)(H * 0.52f), titFs);
 
-        int subFs = (int)(H * 0.049);
-        g2.setFont(new Font("Arial", Font.PLAIN, subFs));
-        g2.setColor(Color.WHITE);
-        String sub = "Hai sconfitto tutti i Boss e salvato il cantiere!";
-        int subY = vitY + (int)(H * 0.13);
-        g2.drawString(sub, W/2 - g2.getFontMetrics().stringWidth(sub)/2, subY);
+        // Sottotitolo
+        int subFs = Math.max(12, (int)(H * 0.030f));
+        g2.setFont(new Font("Consolas", Font.PLAIN, subFs));
+        g2.setColor(new Color(255, 255, 255, 200));
+        String sub = "Con " + (GameState.MELEE_DELAY > 0 ? "un po' di ritardo." : "ritardo.");
+        drawTextCentered(g2, sub, W / 2, (int)(H * 0.52f) + titFs + 12, subFs);
 
-        int mFs = (int)(H * 0.054);
-        g2.setFont(new Font("Consolas", Font.BOLD, mFs));
+        // Monete
+        int mFs = Math.max(11, (int)(H * 0.026f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, (float) mFs)
+                : new Font("Consolas", Font.BOLD, mFs));
         g2.setColor(new Color(255, 215, 0));
-        String monete = "Monete raccolte: " + state.monete;
-        g2.drawString(monete, W/2 - g2.getFontMetrics().stringWidth(monete)/2, subY + (int)(H*0.09));
+        String monete = "Monete guadagnate: " + state.monete;
+        drawTextCentered(g2, monete, W / 2, (int)(H * 0.52f) + titFs + 12 + subFs + 20, mFs);
 
+        // Codice debug se trovato
+        if (state.notaRaccolta) {
+            int codFs = Math.max(10, (int)(H * 0.022f));
+            g2.setFont(new Font("Consolas", Font.ITALIC, codFs));
+            g2.setColor(new Color(180, 255, 180, 200));
+            String codStr = "Codice trovato: " + GameState.CODICE_DEBUG;
+            drawTextCentered(g2, codStr, W / 2,
+                    (int)(H * 0.52f) + titFs + 12 + subFs + 20 + mFs + 18, codFs);
+        }
+
+        // Bottone menu
         ui.btnMenuPrincipaleVittoria.draw(g2);
     }
 
@@ -982,6 +1206,34 @@ public class RenderEngine {
         g2.translate(gox, goy);
         g2.scale(gs, gs);
 
+        if (roomMgr.inStanza62) {
+            disegnaAmbiente(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
+            for (Cura     c  : roomMgr.getCure62())   c.draw(g2);
+            for (ShopItem si : roomMgr.getItems62())  si.draw(g2);
+            if (pugniAttivi != null) for (Pugno p : pugniAttivi) p.draw(g2);
+            // Nemici 6-2 con sprite del loro mondo
+            for (Nemico n : roomMgr.getNemici62()) {
+                if (n instanceof NemicoForte) {
+                    n.draw(g2, res.getNemicoForteSprite(state.mondoAttuale));
+                    n.disegnaBarraVita(g2);
+                } else {
+                    n.draw(g2, res.getNemicoSprite(state.mondoAttuale));
+                    n.disegnaBarraVita(g2);
+                }
+            }
+            disegnaGiocatore(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
+            if (state.meleeTimer > 0) disegnaMelee(g2);
+            g2.setTransform(baseTransform);
+            disegnaHUD(g2, W, H);
+            disegnaBannerArdua(g2, W, H);
+            // Porta nord (uscita) visibile solo quando stanza pulita
+            if (roomMgr.getNemici62().isEmpty()) {
+                disegnaPortaNord62(g2, W, H);
+            }
+            if (state.dialogoNarrazione.isAttivo()) disegnaDialogoNarrazione(g2, W, H);
+            return;
+        }
+
         if (roomMgr.inStanzaShop) {
             disegnaStanzaShop(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
             for (Shopkeeper sk : roomMgr.getShopkeeperShop()) sk.draw(g2);
@@ -1002,9 +1254,15 @@ public class RenderEngine {
 
         disegnaAmbiente(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
         disegnaOggetti(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
+
+        // Disegna la nota in Casa
+        Nota notaCasa = roomMgr.getNotaCasa();
+        if (notaCasa != null) notaCasa.draw(g2);
+
         if (pugniAttivi != null) for (Pugno p : pugniAttivi) p.draw(g2);
         disegnaNemici(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
         disegnaGiocatore(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
+        if (state.meleeTimer > 0) disegnaMelee(g2);
 
         // Ripristina transform e disegna HUD sopra (non scalato)
         g2.setTransform(baseTransform);
@@ -1016,12 +1274,22 @@ public class RenderEngine {
             disegnaBannerCasa(g2, W, H);
         }
 
+        // Banner stanza 6-2 (mostrato anche PRIMA di entrarci nella stanza 6)
+        if (state.stanzaNelMondo == 6 && !state.ardua_completed) {
+            disegnaBannerArdua(g2, W, H);
+        }
+
         // Dialogo narrazione (boss intro + shopkeeper JRPG)
         if (state.dialogoNarrazione.isAttivo()) {
             disegnaDialogoNarrazione(g2, W, H);
         }
 
-        // Dialogo Casa — "WHAT? I'VE PLAYED TOO MUCH..."
+        // Popup nota con codice debug
+        if (state.mostraNota) {
+            disegnaPopupNota(g2, W, H);
+        }
+
+        // Dialogo Casa
         if (state.mostraDialogoCasa) {
             disegnaDialogoCasa(g2, W, H);
         }
@@ -1208,16 +1476,66 @@ public class RenderEngine {
 
         // ── Porta nord SHOP — solo stanza 1 + shopSbloccato ──────────────────
         if (state.stanzaNelMondo == 1 && state.shopSbloccato) {
-            int portaShopX = (GameState.COL_TOTALI / 2) * T; // Centro del muro superiore
+            int portaShopX = (GameState.COL_TOTALI / 2) * T;
             if (res.imgShopDoor != null) {
                 g2.drawImage(res.imgShopDoor, portaShopX, 0, T, T, null);
             } else {
-                g2.setColor(new Color(255, 215, 0, 200)); // Oro
+                g2.setColor(new Color(255, 215, 0, 200));
                 g2.fillRect(portaShopX, 0, T, T);
             }
-            // Freccia indicativa
-
         }
+
+        // ── Porta sud 6-2 — stanza 6 pulita, non ancora completata ───────────
+        if (state.stanzaNelMondo == 6 && stanzaPulita && !state.ardua_completed) {
+            int p62X = (GameState.COL_TOTALI / 2) * T;
+            int p62Y = (GameState.RIG_TOTALI - 1) * T;
+            long pt = System.currentTimeMillis();
+            float pp = 0.72f + 0.28f * (float)Math.sin(pt * 0.006);
+            g2.setColor(new Color(120, 0, 0, (int)(210 * pp)));
+            g2.fillRect(p62X, p62Y, T, T);
+            g2.setColor(new Color(255, 70, 70, (int)(240 * pp)));
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawRect(p62X, p62Y, T, T);
+            g2.setStroke(new BasicStroke(1f));
+            // Testo "6-2"
+            int fsSud = Math.max(6, T - 6);
+            g2.setFont(res.fontCustom != null
+                    ? res.fontCustom.deriveFont(Font.BOLD, (float)fsSud)
+                    : new Font("Consolas", Font.BOLD, fsSud));
+            g2.setColor(Color.WHITE);
+            FontMetrics fmSud = g2.getFontMetrics();
+            String lbl = "6-2";
+            g2.drawString(lbl, p62X + (T - fmSud.stringWidth(lbl)) / 2,
+                    p62Y + (T + fmSud.getAscent()) / 2 - 2);
+        }
+    }
+
+    /** Porta nord di uscita dalla stanza 6-2 (visibile solo quando pulita). */
+    private void disegnaPortaNord62(Graphics2D g2, int W, int H) {
+        double gs  = gameScale(W, H);
+        int    gox = gameOffX(W, H);
+        int    goy = gameOffY(W, H);
+        int T = GameState.TILE_SIZE;
+        int px = (int)((GameState.COL_TOTALI / 2) * T * gs) + gox;
+        int py = goy + (int)(GameState.OFFSET * T * gs);
+        int tw = (int)(T * gs), th = (int)(T * gs);
+        long pt = System.currentTimeMillis();
+        float pp = 0.72f + 0.28f * (float)Math.sin(pt * 0.006);
+        g2.setColor(new Color(120, 0, 0, (int)(200 * pp)));
+        g2.fillRect(px, py, tw, th);
+        g2.setColor(new Color(255, 120, 120, (int)(240 * pp)));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawRect(px, py, tw, th);
+        g2.setStroke(new BasicStroke(1f));
+        int fsN = Math.max(8, (int)(T * gs) - 6);
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, (float)fsN)
+                : new Font("Consolas", Font.BOLD, fsN));
+        g2.setColor(Color.WHITE);
+        FontMetrics fmN = g2.getFontMetrics();
+        String lbl = "^";
+        g2.drawString(lbl, px + (tw - fmN.stringWidth(lbl)) / 2,
+                py + (th + fmN.getAscent()) / 2 - 2);
     }
 
     private void disegnaOggetti(Graphics2D g2, int W, int H) {
@@ -1288,7 +1606,153 @@ public class RenderEngine {
 
     // ── Dialogo Narrazione JRPG (condiviso boss + shopkeeper) ────────────────
 
-    // ── Scelta attacco shopkeeper — stesso stile del dialogo narrazione ───────
+    // ── Attacco melee — effetto visivo per personaggio ────────────────────────
+
+    private void disegnaMelee(Graphics2D g2) {
+        int cx = state.meleeHitX;
+        int cy = state.meleeHitY;
+        int t  = state.meleeTimer;        // frame rimanenti (da MELEE_DURATION a 0)
+        int D  = GameState.MELEE_DURATION;
+        float prog = 1f - (float) t / D;  // 0.0 = inizio, 1.0 = fine
+
+        // Direzione attacco
+        int fx = state.facingX, fy = state.facingY;
+        double angolo = Math.atan2(fy, fx == 0 && fy == 0 ? 1 : fy == 0 ? fx : fy);
+        if (fx != 0 || fy != 0) angolo = Math.atan2(fy, fx);
+
+        java.awt.Composite origComp = g2.getComposite();
+        java.awt.Stroke    origStroke = g2.getStroke();
+
+        float alpha = Math.max(0f, 1f - prog * 1.4f);
+
+        switch (state.indicePersonaggioSelezionato) {
+
+            case 0 -> {
+                // BELLGERD — fendente: arco di lama giallo-bianco
+                int r = 52;
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.85f));
+                // Alone
+                g2.setColor(new Color(255, 240, 100, 80));
+                g2.fillOval(cx - r - 8, cy - r - 8, (r + 8) * 2, (r + 8) * 2);
+                // Arco luminoso
+                g2.setStroke(new BasicStroke(7f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.setColor(new Color(255, 230, 60));
+                int startAng = (int) Math.toDegrees(angolo) - 70;
+                g2.drawArc(cx - r, cy - r, r * 2, r * 2, startAng, 140);
+                // Filo della lama
+                g2.setStroke(new BasicStroke(3f));
+                g2.setColor(Color.WHITE);
+                g2.drawArc(cx - r + 4, cy - r + 4, r * 2 - 8, r * 2 - 8, startAng + 10, 120);
+            }
+
+            case 1 -> {
+                // VLAD — stilettata: linea veloce viola verso il target
+                int len = 65;
+                float fadeAlpha = alpha * 0.9f;
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fadeAlpha));
+                int x2 = cx + (int)(fx * len), y2 = cy + (int)(fy * len);
+                int x0 = cx - (int)(fx * 20), y0 = cy - (int)(fy * 20);
+                // Glow viola
+                g2.setStroke(new BasicStroke(10f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.setColor(new Color(180, 50, 255, 80));
+                g2.drawLine(x0, y0, x2, y2);
+                // Lama principale
+                g2.setStroke(new BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.setColor(new Color(220, 140, 255));
+                g2.drawLine(x0, y0, x2, y2);
+                // Punta brillante
+                g2.setColor(Color.WHITE);
+                g2.fillOval(x2 - 5, y2 - 5, 10, 10);
+            }
+
+            case 2 -> {
+                // PAUL — martellata: cerchio d'impatto rosso-arancio con onde
+                int r1 = (int)(30 + prog * 35);
+                int r2 = (int)(50 + prog * 25);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.7f));
+                // Onda esterna
+                g2.setStroke(new BasicStroke(5f));
+                g2.setColor(new Color(255, 80, 0, 120));
+                g2.drawOval(cx - r2, cy - r2, r2 * 2, r2 * 2);
+                // Cerchio impatto
+                g2.setColor(new Color(255, 120, 30, 160));
+                g2.fillOval(cx - r1, cy - r1, r1 * 2, r1 * 2);
+                // Nucleo
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+                g2.setColor(new Color(255, 220, 80));
+                g2.fillOval(cx - 14, cy - 14, 28, 28);
+                // Crepe (4 linee radiali)
+                g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.setColor(new Color(255, 60, 0, (int)(200 * alpha)));
+                for (int i = 0; i < 4; i++) {
+                    double a = Math.PI / 4 + i * Math.PI / 2;
+                    int ex = (int)(cx + Math.cos(a) * r2);
+                    int ey = (int)(cy + Math.sin(a) * r2);
+                    g2.drawLine(cx, cy, ex, ey);
+                }
+            }
+
+            case 3 -> {
+                // JUICY — schianto: onda di pressione verde + schiacciata
+                int r = (int)(40 + prog * 30);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.75f));
+                // Aura verde grassa
+                g2.setColor(new Color(50, 220, 80, 100));
+                g2.fillOval(cx - r, cy - r, r * 2, r * 2);
+                // Bordo
+                g2.setStroke(new BasicStroke(6f));
+                g2.setColor(new Color(80, 255, 120));
+                g2.drawOval(cx - r, cy - r, r * 2, r * 2);
+                // Nucleo bianco
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+                g2.setColor(new Color(180, 255, 180));
+                g2.fillOval(cx - 18, cy - 18, 36, 36);
+                // Impatto: 3 linee a cuneo nella direzione
+                g2.setStroke(new BasicStroke(4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.setColor(new Color(50, 220, 80, (int)(200 * alpha)));
+                for (int i = -1; i <= 1; i++) {
+                    double a = angolo + i * 0.35;
+                    int ex = (int)(cx + Math.cos(a) * (r + 20));
+                    int ey = (int)(cy + Math.sin(a) * (r + 20));
+                    g2.drawLine(cx, cy, ex, ey);
+                }
+            }
+
+            case 4 -> {
+                // G.O.D. — esplosione divina: stella a 8 punte oro con glow totale
+                int r = (int)(55 + prog * 40);
+                // Alone esterno ampio
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.4f));
+                g2.setColor(new Color(255, 255, 200, 80));
+                g2.fillOval(cx - r - 20, cy - r - 20, (r + 20) * 2, (r + 20) * 2);
+                // Raggi della stella (8 direzioni)
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.9f));
+                g2.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                for (int i = 0; i < 8; i++) {
+                    double a = i * Math.PI / 4;
+                    int ex = (int)(cx + Math.cos(a) * r);
+                    int ey = (int)(cy + Math.sin(a) * r);
+                    // Raggio esterno oro
+                    g2.setColor(new Color(255, 200, 0, (int)(200 * alpha)));
+                    g2.drawLine(cx, cy, ex, ey);
+                    // Raggio bianco interno
+                    g2.setStroke(new BasicStroke(2f));
+                    g2.setColor(Color.WHITE);
+                    g2.drawLine(cx, cy, (int)(cx + Math.cos(a) * r * 0.5), (int)(cy + Math.sin(a) * r * 0.5));
+                    g2.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                }
+                // Nucleo oro brillante
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+                g2.setColor(new Color(255, 220, 0));
+                g2.fillOval(cx - 22, cy - 22, 44, 44);
+                g2.setColor(Color.WHITE);
+                g2.fillOval(cx - 10, cy - 10, 20, 20);
+            }
+        }
+
+        g2.setComposite(origComp);
+        g2.setStroke(origStroke);
+    }
 
     private void disegnaSceltaShopkeeper(Graphics2D g2, int W, int H) {
         if (!state.dialogoShopkeeper.isVisibile()) return;
@@ -1573,6 +2037,110 @@ public class RenderEngine {
         g2.drawString(testo, x, y);
     }
 
+    // ── Popup Nota (codice debug) ─────────────────────────────────────────────
+
+    private void disegnaPopupNota(Graphics2D g2, int W, int H) {
+        // Overlay scuro
+        g2.setColor(new Color(0, 0, 0, 160));
+        g2.fillRect(0, 0, W, H);
+
+        // Box centrale stile "foglio trovato"
+        int bw = (int)(W * 0.52f), bh = (int)(H * 0.48f);
+        int bx = W / 2 - bw / 2,  by = H / 2 - bh / 2;
+
+        // Ombra
+        g2.setColor(new Color(0, 0, 0, 180));
+        g2.fillRoundRect(bx + 6, by + 6, bw, bh, 16, 16);
+
+        // Sfondo pergamena
+        g2.setColor(new Color(240, 232, 195));
+        g2.fillRoundRect(bx, by, bw, bh, 16, 16);
+        g2.setColor(new Color(180, 160, 100));
+        g2.setStroke(new BasicStroke(2.5f));
+        g2.drawRoundRect(bx, by, bw, bh, 16, 16);
+        g2.setStroke(new BasicStroke(1f));
+
+        // Righe orizzontali stile carta a righe
+        g2.setColor(new Color(180, 165, 120, 120));
+        int rigaH = (int)(H * 0.04f);
+        for (int r = by + 55; r < by + bh - 20; r += rigaH) {
+            g2.drawLine(bx + 20, r, bx + bw - 20, r);
+        }
+
+        int pad = (int)(W * 0.03f);
+
+        // Intestazione — font custom, stile titolo scritto a mano
+        int titoloFs = Math.max(14, (int)(H * 0.032f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, (float) titoloFs)
+                : new Font("Consolas", Font.BOLD, titoloFs));
+        g2.setColor(new Color(80, 50, 20));
+        String titolo = "NOTA DI SERVIZIO";
+        FontMetrics fmT = g2.getFontMetrics();
+        g2.drawString(titolo, W / 2 - fmT.stringWidth(titolo) / 2, by + 38);
+
+        // Separatore
+        g2.setColor(new Color(140, 110, 60));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawLine(bx + pad, by + 48, bx + bw - pad, by + 48);
+        g2.setStroke(new BasicStroke(1f));
+
+        // Corpo del testo
+        int testoFs = Math.max(11, (int)(H * 0.022f));
+        g2.setFont(new Font("Consolas", Font.PLAIN, testoFs));
+        g2.setColor(new Color(50, 35, 15));
+        FontMetrics fmB = g2.getFontMetrics();
+
+        String[] righe = {
+                "A chiunque trovi questo foglio,",
+                "",
+                "Se il sistema smette di rispondere,",
+                "usa questo codice per il pannello",
+                "di diagnostica:",
+                "",
+        };
+
+        int ly = by + 62;
+        for (String riga : righe) {
+            g2.drawString(riga, bx + pad, ly);
+            ly += fmB.getHeight() + 2;
+        }
+
+        // Codice debug — grande, evidenziato
+        int codiceFs = Math.max(18, (int)(H * 0.045f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.BOLD, (float) codiceFs)
+                : new Font("Consolas", Font.BOLD, codiceFs));
+        FontMetrics fmC = g2.getFontMetrics();
+        String codice = GameState.CODICE_DEBUG;
+
+        // Sfondo evidenziatore giallo
+        int cw = fmC.stringWidth(codice) + 20;
+        int ch = fmC.getHeight() + 8;
+        int cx = W / 2 - cw / 2;
+        g2.setColor(new Color(255, 230, 60, 200));
+        g2.fillRoundRect(cx, ly - fmC.getAscent() - 4, cw, ch, 8, 8);
+        g2.setColor(new Color(160, 120, 0));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(cx, ly - fmC.getAscent() - 4, cw, ch, 8, 8);
+        g2.setStroke(new BasicStroke(1f));
+        g2.setColor(new Color(60, 30, 0));
+        g2.drawString(codice, W / 2 - fmC.stringWidth(codice) / 2, ly);
+        ly += fmC.getHeight() + 8;
+
+        // Firma
+        g2.setFont(new Font("Consolas", Font.ITALIC, Math.max(10, testoFs - 2)));
+        g2.setColor(new Color(100, 70, 30));
+        String firma = "- Il Capo";
+        g2.drawString(firma, bx + bw - pad - g2.getFontMetrics().stringWidth(firma), by + bh - 22);
+
+        // Hint chiudi
+        g2.setFont(new Font("Consolas", Font.ITALIC, Math.max(9, (int)(H * 0.016f))));
+        g2.setColor(new Color(100, 80, 50));
+        String hint = "[ INVIO per chiudere ]";
+        g2.drawString(hint, W / 2 - g2.getFontMetrics().stringWidth(hint) / 2, by + bh + 18);
+    }
+
     private void disegnaDialogoCasa(Graphics2D g2, int W, int H) {
         // ── Layout ────────────────────────────────────────────────────────────
         int boxH   = (int)(H * 0.28);
@@ -1711,6 +2279,63 @@ public class RenderEngine {
         g2.drawString(txt, W/2 - fm.stringWidth(txt)/2, banY + banH/2 + fm.getAscent()/2 - 2);
     }
 
+    private void disegnaBannerArdua(Graphics2D g2, int W, int H) {
+        double gs  = gameScale(W, H);
+        int    gox = gameOffX(W, H);
+        int    goy = gameOffY(W, H);
+        int    gW  = (int)(GameState.LARGHEZZA_GIOCO * gs);
+
+        // Banner dentro il riquadro di gioco, in cima alla stanza
+        int banH = Math.max(26, (int)(gs * 22));
+        int banW = (int)(gW * 0.88);
+        int banX = gox + (gW - banW) / 2;
+        int banY = goy + (int)(gs * 5);
+
+        // Sfondo pulsante
+        long t = System.currentTimeMillis();
+        float pulse = 0.75f + 0.25f * (float)Math.sin(t * 0.005);
+        g2.setColor(new Color(100, 0, 0, (int)(210 * pulse)));
+        g2.fillRoundRect(banX, banY, banW, banH, 6, 6);
+        g2.setColor(new Color(255, 60, 60, (int)(230 * pulse)));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(banX, banY, banW, banH, 6, 6);
+        g2.setStroke(new BasicStroke(1f));
+
+        // Se dentro la stanza, mostra i malus attivi invece delle ricompense
+        String txt;
+        if (roomMgr.inStanza62) {
+            java.util.List<String> malus = new java.util.ArrayList<>();
+            if (state.arduaMalusDanno    > 0) malus.add("-" + state.arduaMalusDanno + " DANNO");
+            if (state.arduaMalusVelocita > 0) malus.add("-" + (int)state.arduaMalusVelocita + " VEL");
+            if (state.arduaMalusFireRate > 0) malus.add("FIRE LENTO");
+            txt = malus.isEmpty() ? "STANZA 6-2" : "STANZA 6-2  |  MALUS: " + String.join(" / ", malus);
+        } else {
+            String ricompensa = state.meleeUnlocked
+                    ? "VITA / DANNO / VEL / FIRE RATE"
+                    : "MELEE / VITA / DANNO / VEL / FIRE RATE";
+            txt = "STANZA 6-2  >>  " + ricompensa;
+        }
+
+        int fs = Math.max(7, (int)(gs * 12));
+        Font base = res.fontCustom != null ? res.fontCustom : new Font("Consolas", Font.BOLD, fs);
+        g2.setFont(base.deriveFont(Font.BOLD, (float)fs));
+        FontMetrics fm = g2.getFontMetrics();
+        while (fs > 7 && fm.stringWidth(txt) > banW - 12) {
+            fs--;
+            g2.setFont(base.deriveFont(Font.BOLD, (float)fs));
+            fm = g2.getFontMetrics();
+        }
+
+        int tx = banX + (banW - fm.stringWidth(txt)) / 2;
+        int ty = banY + (banH + fm.getAscent() - fm.getDescent()) / 2 - 1;
+        // Ombra
+        g2.setColor(new Color(100, 0, 0, 180));
+        g2.drawString(txt, tx + 1, ty + 1);
+        // Testo
+        g2.setColor(new Color(255, 215, 215));
+        g2.drawString(txt, tx, ty);
+    }
+
     private void disegnaHUD(Graphics2D g2, int W, int H) {
         double gs  = gameScale(W, H);
         int    gox = gameOffX(W, H);
@@ -1776,6 +2401,76 @@ public class RenderEngine {
                 }
             }
 
+            // Indicatore melee sbloccato
+            if (state.meleeUnlocked) {
+                int meleeX = W - (int)(W * 0.22f);
+                int meleeY = cy;
+                String meleeLbl = state.getMeleeNome();
+                boolean inCooldown = state.meleeCooldown > 0;
+
+                // Sfondo pill — larghezza adattiva al nome
+                g2.setFont(new Font("Consolas", Font.BOLD, Math.max(8, fs - 2)));
+                FontMetrics fmLbl = g2.getFontMetrics();
+                int pillW = ico + 8 + fmLbl.stringWidth(meleeLbl) + 10;
+                g2.setColor(new Color(20, 10, 40, 200));
+                g2.fillRoundRect(meleeX - 4, meleeY - ico/2 - 2, pillW, ico + 4, 8, 8);
+
+                // Icona tasto Z
+                int kSize = ico;
+                g2.setColor(inCooldown ? new Color(60, 40, 80) : new Color(160, 80, 255));
+                g2.fillRoundRect(meleeX, meleeY - kSize/2, kSize, kSize, 5, 5);
+                g2.setColor(inCooldown ? new Color(90, 70, 110) : new Color(200, 140, 255));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(meleeX, meleeY - kSize/2, kSize, kSize, 5, 5);
+                g2.setStroke(new BasicStroke(1f));
+                g2.setFont(new Font("Consolas", Font.BOLD, fs));
+                g2.setColor(inCooldown ? new Color(100, 80, 120) : Color.WHITE);
+                FontMetrics fmZ = g2.getFontMetrics();
+                g2.drawString("Z", meleeX + (kSize - fmZ.stringWidth("Z"))/2,
+                        meleeY - kSize/2 + (kSize + fmZ.getAscent())/2 - 2);
+
+                // Nome attacco
+                int lblX = meleeX + kSize + 5;
+                g2.setFont(new Font("Consolas", Font.BOLD, Math.max(8, fs - 2)));
+                g2.setColor(inCooldown ? new Color(120, 90, 160) : new Color(200, 140, 255));
+                g2.drawString(meleeLbl, lblX, meleeY - 1);
+
+                // Barra cooldown
+                if (inCooldown) {
+                    int barW = fmLbl.stringWidth(meleeLbl);
+                    int barH = 4;
+                    float fill = 1f - (float) state.meleeCooldown / GameState.MELEE_DELAY;
+                    g2.setColor(new Color(40, 20, 60));
+                    g2.fillRoundRect(lblX, meleeY + 3, barW, barH, 3, 3);
+                    g2.setColor(new Color(160, 80, 255));
+                    g2.fillRoundRect(lblX, meleeY + 3, (int)(barW * fill), barH, 3, 3);
+                }
+            }
+
+            // Flash nome attacco sopra il personaggio
+            if (state.meleeNomeTimer > 0 && state.meleeUnlocked) {
+                float fadeAlpha = Math.min(1f, state.meleeNomeTimer / 20f);
+                double gs2 = gameScale(W, H);
+                int pgScreenX = gox + (int)(state.x * gs2) + (int)(GameState.PG_SIZE * gs2 / 2);
+                int pgScreenY = goy + (int)(state.y * gs2) - (int)(12 * gs2);
+                int flashFs = Math.max(11, (int)(gs2 * 16));
+                g2.setFont(res.fontCustom != null
+                        ? res.fontCustom.deriveFont(Font.BOLD, (float) flashFs)
+                        : new Font("Consolas", Font.BOLD, flashFs));
+                FontMetrics fmF = g2.getFontMetrics();
+                String nome = state.getMeleeNome();
+                int nx = pgScreenX - fmF.stringWidth(nome) / 2;
+                // Ombra
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fadeAlpha * 0.6f));
+                g2.setColor(new Color(60, 0, 120));
+                g2.drawString(nome, nx + 1, pgScreenY + 1);
+                // Testo viola brillante
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fadeAlpha));
+                g2.setColor(new Color(220, 160, 255));
+                g2.drawString(nome, nx, pgScreenY);
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+            }
+
         } else if (hudDestra || hudSinistra) {
             int px = hudDestra ? gox + gW : 0;
             int pw = hudDestra ? bandaR   : bandaL;
@@ -1827,6 +2522,34 @@ public class RenderEngine {
         }
 
         disegnaUIBoss(g2, W, H, gox, goy, gW, gH);
+
+        // Popup ricompensa stanza ardua / shopkeeper buff
+        if (state.arduaRicompensaTimer > 0 && !state.arduaRicompensaMsg.isEmpty()) {
+            float alpha = Math.min(1f, state.arduaRicompensaTimer / 30f);
+            int popFs  = Math.max(16, (int)(H * 0.042f));
+            g2.setFont(res.fontCustom != null
+                    ? res.fontCustom.deriveFont(Font.BOLD, (float) popFs)
+                    : new Font("Consolas", Font.BOLD, popFs));
+            FontMetrics fmP = g2.getFontMetrics();
+            int pw = fmP.stringWidth(state.arduaRicompensaMsg) + 28;
+            int ph = popFs + 20;
+            int px = W / 2 - pw / 2;
+            int py = (int)(H * 0.28f);
+            // Sfondo
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha * 0.85f));
+            g2.setColor(new Color(20, 0, 40));
+            g2.fillRoundRect(px, py, pw, ph, 12, 12);
+            g2.setColor(new Color(200, 100, 255));
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawRoundRect(px, py, pw, ph, 12, 12);
+            g2.setStroke(new BasicStroke(1f));
+            // Testo
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+            g2.setColor(new Color(255, 220, 255));
+            g2.drawString(state.arduaRicompensaMsg,
+                    px + 14, py + ph/2 + fmP.getAscent()/2 - 2);
+            g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+        }
     }
     private void disegnaUIBoss(Graphics2D g2, int W, int H, int gox, int goy, int gW, int gH) {
         if (state.stanzaNelMondo != GameState.STANZA_BOSS
@@ -1900,7 +2623,7 @@ public class RenderEngine {
         g2.setColor(state.tempoRimanenteBoss < 600
                 ? (blink ? Color.RED : new Color(200, 80, 80))
                 : new Color(200, 200, 200));
-        g2.drawString("⏱ " + (state.tempoRimanenteBoss / 60) + "s",
+        g2.drawString("BOSS " + (state.tempoRimanenteBoss / 60) + "s",
                 W - (int)(W * 0.1), goy + (int)(H * 0.04));
     }
     // ── Utilità UI ────────────────────────────────────────────────────────────
@@ -1926,6 +2649,9 @@ public class RenderEngine {
                     state.audio.suonaMusica(AudioManager.SCONFITTA);
 
             case VITTORIA_STORIA ->
+                    state.audio.suonaMusica(AudioManager.VITTORIA);
+
+            case UFFICIO ->
                     state.audio.suonaMusica(AudioManager.VITTORIA);
 
             case TETRIS ->

@@ -42,6 +42,7 @@ public class InputHandler {
                     case GIOCO                 -> gestisciGioco(k, true);
                     case VITTORIA_STORIA,
                          GAME_OVER             -> gestisciFinale(k);
+                    case UFFICIO               -> gestisciUfficio(k);
                 }
             }
 
@@ -169,6 +170,14 @@ public class InputHandler {
     }
 
     private void gestisciGioco(int k, boolean pressed) {
+        // 0. Popup nota codice debug
+        if (state.mostraNota
+                && (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE
+                || k == KeyEvent.VK_ESCAPE)) {
+            state.mostraNota = false;
+            return;
+        }
+
         // 1. Dialogo Casa (singola pagina)
         if (state.mostraDialogoCasa
                 && (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE
@@ -217,6 +226,18 @@ public class InputHandler {
         if (k == KeyEvent.VK_ENTER) {
             state.tornaAlMenu();
             roomMgr.resetCompleto();
+        }
+    }
+
+    private void gestisciUfficio(int k) {
+        if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE || k == KeyEvent.VK_Z) {
+            if (state.dialogoNarrazione.isAttivo()) {
+                boolean finito = state.dialogoNarrazione.avanza();
+                if (finito) {
+                    // Dialogo col capo finito → schermata finale
+                    state.statoGioco = GameState.StatoGioco.VITTORIA_STORIA;
+                }
+            }
         }
     }
 
@@ -361,6 +382,10 @@ public class InputHandler {
         if (k == KeyEvent.VK_S) state.down  = pressed;
         if (k == KeyEvent.VK_A) state.left  = pressed;
         if (k == KeyEvent.VK_D) state.right = pressed;
+        // Melee — solo al keyPressed (non held)
+        if (k == KeyEvent.VK_Z && pressed && state.meleeUnlocked) {
+            state.meleeAttivo = true;
+        }
     }
 
     public void toggleSparo(int k, boolean pressed) {

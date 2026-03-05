@@ -25,6 +25,7 @@ public class RoomManager {
     public final List<List<Moneta>>    monetePerStanza            = new ArrayList<>();
     public final List<List<Shopkeeper>> shopkeepersPerStanza      = new ArrayList<>();
     public final List<List<ShopItem>>  shopItemsPerStanza         = new ArrayList<>();
+    private Nota notaCasa = null;  // spawna random in Casa, unica per run
     // Ostacoli inagibili per stanza: lista di [col, rig] in coordinate tile
     public final List<int[][]>         ostacoliPerStanza          = new ArrayList<>();
     public       int[][]               ostacoliStanzaCorrente     = null;
@@ -78,6 +79,8 @@ public class RoomManager {
         memoriaColoriMondo1.clear();
         memoriaColoriMondo2.clear();
         resetShop();
+        reset62();
+        notaCasa = null;
         inizializzaStanzaDefault();
     }
 
@@ -118,7 +121,6 @@ public class RoomManager {
 
         } else if (state.stanzaNelMondo == 1 && state.mondoAttuale == 1
                 && !state.stanzaCasaVisitata) {
-            // Stanza Casa — power-up gratuiti basati sul punteggio Tetris
             generaStanzaCasa(nuoveItems);
             state.stanzaCasaVisitata = true;
 
@@ -140,36 +142,29 @@ public class RoomManager {
         int ry = GameState.OFFSET + GameState.RIG_GIOCO / 2;
 
         switch (pu) {
-            case "CURA" -> {
-                ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "CURA", 0, res.imgCura);
-                si.setMostraPrezzo(false);
-                items.add(si);
-            }
             case "VELOCITA" -> {
                 ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed);
-                si.setMostraPrezzo(false);
-                items.add(si);
+                si.setMostraPrezzo(false); items.add(si);
             }
             case "DANNO" -> {
                 ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "DANNO", 0, res.imgItemDamage);
-                si.setMostraPrezzo(false);
-                items.add(si);
+                si.setMostraPrezzo(false); items.add(si);
             }
             case "TUTTO" -> {
-                ShopItem s1 = new ShopItem(cx - 2, ry, GameState.TILE_SIZE, "CURA",     0, res.imgCura);
-                ShopItem s2 = new ShopItem(cx,     ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed);
-                ShopItem s3 = new ShopItem(cx + 2, ry, GameState.TILE_SIZE, "DANNO",    0, res.imgItemDamage);
-                s1.setMostraPrezzo(false);
-                s2.setMostraPrezzo(false);
-                s3.setMostraPrezzo(false);
-                items.add(s1); items.add(s2); items.add(s3);
+                ShopItem s1 = new ShopItem(cx - 2, ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed);
+                ShopItem s2 = new ShopItem(cx,     ry, GameState.TILE_SIZE, "DANNO",    0, res.imgItemDamage);
+                s1.setMostraPrezzo(false); items.add(s1);
+                s2.setMostraPrezzo(false); items.add(s2);
             }
-            default -> {
-                // NESSUNO — cura base di consolazione
-                ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "CURA", 0, res.imgCura);
-                si.setMostraPrezzo(false);
-                items.add(si);
-            }
+            // CURA e NESSUNO: nessun power-up in Casa
+        }
+
+        // Nota con codice debug — posizione random libera (non sul power-up)
+        if (!state.notaRaccolta) {
+            int[] tilesLibere = { 2, 3, 4, 10, 11, 12 }; // colonne lontane dal centro
+            int rCol = tilesLibere[random.nextInt(tilesLibere.length)];
+            int rRig = GameState.OFFSET + 1 + random.nextInt(GameState.RIG_GIOCO - 2);
+            notaCasa = new Nota(rCol, rRig, GameState.TILE_SIZE, res.imgNota);
         }
     }
 
@@ -199,29 +194,35 @@ public class RoomManager {
 
         state.dialogoNarrazione.pulisci();
         switch (tipoBoss) {
-            case 0 -> { // BRUTALE
+            case 0 -> { // MANNIE
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Dai, non ho tempo - sono gia in ritardo!",
                         true);
+                state.dialogoNarrazione.aggiungi("MANNIE", sprBoss,
+                        "Nemmeno io.",
+                        false);
             }
-            case 1 -> { // OMBRA
+            case 1 -> { // PRESAGIO
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Quindi e qui che si finisce a forza di giocare ai videogiochi...",
                         true);
             }
-            case 2 -> { // CARICA
+            case 2 -> { // RE FORNO
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Levati di mezzo. Non mi interessa se sei un re.",
                         true);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Saro io a spodestarti!",
                         true);
-                state.dialogoNarrazione.aggiungi("CARICA", sprBoss,
-                        "*rumore di tegliera arrabbiata*",
+                state.dialogoNarrazione.aggiungi("RE FORNO", sprBoss,
+                        "*rumori arrabbiati da teglia*",
                         false);
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "...",
+                        true);
             }
-            case 3 -> { // FINALE
-                state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
+            case 3 -> { // YABBADUHLON
+                state.dialogoNarrazione.aggiungi("YABBADUHLON", sprBoss,
                         "Si... sono io.",
                         false);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
@@ -230,7 +231,7 @@ public class RoomManager {
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Cosa?!",
                         true);
-                state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
+                state.dialogoNarrazione.aggiungi("YABBADUHLON", sprBoss,
                         "So gia tutto quello che stai per dire, fare o qualsiasi cosa tu voglia tentare.",
                         false);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
@@ -239,7 +240,7 @@ public class RoomManager {
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Beh... il mio cervello sta per fondere a questo ritmo.",
                         true);
-                state.dialogoNarrazione.aggiungi("FINALE", sprBoss,
+                state.dialogoNarrazione.aggiungi("YABBADUHLON", sprBoss,
                         "Non arriverai MAI in ufficio!!!",
                         false);
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
@@ -281,6 +282,119 @@ public class RoomManager {
         }
     }
 
+    /**
+     * Stanza Ardua (stanza 7, pre-boss).
+     * Nemici misti da mondi diversi, piu numerosi e veloci.
+     * Applica malus casuali al giocatore per la durata della stanza.
+     */
+    private void generaStanzaArdua(List<Nemico> nemici, int[][] ostacoli) {
+        int m = state.mondoAttuale;
+        int quanti = 5 + m;
+        int mondiDisponibili = 4;
+
+        for (int i = 0; i < quanti; i++) {
+            int mondoNemico = 1 + random.nextInt(mondiDisponibili);
+            int[] pos = trovaPosizioneSicura(ostacoli);
+            boolean forte = random.nextFloat() < 0.5f;
+
+            if (forte) {
+                Nemico nf = new NemicoForte(pos[0], pos[1], GameState.TILE_SIZE,
+                        StatNemico.vitaNemicoForte(mondoNemico));
+                nf.velocita = StatNemico.velocitaNemicoForte(mondoNemico) * 1.2f;
+                nemici.add(nf);
+            } else {
+                Nemico n = new Nemico(pos[0], pos[1], GameState.TILE_SIZE,
+                        StatNemico.vitaNemico(mondoNemico));
+                n.velocita = StatNemico.velocitaNemico(mondoNemico) * 1.2f;
+                nemici.add(n);
+            }
+        }
+
+        // Applica malus casuali (1 o 2 tra danno / velocita / fire rate)
+        state.arduaMalusDanno    = 0;
+        state.arduaMalusVelocita = 0f;
+        state.arduaMalusFireRate = 0;
+        java.util.List<Integer> pool = new java.util.ArrayList<>(java.util.Arrays.asList(0, 1, 2));
+        java.util.Collections.shuffle(pool, random);
+        int quanti_malus = 1 + random.nextInt(2);
+        for (int i = 0; i < quanti_malus; i++) {
+            switch (pool.get(i)) {
+                case 0 -> state.arduaMalusDanno    = 2;
+                case 1 -> state.arduaMalusVelocita = 2.0f;
+                case 2 -> state.arduaMalusFireRate  = 5;
+            }
+        }
+        state.dannoPugno = Math.max(1, state.dannoPugno - state.arduaMalusDanno);
+        state.velocita   = Math.max(1f, state.velocita  - state.arduaMalusVelocita);
+        // arduaMalusFireRate viene applicato nel cooldown sparo
+    }
+
+    /** Rimuove i malus ardua quando il giocatore esce dalla stanza. */
+    public void rimuoviMalusArdua() {
+        state.dannoPugno += state.arduaMalusDanno;
+        state.velocita   += state.arduaMalusVelocita;
+        state.arduaMalusDanno    = 0;
+        state.arduaMalusVelocita = 0f;
+        state.arduaMalusFireRate = 0;
+    }
+
+    /**
+     * Chiamato dal GameLoop quando la stanza ardua viene completata.
+     * Assegna la ricompensa al giocatore.
+     */
+    public void completaStanzaArdua() {
+        if (state.ardua_completed) return;
+        state.ardua_completed = true;
+
+        // Ricompensa principale
+        int cx = GameState.COL_TOTALI / 2;
+        int ry = GameState.OFFSET + GameState.RIG_GIOCO / 2;
+
+        if (!state.meleeUnlocked) {
+            state.meleeUnlocked       = true;
+            state.meleeUnlockedDaArdua = true;
+            state.arduaRicompensaMsg   = "MELEE SBLOCCATO!";
+            state.arduaRicompensaTimer = 180;
+        } else {
+            int roll = random.nextInt(4);
+            String tipo; java.awt.image.BufferedImage img;
+            switch (roll) {
+                case 0 -> { tipo = "HP UP";      img = res.imgCura; }
+                case 1 -> { tipo = "DANNO";      img = res.imgItemDamage; }
+                case 2 -> { tipo = "VELOCITA";   img = res.imgItemSpeed; }
+                default -> { tipo = "FIRE RATE"; img = res.imgItemSpeed; }
+            }
+            ShopItem drop = new ShopItem(cx, ry, GameState.TILE_SIZE, tipo, 0, img);
+            drop.setMostraPrezzo(false);
+            items62.add(drop);
+        }
+
+        // 40% chance cura extra in posizione laterale
+        if (random.nextFloat() < 0.40f) {
+            int[] pos = trovaPosizioneSicura(null);
+            cure62.add(new Cura(pos[0], pos[1], GameState.TILE_SIZE, res.imgCura));
+        }
+    }
+
+    /**
+     * Chiamato quando lo shopkeeper viene sconfitto.
+     * Se melee gia sbloccato da ardua, buffra il danno pugno invece di sbloccare melee.
+     */
+    public void onShopkeeperSconfitto() {
+        if (!state.meleeUnlocked) {
+            state.meleeUnlocked = true;
+        } else {
+            // Melee gia presente: +3 danno pugno mediamente alto
+            state.dannoPugno += 3;
+            state.arduaRicompensaMsg   = "+3 DANNO ARMA!";
+            state.arduaRicompensaTimer = 180;
+        }
+    }
+
+    public boolean isStanzaArdua() {
+        return state.stanzaNelMondo == GameState.STANZA_ARDUA;
+    }
+
     // ── Transizioni ───────────────────────────────────────────────────────────
 
     /**
@@ -310,10 +424,14 @@ public class RoomManager {
      * Avanza al mondo successivo: resetta memoria stanze, mantiene monete e upgrades.
      * Notifica il listener se storia finita.
      */
+    public Nota getNotaCasa() { return notaCasa; }
+
     public void avanzaAlMondoSuccessivo() {
         if (state.modalitaScelta == GameState.Modalita.STORIA
                 && state.mondoAttuale == GameState.MONDI_STORIA_MAX) {
-            state.statoGioco = GameState.StatoGioco.VITTORIA_STORIA;
+            // Dopo il castello: entra nell'Ufficio
+            state.statoGioco = GameState.StatoGioco.UFFICIO;
+            state.ufficioDialogoAvviato = false;
             if (eventListener != null) eventListener.onVittoriaStoria();
             return;
         }
@@ -344,6 +462,59 @@ public class RoomManager {
      * Usato da GameLoop e RenderEngine per comportamento speciale.
      */
     public boolean inStanzaShop = false;
+
+    // ── Stanza 6-2 (porta a sud dalla stanza 6) ───────────────────────────────
+    public boolean inStanza62 = false;
+
+    private final java.util.List<Nemico>   nemici62  = new java.util.ArrayList<>();
+    private final java.util.List<ShopItem> items62   = new java.util.ArrayList<>();
+    private final java.util.List<Cura>     cure62    = new java.util.ArrayList<>();
+    private boolean stanza62Generata = false;
+
+    public java.util.List<Nemico>   getNemici62()  { return nemici62; }
+    public java.util.List<ShopItem> getItems62()   { return items62; }
+    public java.util.List<Cura>     getCure62()    { return cure62; }
+
+    public void assicura62Generata() {
+        if (stanza62Generata) return;
+        nemici62.clear();
+        items62.clear();
+        cure62.clear();
+
+        // Genera nemici ardui misti da tutti i mondi
+        int[][] ostacoli62 = generaOstacoli();
+        generaStanzaArdua(nemici62, ostacoli62);
+        stanza62Generata = true;
+    }
+
+    public void entraIn62() {
+        assicura62Generata();
+        inStanza62 = true;
+        // Entra dall'alto della stanza (viene da sud della stanza 6)
+        state.y = GameState.OFFSET * GameState.TILE_SIZE + 20f;
+        pugniAttiviRef.clear();
+    }
+
+    public void esciDa62() {
+        // Rimuovi malus quando si esce
+        rimuoviMalusArdua();
+        inStanza62 = false;
+        // Torna nella stanza 6, in fondo
+        state.y = (GameState.RIG_GIOCO) * GameState.TILE_SIZE - GameState.PG_SIZE - 10f;
+        pugniAttiviRef.clear();
+    }
+
+    public void reset62() {
+        stanza62Generata = false;
+        nemici62.clear();
+        items62.clear();
+        cure62.clear();
+        inStanza62 = false;
+        // Azzera anche malus
+        state.arduaMalusDanno    = 0;
+        state.arduaMalusVelocita = 0f;
+        state.arduaMalusFireRate = 0;
+    }
 
     /**
      * Entra nella stanza shop (porta a nord dalla stanza 1 del nuovo mondo).

@@ -135,21 +135,33 @@ public class UIManager {
     // ── Inizializzazione ──────────────────────────────────────────────────────
 
     private void inizializzaPersonaggi(ResourceLoader res) {
-        listaPersonaggi.add(new DatiPersonaggio("VLAD", 5, 6.0f, 1,
-                res.getIconaPerIndice(0), res.imgPersonaggioDefault, "Equilibrato.",
+        // BELLGERD — factotum equilibrato, valigia come arma
+        listaPersonaggi.add(new DatiPersonaggio("BELLGERD", 6, 6.5f, 3,
+                res.getIconaPerIndice(0), res.imgPersonaggioDefault,
+                "Tuttofare. Niente di speciale.",
                 res.getBulletPerPG(0)));
-        listaPersonaggi.add(new DatiPersonaggio("PAUL",     2, 8.5f, 1,
-                res.getIconaPerIndice(1), res.imgPersonaggioVeloce,  "Veloce ma fragile.",
+
+        // VLAD — velocissimo, quasi di vetro, chiave inglese letale
+        listaPersonaggi.add(new DatiPersonaggio("VLAD", 3, 11.5f, 2,
+                res.getIconaPerIndice(1), res.imgPersonaggioVeloce,
+                "Veloce. Molto veloce. Troppo.",
                 res.getBulletPerPG(1)));
-        listaPersonaggi.add(new DatiPersonaggio("BELLGERD",     3, 4.5f, 2,
-                res.getIconaPerIndice(2), res.imgPersonaggioForte,   "Lento ma potente.",
+
+        // PAUL — lentissimo ma distrugge tutto, accetta
+        listaPersonaggi.add(new DatiPersonaggio("PAUL", 5, 3.5f, 6,
+                res.getIconaPerIndice(2), res.imgPersonaggioForte,
+                "Lento. Ogni colpo vale tre.",
                 res.getBulletPerPG(2)));
-        listaPersonaggi.add(new DatiPersonaggio("JUICY",    5, 3.5f, 1,
-                res.getIconaPerIndice(3), res.imgPersonaggioTank,    "Lentissimo, molta vita.",
+
+        // JUICY — tank puro, gamepad come arma contundente
+        listaPersonaggi.add(new DatiPersonaggio("JUICY", 12, 3.0f, 3,
+                res.getIconaPerIndice(3), res.imgPersonaggioTank,
+                "Non si ferma. Mai.",
                 res.getBulletPerPG(3)));
-        // Segreto — indice 4, visibile solo con combo B x5
+
+        // D.I.T.T.O. — segreto, tutto al massimo
         listaPersonaggi.add(new DatiPersonaggio(
-                "D.I.T.T.O", 15, 12.0f, 50,
+                "D.I.T.T.O.", 25, 14.0f, 30,
                 res.getIconaPerIndice(4),
                 res.imgPersonaggioGod != null ? res.imgPersonaggioGod : res.imgPersonaggioDefault,
                 "???",

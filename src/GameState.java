@@ -13,8 +13,16 @@ public class GameState {
     public enum StatoGioco {
         MENU, IMPOSTAZIONI, CONTROLLI,
         SELEZIONE_PERSONAGGIO, SELEZIONE_MODALITA,
-        TETRIS, GIOCO, VITTORIA_STORIA, GAME_OVER, PAUSA
+        TETRIS, GIOCO, UFFICIO, VITTORIA_STORIA, GAME_OVER, PAUSA
     }
+
+    // ── Nota in Casa ──────────────────────────────────────────────────────────
+    public boolean notaRaccolta    = false;   // true se il giocatore l'ha presa
+    public boolean mostraNota      = false;   // true mentre il popup è visibile
+    public static final String CODICE_DEBUG = "WIPT-4269";  // codice mostrato nella nota
+
+    // ── Ufficio ───────────────────────────────────────────────────────────────
+    public boolean ufficioDialogoAvviato = false;
 
     public enum Modalita { STORIA, INFINITA }
 
@@ -117,8 +125,46 @@ public class GameState {
     // ── Input movimento ───────────────────────────────────────────────────────
     public boolean up, down, left, right;
     public boolean shootUp, shootDown, shootLeft, shootRight;
+    public boolean meleeAttivo   = false;   // il giocatore ha premuto Z
+    public boolean meleeUnlocked = false;   // sbloccato dopo aver battuto lo shopkeeper
+    public boolean meleeUnlockedDaArdua = false; // melee dato dalla stanza ardua (non shop)
+
+    // Ricompensa stanza ardua
+    public boolean ardua_completed = false; // completata in questo mondo
+    public String  arduaRicompensaMsg = ""; // messaggio ricompensa da mostrare
+    public int     arduaRicompensaTimer = 0;
+    // Malus attivi durante la stanza ardua (ripristinati all'uscita)
+    public int   arduaMalusDanno    = 0;   // riduzione danno temporanea
+    public float arduaMalusVelocita = 0f;  // riduzione velocita temporanea
+    public int   arduaMalusFireRate = 0;   // aumento cooldown sparo temporaneo
+    public static final int STANZA_ARDUA = 7;
+
+    // Direzione attuale del giocatore (aggiornata dal GameLoop ogni frame)
+    public int facingX = 0, facingY = 1;    // default: giu
+
+    // Stato animazione attacco melee
+    public int  meleeCooldown  = 0;
+    public int  meleeTimer     = 0;         // frame rimasti di animazione attiva
+    public int  meleeHitX, meleeHitY;       // centro della hitbox melee (pixel)
+    public int  meleeNomeTimer = 0;         // frame rimasti per mostrare il nome dell'attacco
+    public static final int MELEE_NOME_DURATA = 55; // frame di visibilità del nome
+    public static final int MELEE_DELAY     = 45;  // frame tra un attacco e l'altro
+    public static final int MELEE_DURATION  = 12;  // frame di hitbox attiva
+
+    /** Nome dell'attacco melee in base al personaggio selezionato. */
+    public String getMeleeNome() {
+        return switch (indicePersonaggioSelezionato) {
+            case 0 -> "COLPO DI VALIGIA";
+            case 1 -> "CHIAVE INGLESE";
+            case 2 -> "ACCETTA";
+            case 3 -> "COLPO DI GAMEPAD";
+            case 4 -> "CANCELLAZIONE";
+            default -> "MELEE";
+        };
+    }
     public int  cooldownSparo = 0;
     public static final int SPARO_DELAY = 12;
+    public int sparoDelayRiduzione = 0; // riduzione al cooldown sparo (fire rate up)
 
     // ── Callback danno/morte (impostata dal game loop principale) ─────────────
     private GameEventListener eventListener;
@@ -149,7 +195,22 @@ public class GameState {
         timerInvulnerabilita = 0;
         up = down = left = right = false;
         shootUp = shootDown = shootLeft = shootRight = false;
+        notaRaccolta   = false;
+        mostraNota     = false;
+        ufficioDialogoAvviato = false;
+        meleeTimer     = 0;
+        meleeNomeTimer = 0;
+        meleeCooldown  = 0;
+        meleeAttivo    = false;
+        ardua_completed      = false;
+        arduaRicompensaMsg   = "";
+        arduaRicompensaTimer = 0;
+        arduaMalusDanno      = 0;
+        arduaMalusVelocita   = 0f;
+        arduaMalusFireRate   = 0;
+        facingX = 0; facingY = 1;
         cooldownSparo = 0;
+        sparoDelayRiduzione = 0;
     }
 
     /**

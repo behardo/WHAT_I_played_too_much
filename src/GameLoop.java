@@ -52,10 +52,13 @@ public class GameLoop {
         state.tickInvulnerabilita();
         aggiornaMov();
         aggiornaSparo();
+        aggiornaMelee();
         aggiornaPugni();
         aggiornaShop();
         aggiornaDialogoShopkeeper();
         aggiornaCollisioni();
+        aggiornaNota();
+        aggiornaUfficio();
         raccogliOggetti();
     }
 
@@ -130,28 +133,58 @@ public class GameLoop {
         float minY = O * T;
         float maxY = (O + GameState.RIG_GIOCO) * T - GameState.PG_SIZE;
 
+        // Aggiorna direzione faccia (per melee)
+        if      (state.up)    { state.facingX = 0;  state.facingY = -1; }
+        else if (state.down)  { state.facingX = 0;  state.facingY =  1; }
+        else if (state.left)  { state.facingX = -1; state.facingY =  0; }
+        else if (state.right) { state.facingX =  1; state.facingY =  0; }
+
+        // ── Stanza 6-2 (porta sud dalla stanza 6) ────────────────────────────
+        if (roomMgr.inStanza62) {
+            if (state.up    && state.y > minY) state.y -= state.velocita;
+            if (state.down  && state.y < maxY) state.y += state.velocita;
+            if (state.left  && state.x > minX) state.x -= state.velocita;
+            if (state.right && state.x < maxX) state.x += state.velocita;
+            // Porta nord: esce dalla 6-2 solo se stanza pulita
+            if (state.up && state.y <= minY && inZonaCentroX()) {
+                if (roomMgr.getNemici62().isEmpty()) {
+                    roomMgr.esciDa62();
+                } else {
+                    state.y = minY + 2; // Blocca finché non hai battuto tutti
+                }
+            }
+            return;
+        }
+
         // ── Stanza Shop Nord ──────────────────────────────────────────────────
-        // Dentro la stanza shop: solo movimento libero + porta a sud per uscire
         if (roomMgr.inStanzaShop) {
             if (state.up    && state.y > minY) state.y -= state.velocita;
             if (state.down  && state.y < maxY) state.y += state.velocita;
             if (state.left  && state.x > minX) state.x -= state.velocita;
             if (state.right && state.x < maxX) state.x += state.velocita;
 
-            // Porta sud (bordo basso): esce dallo shop
             if (state.y >= maxY && state.down) {
                 roomMgr.esciDalloShop();
             }
-            return; // Nessuna altra transizione dentro lo shop
+            return;
         }
 
         // ── Movimento verticale ───────────────────────────────────────────────
         if (state.up    && state.y > minY) { state.y -= state.velocita; if (collideOstacolo()) state.y += state.velocita; }
         if (state.down  && state.y < maxY) { state.y += state.velocita; if (collideOstacolo()) state.y -= state.velocita; }
 
-        // Porta nord shop: stanza 1 del nuovo mondo, shop sbloccato, giocatore in cima
-        boolean inZonaPortaNord = state.x > (GameState.LARGHEZZA_GIOCO / 2f - GameState.TILE_SIZE)
-                && state.x < (GameState.LARGHEZZA_GIOCO / 2f + GameState.TILE_SIZE);
+        // Porta sud 6-2: stanza 6, stanza pulita, giocatore in fondo al centro
+        boolean in62Aperta = state.stanzaNelMondo == 6
+                && !state.ardua_completed
+                && stanzaPulita()
+                && inZonaCentroX();
+        if (state.down && state.y >= maxY && in62Aperta) {
+            roomMgr.entraIn62();
+            return;
+        }
+
+        // Porta nord shop
+        boolean inZonaPortaNord = inZonaCentroX();
         if (state.up && state.y <= minY
                 && state.stanzaNelMondo == 1
                 && state.shopSbloccato
@@ -198,6 +231,11 @@ public class GameLoop {
      * La stanza 1 (ingresso) è sempre pulita.
      */
     /** True se il giocatore si sovrappone a una tile ostacolo. */
+    private boolean inZonaCentroX() {
+        return state.x > (GameState.LARGHEZZA_GIOCO / 2f - GameState.TILE_SIZE)
+                && state.x < (GameState.LARGHEZZA_GIOCO / 2f + GameState.TILE_SIZE);
+    }
+
     private boolean collideOstacolo() {
         int[][] ostacoli = roomMgr.getOstacoliCorrenti();
         if (ostacoli == null) return false;
@@ -233,12 +271,11 @@ public class GameLoop {
                 state.x = maxX - 10; // Boss ancora vivo: blocca
             }
         } else {
-            // Stanza normale: passa solo se pulita
             if (stanzaPulita()) {
                 roomMgr.entraNellaStanzaSuccessiva();
                 pugniAttivi.clear();
             } else {
-                state.x = maxX - 10; // Nemici ancora vivi: blocca
+                state.x = maxX - 10;
             }
         }
     }
@@ -267,11 +304,118 @@ public class GameLoop {
             if (imgBullet == null && pungnoImageRef != null) imgBullet = pungnoImageRef.img;
             pugniAttivi.add(new Pugno(state.x, state.y, dirX, dirY, imgBullet, state.dannoPugno));
             state.audio.suonaEffetto(AudioManager.SFX_SPARO);
-            state.cooldownSparo = GameState.SPARO_DELAY;
+            state.cooldownSparo = Math.max(4, GameState.SPARO_DELAY - state.sparoDelayRiduzione + state.arduaMalusFireRate);
         }
     }
 
-    // ── Fallback immagine pugno (impostato da WhatIvePlayedTooMuch) ──────────
+    // ── Nota in Casa ─────────────────────────────────────────────────────────
+
+    private void aggiornaNota() {
+        if (state.mostraNota) return; // popup aperto, aspetta input
+        Nota nota = roomMgr.getNotaCasa();
+        if (nota == null || nota.isRaccolta()) return;
+        nota.update();
+        if (nota.controllaRaccolta(state.x, state.y, GameState.PG_SIZE)) {
+            nota.raccogli();
+            state.notaRaccolta = true;
+            state.mostraNota   = true;
+        }
+    }
+
+    // ── Ufficio ───────────────────────────────────────────────────────────────
+
+    private void aggiornaUfficio() {
+        if (state.statoGioco != GameState.StatoGioco.UFFICIO) return;
+        if (!state.ufficioDialogoAvviato) {
+            state.ufficioDialogoAvviato = true;
+            avviaDialogoCapo();
+        }
+        // Quando il dialogo finisce e viene chiuso → VITTORIA_STORIA
+        // Gestito dall'InputHandler su INVIO nell'ultima pagina
+    }
+
+    private void avviaDialogoCapo() {
+        java.awt.image.BufferedImage sprCapo = res != null ? res.imgCapo : null;
+        java.awt.image.BufferedImage sprPg   = res != null
+                ? res.getImgGiocatorePerIndice(state.indicePersonaggioSelezionato) : null;
+        String nomePg = state.nomePersonaggioCorrente();
+
+        state.dialogoNarrazione.pulisci();
+        state.dialogoNarrazione.aggiungi("CAPO", sprCapo,
+                "Finalmente sei arrivato. Ti aspettavo.", false);
+        state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                "Ho attraversato quattro mondi per arrivare qui.", true);
+        state.dialogoNarrazione.aggiungi("CAPO", sprCapo,
+                "Lo so. Ho visto tutto.", false);
+        state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                "Allora sai anche perche sono in ritardo.", true);
+        state.dialogoNarrazione.aggiungi("CAPO", sprCapo,
+                "Sai cosa mi fa piu ridere? La riunione e stata spostata a domani.", false);
+        state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                "...", true);
+        state.dialogoNarrazione.aggiungi("CAPO", sprCapo,
+                "Siediti. Hai l'aria di qualcuno che ha bisogno di un caffe.", false);
+        state.dialogoNarrazione.avvia();
+    }
+
+    private void aggiornaMelee() {
+        if (!state.meleeUnlocked) return;
+        if (state.meleeCooldown  > 0) state.meleeCooldown--;
+        if (state.meleeNomeTimer > 0) state.meleeNomeTimer--;
+        if (state.arduaRicompensaTimer > 0) state.arduaRicompensaTimer--;
+
+        if (state.meleeAttivo) {
+            state.meleeAttivo = false;
+            if (state.meleeCooldown <= 0) {
+                // Centro hitbox davanti al personaggio
+                int reach = getMeleeReach();
+                state.meleeHitX = (int)(state.x + GameState.PG_SIZE / 2f
+                        + state.facingX * reach);
+                state.meleeHitY = (int)(state.y + GameState.PG_SIZE / 2f
+                        + state.facingY * reach);
+                state.meleeTimer    = GameState.MELEE_DURATION;
+                state.meleeCooldown = GameState.MELEE_DELAY;
+                state.meleeNomeTimer = GameState.MELEE_NOME_DURATA;
+            }
+        }
+    }
+
+    /** Danno melee per personaggio. */
+    private int getMeleeDanno() {
+        return switch (state.indicePersonaggioSelezionato) {
+            case 0 -> 3;   // BELLGERD — Colpo di Valigia
+            case 1 -> 2;   // VLAD     — Chiave Inglese
+            case 2 -> 6;   // PAUL     — Accetta
+            case 3 -> 4;   // JUICY    — Colpo di Gamepad
+            case 4 -> 99;  // D.I.T.T.O. — Cancellazione
+            default -> 3;
+        };
+    }
+
+    /** Raggio hitbox melee (px). */
+    private int getMeleeRaggio() {
+        return switch (state.indicePersonaggioSelezionato) {
+            case 0 -> 40;   // BELLGERD — Colpo di Valigia
+            case 1 -> 30;   // VLAD     — Chiave Inglese
+            case 2 -> 55;   // PAUL     — Accetta
+            case 3 -> 50;   // JUICY    — Colpo di Gamepad
+            case 4 -> 80;   // D.I.T.T.O. — Cancellazione
+            default -> 40;
+        };
+    }
+
+    /** Distanza del centro hitbox dal personaggio. */
+    private int getMeleeReach() {
+        return switch (state.indicePersonaggioSelezionato) {
+            case 0 -> 55;   // BELLGERD — Colpo di Valigia
+            case 1 -> 45;   // VLAD     — Chiave Inglese
+            case 2 -> 50;   // PAUL     — Accetta
+            case 3 -> 35;   // JUICY    — Colpo di Gamepad
+            case 4 -> 60;   // D.I.T.T.O. — Cancellazione
+            default -> 50;
+        };
+    }
+
     private BufferedImageRef pungnoImageRef;
 
     public void setPungoImage(java.awt.image.BufferedImage img) {
@@ -306,7 +450,9 @@ public class GameLoop {
         java.util.List<Shopkeeper> shopkeepers = roomMgr.inStanzaShop
                 ? roomMgr.getShopkeeperShop()
                 : roomMgr.getShopkeepersCorrenti();
-        java.util.List<ShopItem> items = roomMgr.inStanzaShop
+        java.util.List<ShopItem> items = roomMgr.inStanza62
+                ? roomMgr.getItems62()
+                : roomMgr.inStanzaShop
                 ? roomMgr.getItemsShop()
                 : roomMgr.getShopItemsCorrenti();
 
@@ -325,16 +471,36 @@ public class GameLoop {
 
     private void applicaEffettoItem(String tipo) {
         switch (tipo) {
-            case "CURA"     -> { state.vite = Math.min(state.vite + 1, state.viteMaxGiocatore); }
-            case "VELOCITA" -> state.velocita   += 1.5f;
-            case "DANNO"    -> state.dannoPugno  += 1;
+            case "CURA", "HP UP" -> {
+                state.viteMaxGiocatore++;
+                state.vite = Math.min(state.vite + 1, state.viteMaxGiocatore);
+                state.arduaRicompensaMsg   = "+1 SLOT VITA!";
+                state.arduaRicompensaTimer = 180;
+            }
+            case "VELOCITA" -> {
+                state.velocita += 1.5f;
+                state.arduaRicompensaMsg   = "+1.5 VELOCITA!";
+                state.arduaRicompensaTimer = 180;
+            }
+            case "DANNO" -> {
+                state.dannoPugno += 2;
+                state.arduaRicompensaMsg   = "+2 DANNO!";
+                state.arduaRicompensaTimer = 180;
+            }
+            case "FIRE RATE" -> {
+                state.sparoDelayRiduzione = Math.min(state.sparoDelayRiduzione + 3, 8);
+                state.arduaRicompensaMsg   = "FIRE RATE UP!";
+                state.arduaRicompensaTimer = 180;
+            }
         }
     }
 
     // ── Collisioni ────────────────────────────────────────────────────────────
 
     private void aggiornaCollisioni() {
-        List<Nemico> nemici = roomMgr.inStanzaShop
+        List<Nemico> nemici = roomMgr.inStanza62
+                ? roomMgr.getNemici62()
+                : roomMgr.inStanzaShop
                 ? roomMgr.getShopNemici()
                 : roomMgr.getNemiciCorrenti();
 
@@ -394,6 +560,7 @@ public class GameLoop {
                     float dropX  = n.x;
                     float dropY  = n.y;
                     boolean isBoss = n instanceof Boss;
+                    boolean isShopkeeper = n instanceof ShopkeeperNemico;
 
                     nemici.remove(j--);
                     state.audio.suonaEffetto(AudioManager.SFX_MORTE_NEMICO);
@@ -401,12 +568,52 @@ public class GameLoop {
                     if (isBoss) {
                         state.bossSconfitto = true;
                         state.audio.suonaMusica(AudioManager.VITTORIA);
+                    } else if (isShopkeeper) {
+                        // Shopkeeper sconfitto: sblocca melee o buffa danno se gia sbloccato
+                        roomMgr.onShopkeeperSconfitto();
+                    } else if (nemici.isEmpty() && roomMgr.inStanza62) {
+                        // Ultimo nemico nella stanza ardua: spawna ricompensa in stanza
+                        roomMgr.completaStanzaArdua();
                     } else if (nemici.isEmpty() && !roomMgr.inStanzaShop
                             && state.stanzaNelMondo != GameState.STANZA_BOSS) {
                         spawnDrop((int) dropX, (int) dropY);
                     }
                 }
                 break;
+            }
+        }
+
+        // ── Melee vs nemici ───────────────────────────────────────────────────
+        if (state.meleeTimer > 0) {
+            state.meleeTimer--;
+            int meleeRaggio = getMeleeRaggio();
+            Rectangle hbMelee = new Rectangle(
+                    state.meleeHitX - meleeRaggio,
+                    state.meleeHitY - meleeRaggio,
+                    meleeRaggio * 2, meleeRaggio * 2);
+
+            for (int j = nemici.size() - 1; j >= 0; j--) {
+                Nemico n = nemici.get(j);
+                if (!hbMelee.intersects(n.getHitbox())) continue;
+                n.subisciDanno(getMeleeDanno());
+                if (n.isMorto()) {
+                    boolean isShopkeeper2 = n instanceof ShopkeeperNemico;
+                    boolean isBoss2       = n instanceof Boss;
+                    float dropX = n.x, dropY = n.y;
+                    nemici.remove(j);
+                    state.audio.suonaEffetto(AudioManager.SFX_MORTE_NEMICO);
+                    if (isBoss2) {
+                        state.bossSconfitto = true;
+                        state.audio.suonaMusica(AudioManager.VITTORIA);
+                    } else if (isShopkeeper2) {
+                        roomMgr.onShopkeeperSconfitto();
+                    } else if (nemici.isEmpty() && roomMgr.inStanza62) {
+                        roomMgr.completaStanzaArdua();
+                    } else if (nemici.isEmpty() && !roomMgr.inStanzaShop
+                            && state.stanzaNelMondo != GameState.STANZA_BOSS) {
+                        spawnDrop((int) dropX, (int) dropY);
+                    }
+                }
             }
         }
     }

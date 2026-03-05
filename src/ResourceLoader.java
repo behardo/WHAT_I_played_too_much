@@ -80,6 +80,8 @@ public class ResourceLoader {
     public BufferedImage imgShopkeeper;
     public BufferedImage imgItemSpeed;
     public BufferedImage imgItemDamage;
+    public BufferedImage imgNota;    // nota con codice debug in Casa
+    public BufferedImage imgCapo;    // NPC Capo nell'Ufficio
 
     // ── Riferimento al pannello per getResource() ─────────────────────────────
     private final Object context;
@@ -188,6 +190,8 @@ public class ResourceLoader {
         imgCuore               = load("/cuore.png");
         imgPugno               = load("/pugno.png");
         imgCura                = load("/cura.png");
+        imgNota                = load("/nota.png");
+        imgCapo                = load("/capo.png");
         imgMoneta              = load("/coin.png");
         imgShopkeeper          = load("/shopkeeper.png");
         imgItemSpeed           = load("/item_speed.png");
