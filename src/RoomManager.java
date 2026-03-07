@@ -25,10 +25,15 @@ public class RoomManager {
     public final List<List<Moneta>>    monetePerStanza            = new ArrayList<>();
     public final List<List<Shopkeeper>> shopkeepersPerStanza      = new ArrayList<>();
     public final List<List<ShopItem>>  shopItemsPerStanza         = new ArrayList<>();
-    private Nota notaCasa = null;  // spawna random in Casa, unica per run
-    // Ostacoli inagibili per stanza: lista di [col, rig] in coordinate tile
-    public final List<int[][]>         ostacoliPerStanza          = new ArrayList<>();
-    public       int[][]               ostacoliStanzaCorrente     = null;
+    private Nota notaCasa = null;
+    // Ostacoli inagibili per stanza
+    public final List<int[][]>              ostacoliPerStanza      = new ArrayList<>();
+    public       int[][]                    ostacoliStanzaCorrente = null;
+    // Tile effetto per stanza (veleno/ghiaccio/fuoco/cannone)
+    public final List<List<TileEffetto>>    tileEffettoPerStanza   = new ArrayList<>();
+    public       List<TileEffetto>          tileEffettoCorrenti    = new ArrayList<>();
+    // Tile effetto nella stanza bonus
+    private      List<TileEffetto>          tileEffettoBonus       = new ArrayList<>();
 
     // ── Dipendenze ────────────────────────────────────────────────────────────
     private final GameState     state;
@@ -61,7 +66,8 @@ public class RoomManager {
         monetePerStanza.add(new ArrayList<>());
         shopkeepersPerStanza.add(new ArrayList<>());
         shopItemsPerStanza.add(new ArrayList<>());
-        ostacoliPerStanza.add(null); // stanza 1: nessun ostacolo
+        ostacoliPerStanza.add(null);           // stanza 1: nessun ostacolo
+        tileEffettoPerStanza.add(new ArrayList<>()); // stanza 1: nessun tile effetto
     }
 
     /**
@@ -76,10 +82,13 @@ public class RoomManager {
         shopItemsPerStanza.clear();
         ostacoliPerStanza.clear();
         ostacoliStanzaCorrente = null;
+        tileEffettoPerStanza.clear();
+        tileEffettoCorrenti = new ArrayList<>();
+        tileEffettoBonus    = new ArrayList<>();
         memoriaColoriMondo1.clear();
         memoriaColoriMondo2.clear();
         resetShop();
-        reset62();
+        resetBonus();
         notaCasa = null;
         inizializzaStanzaDefault();
     }
@@ -106,10 +115,18 @@ public class RoomManager {
         List<Shopkeeper> nuoviShopkeepers = new ArrayList<>();
         List<ShopItem>   nuoveItems       = new ArrayList<>();
 
-        // Ostacoli: solo stanze normali dopo la prima — generati PRIMA dei nemici
+        // Tile effetto: nei mondi 2-5 sostituiscono gli ostacoli fisici.
+        // Mondo 1: ostacoli normali. Mondi 2+: solo tile effetto (calpestabili ma con effetto).
         int[][] ostacoli = null;
+        List<TileEffetto> tileEff = new ArrayList<>();
         if (state.stanzaNelMondo < GameState.STANZA_BOSS && state.stanzaNelMondo > 1) {
-            ostacoli = generaOstacoli();
+            int m = ((state.mondoAttuale - 1) % 5) + 1;
+            if (m == 1) {
+                ostacoli = generaOstacoli(); // Cantiere: solo ostacoli fisici
+            } else {
+                tileEff = generaTileEffetto(); // Mondi 2-5: tile effetto al posto degli ostacoli
+                // ostacoli rimane null → tile calpestabili
+            }
         }
 
         if (state.stanzaNelMondo == GameState.STANZA_BOSS && !state.bossSpawnato) {
@@ -134,6 +151,7 @@ public class RoomManager {
         shopkeepersPerStanza.add(nuoviShopkeepers);
         shopItemsPerStanza.add(nuoveItems);
         ostacoliPerStanza.add(ostacoli);
+        tileEffettoPerStanza.add(tileEff);
     }
 
     private void generaStanzaCasa(List<ShopItem> items) {
@@ -141,22 +159,36 @@ public class RoomManager {
         int cx = GameState.COL_TOTALI / 2;
         int ry = GameState.OFFSET + GameState.RIG_GIOCO / 2;
 
-        switch (pu) {
-            case "VELOCITA" -> {
-                ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed);
-                si.setMostraPrezzo(false); items.add(si);
-            }
-            case "DANNO" -> {
-                ShopItem si = new ShopItem(cx, ry, GameState.TILE_SIZE, "DANNO", 0, res.imgItemDamage);
-                si.setMostraPrezzo(false); items.add(si);
-            }
-            case "TUTTO" -> {
-                ShopItem s1 = new ShopItem(cx - 2, ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed);
-                ShopItem s2 = new ShopItem(cx,     ry, GameState.TILE_SIZE, "DANNO",    0, res.imgItemDamage);
-                s1.setMostraPrezzo(false); items.add(s1);
-                s2.setMostraPrezzo(false); items.add(s2);
-            }
-            // CURA e NESSUNO: nessun power-up in Casa
+        // Premi cumulativi: ogni soglia include i premi delle soglie inferiori
+        boolean daCura     = pu.equals("CURA")     || pu.equals("VELOCITA") || pu.equals("DANNO") || pu.equals("MELEE") || pu.equals("TUTTO");
+        boolean daVelocita = pu.equals("VELOCITA") || pu.equals("DANNO")    || pu.equals("MELEE") || pu.equals("TUTTO");
+        boolean daDanno    = pu.equals("DANNO")    || pu.equals("MELEE")    || pu.equals("TUTTO");
+        boolean daMelee    = pu.equals("MELEE")    || pu.equals("TUTTO");
+
+        // Posizioni scalate orizzontalmente per non sovrapporsi
+        int totale = (daCura?1:0) + (daVelocita?1:0) + (daDanno?1:0) + (daMelee?1:0);
+        int spacing = 2;
+        int startX = cx - (totale - 1) * spacing / 2;
+        int col = 0;
+
+        if (daCura) {
+            ShopItem si = new ShopItem(startX + col * spacing, ry, GameState.TILE_SIZE, "HP UP", 0, res.imgCura);
+            si.setMostraPrezzo(false); items.add(si); col++;
+        }
+        if (daVelocita) {
+            ShopItem si = new ShopItem(startX + col * spacing, ry, GameState.TILE_SIZE, "VELOCITA", 0, res.imgItemSpeed);
+            si.setMostraPrezzo(false); items.add(si); col++;
+        }
+        if (daDanno) {
+            ShopItem si = new ShopItem(startX + col * spacing, ry, GameState.TILE_SIZE, "DANNO", 0, res.imgItemDamage);
+            si.setMostraPrezzo(false); items.add(si); col++;
+        }
+        if (daMelee && !state.meleeUnlocked) {
+            // Sblocca melee direttamente senza item fisico
+            state.meleeUnlocked = true;
+        } else if (daMelee && state.meleeUnlocked) {
+            // Melee già sbloccato: +3 danno pugno come bonus
+            state.dannoPugno += 3;
         }
 
         // Nota con codice debug — posizione random libera (non sul power-up)
@@ -173,13 +205,21 @@ public class RoomManager {
         Boss b = new Boss(7, 2, GameState.TILE_SIZE, vitaBoss, state.mondoAttuale);
         b.caricaProiettile(res.imgBossProjectile);
         b.caricaProiettiliPerTipo(res.imgProiettilePerBoss);
-        // Burn callback — si attiva quando boss 3 tocca il giocatore durante carica
+        // Burn callback — boss 4 (Fornace) tocca il giocatore durante carica
         b.setOnBurnPlayer(() -> {
             state.burnAttivo = true;
             state.burnTimer  = GameState.BURN_DURATA;
             state.burnTick   = 0;
         });
-        // Pugni ref per la schivata del boss 4 — impostati da GameLoop dopo
+        // Freeze callback — boss 4 (Ghiaccio) congela il giocatore a contatto
+        b.setOnFreezePlayer(() -> {
+            if (!state.freezeAttivo) {
+                state.freezeAttivo = true;
+                state.freezeTimer  = GameState.FREEZE_DURATA;
+                state.arduaRicompensaMsg   = "CONGELATO!";
+                state.arduaRicompensaTimer = 80;
+            }
+        });
         if (pugniAttiviRef != null) b.setPugniAttiviRef(pugniAttiviRef);
         nemici.add(b);
         state.bossSpawnato       = true;
@@ -187,14 +227,14 @@ public class RoomManager {
         state.tempoRimanenteBoss = GameState.TEMPO_BOSS_DEFAULT;
 
         // ── Dialogo pre-boss ───────────────────────────────────────────────────
-        int tipoBoss = (state.mondoAttuale - 1) % 4; // 0-3
+        int tipoBoss = (state.mondoAttuale - 1) % 5; // 0-4
         BufferedImage sprPg   = res.getImgGiocatorePerIndice(state.indicePersonaggioSelezionato);
         BufferedImage sprBoss = res.imgBossPerMondo[tipoBoss];
         String nomePg = state.nomePersonaggioCorrente();
 
         state.dialogoNarrazione.pulisci();
         switch (tipoBoss) {
-            case 0 -> { // MANNIE
+            case 0 -> { // MANNIE — Cantiere M1
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Dai, non ho tempo - sono gia in ritardo!",
                         true);
@@ -202,12 +242,12 @@ public class RoomManager {
                         "Nemmeno io.",
                         false);
             }
-            case 1 -> { // PRESAGIO
+            case 1 -> { // PRESAGIO — Fogne M2
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Quindi e qui che si finisce a forza di giocare ai videogiochi...",
                         true);
             }
-            case 2 -> { // RE FORNO
+            case 2 -> { // RE FORNO — Fornace M3
                 state.dialogoNarrazione.aggiungi(nomePg, sprPg,
                         "Levati di mezzo. Non mi interessa se sei un re.",
                         true);
@@ -221,7 +261,18 @@ public class RoomManager {
                         "...",
                         true);
             }
-            case 3 -> { // YABBADUHLON
+            case 3 -> { // GELO — Ghiacciaio M4
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "Che freddo. Come si vive qua?",
+                        true);
+                state.dialogoNarrazione.aggiungi("GELO", sprBoss,
+                        "Non ci si vive. Ci si congela.",
+                        false);
+                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
+                        "Simpatico.",
+                        true);
+            }
+            case 4 -> { // YABBADUHLON — Castello M5
                 state.dialogoNarrazione.aggiungi("YABBADUHLON", sprBoss,
                         "Si... sono io.",
                         false);
@@ -263,9 +314,13 @@ public class RoomManager {
         int m     = state.mondoAttuale;
         int quanti = StatNemico.quantiNemici(m, state.stanzaNelMondo, random);
         float probForte = StatNemico.probNemicoForte(m);
+        // Tile effetto della stanza corrente (per evitare spawn sopra)
+        List<TileEffetto> tileCorr = tileEffettoPerStanza.isEmpty() ? null
+                : tileEffettoPerStanza.size() > state.indiceStanzaMemoria
+                ? tileEffettoPerStanza.get(state.indiceStanzaMemoria) : null;
 
         for (int i = 0; i < quanti; i++) {
-            int[] pos  = trovaPosizioneSicura(ostacoli);
+            int[] pos  = trovaPosizioneSicura(ostacoli, tileCorr);
             boolean forte = random.nextFloat() < probForte;
 
             if (forte) {
@@ -294,7 +349,7 @@ public class RoomManager {
 
         for (int i = 0; i < quanti; i++) {
             int mondoNemico = 1 + random.nextInt(mondiDisponibili);
-            int[] pos = trovaPosizioneSicura(ostacoli);
+            int[] pos = trovaPosizioneSicura(ostacoli, tileEffettoBonus);
             boolean forte = random.nextFloat() < 0.5f;
 
             if (forte) {
@@ -354,7 +409,7 @@ public class RoomManager {
             state.meleeUnlocked       = true;
             state.meleeUnlockedDaArdua = true;
             state.arduaRicompensaMsg   = "MELEE SBLOCCATO!";
-            state.arduaRicompensaTimer = 180;
+            state.arduaRicompensaTimer = 90;
         } else {
             int roll = random.nextInt(4);
             String tipo; java.awt.image.BufferedImage img;
@@ -366,13 +421,13 @@ public class RoomManager {
             }
             ShopItem drop = new ShopItem(cx, ry, GameState.TILE_SIZE, tipo, 0, img);
             drop.setMostraPrezzo(false);
-            items62.add(drop);
+            itemsBonus.add(drop);
         }
 
-        // 40% chance cura extra in posizione laterale
+        // 40% chance cura extra in posizione sicura (evita tile effetto)
         if (random.nextFloat() < 0.40f) {
-            int[] pos = trovaPosizioneSicura(null);
-            cure62.add(new Cura(pos[0], pos[1], GameState.TILE_SIZE, res.imgCura));
+            int[] pos = trovaPosizioneSicura(ostacoliBonus, tileEffettoBonus);
+            cureBonus.add(new Cura(pos[0], pos[1], GameState.TILE_SIZE, res.imgCura));
         }
     }
 
@@ -381,13 +436,13 @@ public class RoomManager {
      * Se melee gia sbloccato da ardua, buffra il danno pugno invece di sbloccare melee.
      */
     public void onShopkeeperSconfitto() {
+        state.monete += 20; // bottino shopkeeper sconfitto
         if (!state.meleeUnlocked) {
             state.meleeUnlocked = true;
         } else {
-            // Melee gia presente: +3 danno pugno mediamente alto
             state.dannoPugno += 3;
             state.arduaRicompensaMsg   = "+3 DANNO ARMA!";
-            state.arduaRicompensaTimer = 180;
+            state.arduaRicompensaTimer = 90;
         }
     }
 
@@ -408,16 +463,15 @@ public class RoomManager {
         if (state.indiceStanzaMemoria >= nemiciPerStanza.size()) {
             generaNuovaStanza();
         }
+        aggiornaTileEffettoCorrenti();
     }
 
-    /**
-     * Torna alla stanza precedente (movimento verso sinistra).
-     */
     public void tornaAllaStanzaPrecedente() {
         int maxX = (GameState.COL_TOTALI - GameState.OFFSET - 1) * GameState.TILE_SIZE - 20;
         state.x = maxX;
         state.indiceStanzaMemoria--;
         state.stanzaNelMondo--;
+        aggiornaTileEffettoCorrenti();
     }
 
     /**
@@ -463,57 +517,70 @@ public class RoomManager {
      */
     public boolean inStanzaShop = false;
 
-    // ── Stanza 6-2 (porta a sud dalla stanza 6) ───────────────────────────────
-    public boolean inStanza62 = false;
+    // ── Stanza Bonus (porta a sud dalla stanza 6) ───────────────────────────────
+    public boolean inStanzaBonus = false;
 
-    private final java.util.List<Nemico>   nemici62  = new java.util.ArrayList<>();
-    private final java.util.List<ShopItem> items62   = new java.util.ArrayList<>();
-    private final java.util.List<Cura>     cure62    = new java.util.ArrayList<>();
-    private boolean stanza62Generata = false;
+    private final java.util.List<Nemico>   nemiciBonus  = new java.util.ArrayList<>();
+    private final java.util.List<ShopItem> itemsBonus   = new java.util.ArrayList<>();
+    private final java.util.List<Cura>     cureBonus    = new java.util.ArrayList<>();
+    private int[][] ostacoliBonus = null;
+    private boolean stanzaBonusGenerata = false;
 
-    public java.util.List<Nemico>   getNemici62()  { return nemici62; }
-    public java.util.List<ShopItem> getItems62()   { return items62; }
-    public java.util.List<Cura>     getCure62()    { return cure62; }
+    public java.util.List<Nemico>   getNemiciBonus()  { return nemiciBonus; }
+    public java.util.List<ShopItem> getItemsBonus()   { return itemsBonus; }
+    public java.util.List<Cura>     getCureBonus()    { return cureBonus; }
 
-    public void assicura62Generata() {
-        if (stanza62Generata) return;
-        nemici62.clear();
-        items62.clear();
-        cure62.clear();
+    public void assicuraBonusGenerata() {
+        if (stanzaBonusGenerata) return;
+        nemiciBonus.clear();
+        itemsBonus.clear();
+        cureBonus.clear();
 
-        // Genera nemici ardui misti da tutti i mondi
-        int[][] ostacoli62 = generaOstacoli();
-        generaStanzaArdua(nemici62, ostacoli62);
-        stanza62Generata = true;
+        // Ostacoli/tile effetto coerenti col mondo corrente
+        int m = ((state.mondoAttuale - 1) % 5) + 1;
+        if (m == 1) {
+            ostacoliBonus    = generaOstacoli();
+            tileEffettoBonus = new ArrayList<>();
+        } else {
+            ostacoliBonus    = null;
+            tileEffettoBonus = generaTileEffetto();
+        }
+        generaStanzaArdua(nemiciBonus, ostacoliBonus);
+        stanzaBonusGenerata = true;
     }
 
-    public void entraIn62() {
-        assicura62Generata();
-        inStanza62 = true;
-        // Entra dall'alto della stanza (viene da sud della stanza 6)
+    public void entraInBonus() {
+        assicuraBonusGenerata();
+        inStanzaBonus = true;
         state.y = GameState.OFFSET * GameState.TILE_SIZE + 20f;
-        pugniAttiviRef.clear();
+        pugniAttiviRef.clear(); proiettiliCannoneRef.clear();
+        aggiornaTileEffettoCorrenti();
+        // Reset popup ricompensa (evita che il popup del tetris appaia nella bonus)
+        state.arduaRicompensaMsg   = "";
+        state.arduaRicompensaTimer = 0;
     }
 
-    public void esciDa62() {
-        // Rimuovi malus quando si esce
+    public void esciDaBonus() {
         rimuoviMalusArdua();
-        inStanza62 = false;
-        // Torna nella stanza 6, in fondo
+        inStanzaBonus = false;
         state.y = (GameState.RIG_GIOCO) * GameState.TILE_SIZE - GameState.PG_SIZE - 10f;
-        pugniAttiviRef.clear();
+        pugniAttiviRef.clear(); proiettiliCannoneRef.clear();
+        aggiornaTileEffettoCorrenti();
     }
 
-    public void reset62() {
-        stanza62Generata = false;
-        nemici62.clear();
-        items62.clear();
-        cure62.clear();
-        inStanza62 = false;
-        // Azzera anche malus
+    public void resetBonus() {
+        stanzaBonusGenerata = false;
+        nemiciBonus.clear();
+        itemsBonus.clear();
+        cureBonus.clear();
+        ostacoliBonus = null;
+        inStanzaBonus = false;
+        state.ardua_completed    = false;
         state.arduaMalusDanno    = 0;
         state.arduaMalusVelocita = 0f;
         state.arduaMalusFireRate = 0;
+        // Porta ardua appare in una stanza random tra 3 e 6 per questo mondo
+        state.stanzaConPortaArdua = 3 + random.nextInt(4); // 3,4,5 o 6
     }
 
     /**
@@ -524,7 +591,7 @@ public class RoomManager {
         inStanzaShop = true;
         state.shopSbloccato = false; // Consumato: non riappare finché non batti il prossimo boss
         state.y = (GameState.RIG_GIOCO) * GameState.TILE_SIZE - GameState.PG_SIZE - 10f; // Entra dal basso della stanza shop
-        pugniAttiviRef.clear();
+        pugniAttiviRef.clear(); proiettiliCannoneRef.clear();
     }
 
     /**
@@ -533,12 +600,15 @@ public class RoomManager {
     public void esciDalloShop() {
         inStanzaShop = false;
         state.y = GameState.OFFSET * GameState.TILE_SIZE + 20f; // Torna nella stanza 1 in cima
-        pugniAttiviRef.clear();
+        pugniAttiviRef.clear(); proiettiliCannoneRef.clear();
     }
 
     // Riferimento ai pugni attivi passato da GameLoop per pulirli al cambio stanza shop
     private java.util.List<Pugno> pugniAttiviRef = new java.util.ArrayList<>();
     public void setPugniAttiviRef(java.util.List<Pugno> pugni) { this.pugniAttiviRef = pugni; }
+
+    private java.util.List<BossProjectile> proiettiliCannoneRef = new java.util.ArrayList<>();
+    public void setProiettiliCannoneRef(java.util.List<BossProjectile> proj) { this.proiettiliCannoneRef = proj; }
 
     // ── Contenuto stanza shop ─────────────────────────────────────────────────
 
@@ -581,6 +651,7 @@ public class RoomManager {
     public List<Shopkeeper> getShopkeepersCorrenti()  { return shopkeepersPerStanza.get(state.indiceStanzaMemoria); }
     public List<ShopItem>   getShopItemsCorrenti()    { return shopItemsPerStanza.get(state.indiceStanzaMemoria); }
     public int[][]          getOstacoliCorrenti() {
+        if (inStanzaBonus) return ostacoliBonus;
         int idx = state.indiceStanzaMemoria;
         ostacoliStanzaCorrente = (idx < ostacoliPerStanza.size()) ? ostacoliPerStanza.get(idx) : null;
         return ostacoliStanzaCorrente;
@@ -604,6 +675,10 @@ public class RoomManager {
      * @return array [x, y] in coordinate tile
      */
     private int[] trovaPosizioneSicura(int[][] ostacoli) {
+        return trovaPosizioneSicura(ostacoli, null);
+    }
+
+    private int[] trovaPosizioneSicura(int[][] ostacoli, List<TileEffetto> tileEffetto) {
         int safeX, safeY;
         int pgTileX = GameState.OFFSET + 1;
         int pgTileY = GameState.OFFSET + GameState.RIG_GIOCO / 2;
@@ -612,13 +687,16 @@ public class RoomManager {
             safeX = random.nextInt(GameState.COL_GIOCO) + GameState.OFFSET;
             safeY = random.nextInt(GameState.RIG_GIOCO) + GameState.OFFSET;
             if (TileSet.isMuro(safeX, safeY)) { maxTentativi--; continue; }
-            // Ostacoli passati esplicitamente
             if (isOstacoloIn(safeX, safeY, ostacoli)) { maxTentativi--; continue; }
-            // Buffer 5 tile dalla porta sinistra
+            // Evita tile effetto
+            if (tileEffetto != null) {
+                boolean suTile = false;
+                for (TileEffetto te : tileEffetto)
+                    if (te.col == safeX && te.rig == safeY) { suTile = true; break; }
+                if (suTile) { maxTentativi--; continue; }
+            }
             if (safeX <= GameState.OFFSET + 4) { maxTentativi--; continue; }
-            // Buffer 5 tile dalla porta destra
             if (safeX >= GameState.COL_TOTALI - GameState.OFFSET - 5) { maxTentativi--; continue; }
-            // Distanza minima 5 tile dal giocatore
             int dx = safeX - pgTileX, dy = safeY - pgTileY;
             if (dx*dx + dy*dy < 25) { maxTentativi--; continue; }
             return new int[]{safeX, safeY};
@@ -667,6 +745,70 @@ public class RoomManager {
             if (!dup) lista.add(new int[]{col, rig});
         }
         return lista.toArray(new int[0][]);
+    }
+
+    /**
+     * Evita di piazzarli sopra ostacoli o nelle zone porta.
+     */
+    /**
+     * Genera tile effetto casuali per la stanza — sostituiscono gli ostacoli fisici.
+     * M2=VELENO, M3=FUOCO, M4=GHIACCIO mix (75% slow + 25% freeze), M5=CANNONE. 3-5 per stanza.
+     */
+    private List<TileEffetto> generaTileEffetto() {
+        List<TileEffetto> lista = new ArrayList<>();
+        int m = ((state.mondoAttuale - 1) % 5) + 1;
+
+        // Mondo 5 (Castello): max 2 cannoni, posizionati in punti strategici
+        int base  = (m == 5) ? 2 : 3 + random.nextInt(2); // 3-4 altri mondi
+        int bonus = (m >= 4 && m != 5) ? random.nextInt(2) : 0;
+        int quanti = base + bonus;
+
+        int portaY = GameState.OFFSET + GameState.RIG_GIOCO / 2;
+        int tentativi = 0;
+
+        while (lista.size() < quanti && tentativi < 300) {
+            tentativi++;
+            int col = random.nextInt(GameState.COL_GIOCO) + GameState.OFFSET;
+            int rig = random.nextInt(GameState.RIG_GIOCO) + GameState.OFFSET;
+            if (TileSet.isMuro(col, rig)) continue;
+            if (col <= GameState.OFFSET + 3) continue;
+            if (col >= GameState.COL_TOTALI - GameState.OFFSET - 4) continue;
+            if (rig == portaY && col <= GameState.OFFSET + 5) continue;
+            if (rig == portaY && col >= GameState.COL_TOTALI - GameState.OFFSET - 5) continue;
+            boolean dup = false;
+            for (TileEffetto te : lista)
+                if (te.col == col && te.rig == rig) { dup = true; break; }
+            if (dup) continue;
+
+            TileEffetto.Tipo tipo = switch (m) {
+                case 2 -> TileEffetto.Tipo.VELENO;
+                case 3 -> TileEffetto.Tipo.FUOCO;
+                case 4 -> random.nextFloat() < 0.75f
+                        ? TileEffetto.Tipo.GHIACCIO
+                        : TileEffetto.Tipo.GHIACCIO_FORTE;
+                case 5 -> TileEffetto.Tipo.CANNONE;
+                default -> null;
+            };
+            if (tipo == null) break;
+            lista.add(new TileEffetto(col, rig, tipo));
+        }
+        return lista;
+    }
+
+    /** Aggiorna i tile effetto correnti quando si entra in una stanza. */
+    public void aggiornaTileEffettoCorrenti() {
+        int idx = state.indiceStanzaMemoria;
+        if (inStanzaBonus) {
+            tileEffettoCorrenti = tileEffettoBonus;
+        } else if (idx < tileEffettoPerStanza.size()) {
+            tileEffettoCorrenti = tileEffettoPerStanza.get(idx);
+        } else {
+            tileEffettoCorrenti = new ArrayList<>();
+        }
+    }
+
+    public List<TileEffetto> getTileEffettoCorrenti() {
+        return tileEffettoCorrenti;
     }
 
     // ── Interfaccia callback ──────────────────────────────────────────────────

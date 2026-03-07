@@ -21,7 +21,7 @@ public class Boss extends Nemico {
 
     // ── Proiettili ────────────────────────────────────────────────────────────
     private final List<BossProjectile> proiettili = new ArrayList<>();
-    private BufferedImage[] imgProiettiliPerTipo   = new BufferedImage[4];
+    private BufferedImage[] imgProiettiliPerTipo   = new BufferedImage[5];
     private int cooldownSparo = 0;
     private final int DELAY_SPARO;
     private float angoloSpirale = 0f;
@@ -39,8 +39,10 @@ public class Boss extends Nemico {
     private float caricaDx = 0, caricaDy = 0;
     private static final int INTERVALLO_CARICA = 140;
     private static final int DURATA_CARICA     = 22;
-    private Runnable onBurnPlayer = null;
-    private int cooldownBurn = 0;
+    private Runnable onBurnPlayer   = null;
+    private Runnable onFreezePlayer = null;
+    private int cooldownBurn   = 0;
+    private int cooldownFreeze = 0;
 
     // ── Tipo 4 — specchio + schivata ─────────────────────────────────────────
     private float dodgeDx = 0, dodgeDy = 0;
@@ -49,14 +51,18 @@ public class Boss extends Nemico {
     private boolean modoBurst = false;
     private static final int   CICLO_BURST   = 200;
     private List<Pugno> pugniAttivi = null;
-    private boolean primoSparoLog = false; // debug
+    private boolean primoSparoLog = false;
+
+    // ── Tipo 5 — GELO: tiro freeze + tile ghiaccio ───────────────────────────
+    private int timerGelo = 0;
+    private static final int INTERVALLO_GELO = 150;
 
     // ── Costruttore ───────────────────────────────────────────────────────────
     public Boss(int tileX, int tileY, int tileSize, int vita, int mondoAttuale) {
         super(tileX, tileY, tileSize, vita);
         this.size       = TAGLIA_BOSS;
         this.dimensione = TAGLIA_BOSS;
-        this.tipo       = ((mondoAttuale - 1) % 4) + 1;
+        this.tipo       = ((mondoAttuale - 1) % 5) + 1;  // 1-5
         this.velocita   = StatNemico.velocitaBoss(mondoAttuale);
         this.DELAY_SPARO = Math.max(35, 85 - (mondoAttuale - 1) * 12);
         this.x -= (TAGLIA_BOSS - tileSize) / 2f;
@@ -64,19 +70,22 @@ public class Boss extends Nemico {
     }
 
     // ── Setters esterni ───────────────────────────────────────────────────────
-    public void setOnBurnPlayer(Runnable cb)     { this.onBurnPlayer = cb; }
-    public void setPugniAttiviRef(List<Pugno> l) { this.pugniAttivi  = l; }
+    public void setOnBurnPlayer(Runnable cb)    { this.onBurnPlayer   = cb; }
+    public void setOnFreezePlayer(Runnable cb)  { this.onFreezePlayer = cb; }
+    public void setPugniAttiviRef(List<Pugno> l){ this.pugniAttivi    = l; }
+    public int  getTipo()                       { return tipo; }
 
     // ── Proiettili ────────────────────────────────────────────────────────────
     public void caricaProiettile(BufferedImage img) {
         java.util.Arrays.fill(imgProiettiliPerTipo, img);
     }
     public void caricaProiettiliPerTipo(BufferedImage[] imgs) {
-        for (int i = 0; i < 4 && i < imgs.length; i++)
+        for (int i = 0; i < 5 && i < imgs.length; i++)
             imgProiettiliPerTipo[i] = imgs[i];
     }
     private BufferedImage getImgProiettile() {
-        BufferedImage img = imgProiettiliPerTipo[tipo - 1];
+        int idx = Math.max(0, Math.min(tipo - 1, imgProiettiliPerTipo.length - 1));
+        BufferedImage img = imgProiettiliPerTipo[idx];
         return img != null ? img : imgProiettiliPerTipo[0];
     }
 
@@ -88,11 +97,12 @@ public class Boss extends Nemico {
             case 1 -> updateBrutale(pgX, pgY);
             case 2 -> updateOmbra(pgX, pgY);
             case 3 -> updateCarica(pgX, pgY);
-            case 4 -> updateFinale(pgX, pgY);
+            case 4 -> updateGelo(pgX, pgY);
+            case 5 -> updateFinale(pgX, pgY);
         }
         for (int i = proiettili.size() - 1; i >= 0; i--) {
             BossProjectile p = proiettili.get(i);
-            if (tipo == 4) p.aggiornaTarget(pgX, pgY);
+            if (tipo == 5) p.aggiornaTarget(pgX, pgY);
             p.update();
             if (p.x < 32 || p.x > GameState.LARGHEZZA_GIOCO - 32
                     || p.y < 32 || p.y > GameState.ALTEZZA_GIOCO - 32)
@@ -146,7 +156,48 @@ public class Boss extends Nemico {
         }
     }
 
-    // ── TIPO 3 — CARICA + BURN ────────────────────────────────────────────────
+    // ── TIPO 3 — GELO: insegue + spara proiettili freeze ─────────────────────
+    private void updateGelo(float pgX, float pgY) {
+        float dx = pgX - x, dy = pgY - y;
+        float dist = (float)Math.sqrt(dx*dx + dy*dy);
+        if (dist > 5f) {
+            x += (dx/dist) * velocita * 0.8f;
+            y += (dy/dist) * velocita * 0.8f;
+        }
+        // Contatto diretto → freeze
+        if (dist < TAGLIA_BOSS * 0.9f && cooldownFreeze <= 0) {
+            if (onFreezePlayer != null) onFreezePlayer.run();
+            cooldownFreeze = 100;
+        }
+        if (cooldownFreeze > 0) cooldownFreeze--;
+        // Sparo periodico — ventaglio a 3 verso giocatore
+        if (--cooldownSparo <= 0 && dist > 0) {
+            cooldownSparo = DELAY_SPARO;
+            float speed = 3.2f;
+            aggiungiProiettile(dx/dist * speed, dy/dist * speed, BossProjectile.Tipo.NORMAL);
+            float angOff = 0.32f;
+            float cosA = (float)Math.cos(angOff), sinA = (float)Math.sin(angOff);
+            aggiungiProiettile((dx/dist*cosA - dy/dist*sinA)*speed, (dx/dist*sinA + dy/dist*cosA)*speed, BossProjectile.Tipo.NORMAL);
+            aggiungiProiettile((dx/dist*cosA + dy/dist*sinA)*speed, (-dx/dist*sinA + dy/dist*cosA)*speed, BossProjectile.Tipo.NORMAL);
+        }
+        // Ogni INTERVALLO_GELO: proiettile speciale lento che congela (tipo FUOCO = freeze visivo)
+        timerGelo++;
+        if (timerGelo >= INTERVALLO_GELO) {
+            timerGelo = 0;
+            if (dist > 0) aggiungiProiettile(dx/dist * 2.0f, dy/dist * 2.0f, BossProjectile.Tipo.FUOCO);
+        }
+    }
+
+    // ── Helper: aggiunge proiettile al pool ───────────────────────────────────
+    private void aggiungiProiettile(float vx, float vy, BossProjectile.Tipo tipo) {
+        // Converte direzione normalizzata in coordinate target (200px nella direzione)
+        proiettili.add(new BossProjectile(cx(), cy(),
+                cx() + vx * 200f / 3.2f,
+                cy() + vy * 200f / 3.2f,
+                getImgProiettile(), tipo));
+    }
+
+    // ── TIPO 4 — CARICA + BURN ────────────────────────────────────────────────
     private void updateCarica(float pgX, float pgY) {
         if (inCarica) {
             x += caricaDx * 10f;
@@ -397,12 +448,19 @@ public class Boss extends Nemico {
             g2.setColor(new Color(255, 120, 0, 100));
             g2.fillOval((int) x - 8, (int) y - 8, TAGLIA_BOSS + 16, TAGLIA_BOSS + 16);
         }
-        if (tipo == 4 && timerDodge > 0) {
+        if (tipo == 4) {
+            // Boss GELO: alone azzurro
+            long t = System.currentTimeMillis();
+            int alpha = 40 + (int)(30 * Math.abs(Math.sin(t * 0.005)));
+            g2.setColor(new Color(80, 200, 255, alpha));
+            g2.fillOval((int) x - 8, (int) y - 8, TAGLIA_BOSS + 16, TAGLIA_BOSS + 16);
+        }
+        if (tipo == 5 && timerDodge > 0) {
             g2.setColor(new Color(160, 0, 255, 80));
             g2.fillOval((int) x - 10, (int) y - 10, TAGLIA_BOSS + 20, TAGLIA_BOSS + 20);
         }
         // Fase 3: alone rosso pulsante
-        if (tipo == 4 && fase4 == 3) {
+        if (tipo == 5 && fase4 == 3) {
             long t = System.currentTimeMillis();
             int alpha = 60 + (int)(50 * Math.sin(t * 0.008));
             g2.setColor(new Color(255, 30, 30, alpha));

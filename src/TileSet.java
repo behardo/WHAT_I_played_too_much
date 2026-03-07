@@ -53,8 +53,8 @@ public class TileSet {
                 new Color(255, 220, 130)
         );
 
-        // Normalizza al ciclo di 4 mondi per infinita
-        int temaIndex = ((mondo - 1) % 4) + 1;
+        // Normalizza al ciclo di 5 mondi per infinita
+        int temaIndex = ((mondo - 1) % 5) + 1;
 
         return switch (temaIndex) {
             case 1 -> new TileSet(
@@ -79,8 +79,16 @@ public class TileSet {
                     new Color(255, 80,  30)
             );
             case 4 -> new TileSet(
-                    "IL CASTELLO",
+                    "IL GHIACCIAIO",
                     res.imgMuroMondo4, res.imgPavimentoMondo4,
+                    new Color(60,  90,  130),
+                    new Color(130, 170, 210),
+                    new Color(140, 220, 255)
+            );
+            case 5 -> new TileSet(
+                    "IL CASTELLO",
+                    res.imgMuroMondo5 != null ? res.imgMuroMondo5 : res.imgMuroMondo4,
+                    res.imgPavimentoMondo5 != null ? res.imgPavimentoMondo5 : res.imgPavimentoMondo4,
                     new Color(40,  40,  60),
                     new Color(20,  20,  35),
                     new Color(180, 80,  220)

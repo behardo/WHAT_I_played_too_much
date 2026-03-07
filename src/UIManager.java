@@ -29,7 +29,12 @@ public class UIManager {
     private final MenuButton[][] tuttiBottoni;
 
     // ─────────────────────────────────────────────────────────────────────────
+    private java.awt.Font btnFont; // font pixel usato da tutti i bottoni
+
     public UIManager(ResourceLoader res) {
+        btnFont = (res.fontCustomBold != null) ? res.fontCustomBold
+                : (res.fontCustom   != null) ? res.fontCustom
+                : null;
         inizializzaPersonaggi(res);
         inizializzaRectsSelezionePG();
         inizializzaRectsSelezioneModalita();
@@ -41,19 +46,22 @@ public class UIManager {
         final int GAP = 10;
         final int CX  = W / 2 - BW / 2;
 
-        // ── Palette colori ────────────────────────────────────────────────────
-        Color nDark  = new Color(30,  30,  55);
-        Color hBlu   = new Color(60,  80, 160);
-        Color bBlu   = new Color(100, 110, 180);
-        Color bBluH  = new Color(160, 180, 255);
-        Color nRosso = new Color(55,  20,  20);
-        Color hRosso = new Color(140, 40,  40);
-        Color bRosso = new Color(160, 80,  80);
-        Color bRosH  = new Color(220, 100, 100);
-        Color nVerde = new Color(20,  55,  20);
-        Color hVerde = new Color(40,  130, 40);
-        Color bVerde = new Color(80,  160, 80);
-        Color bVerH  = new Color(120, 220, 120);
+        // ── Palette colori — stile gioco ocra/scuro ───────────────────────────
+        // Ocra scuro (default neutral)
+        Color nDark  = new Color(22,  14,  3);
+        Color hBlu   = new Color(50,  32,  80);   // viola scuro al hover
+        Color bBlu   = new Color(90,  58, 130);
+        Color bBluH  = new Color(160, 120, 210);
+        // Rosso scuro (ESCI)
+        Color nRosso = new Color(48,  14,  8);
+        Color hRosso = new Color(120, 30,  20);
+        Color bRosso = new Color(148, 60,  50);
+        Color bRosH  = new Color(210, 90,  70);
+        // Verde muschio (GIOCA)
+        Color nVerde = new Color(18,  44,  14);
+        Color hVerde = new Color(38, 112,  32);
+        Color bVerde = new Color(68, 140,  58);
+        Color bVerH  = new Color(110, 200, 90);
 
         // ── Menu Principale ───────────────────────────────────────────────────
         {
@@ -122,7 +130,9 @@ public class UIManager {
     // ── Factory ───────────────────────────────────────────────────────────────
     private MenuButton b(String label, int x, int y, int w, int h,
                          Color n, Color hov, Color bn, Color bh) {
-        return new MenuButton(label, x, y, w, h).setColori(n, hov, bn, bh);
+        MenuButton btn = new MenuButton(label, x, y, w, h).setColori(n, hov, bn, bh);
+        if (btnFont != null) btn.setFont(btnFont);
+        return btn;
     }
 
     // ── Hover update ─────────────────────────────────────────────────────────
@@ -161,7 +171,7 @@ public class UIManager {
 
         // D.I.T.T.O. — segreto, tutto al massimo
         listaPersonaggi.add(new DatiPersonaggio(
-                "D.I.T.T.O.", 25, 14.0f, 30,
+                "D.I.T.T.O.", 99, 14.0f, 30,
                 res.getIconaPerIndice(4),
                 res.imgPersonaggioGod != null ? res.imgPersonaggioGod : res.imgPersonaggioDefault,
                 "???",

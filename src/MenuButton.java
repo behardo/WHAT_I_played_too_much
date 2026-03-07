@@ -51,7 +51,11 @@ public class MenuButton {
         this.coloreBordoHov = coloreBordoHover;
     }
 
-    // ── Personalizzazione colori ──────────────────────────────────────────────
+    // ── Font personalizzabile ─────────────────────────────────────────────────
+    private java.awt.Font fontCustom = null;
+
+    public MenuButton setFont(java.awt.Font f) { this.fontCustom = f; return this; }
+
 
     public MenuButton setColori(Color normale, Color hover, Color bordoNorm, Color bordoHov) {
         this.coloreNormale  = normale;
@@ -87,43 +91,72 @@ public class MenuButton {
 
     public void draw(Graphics2D g2) {
         int x = bounds.x, y = bounds.y, w = bounds.width, h = bounds.height;
-        int raggio = 8; // arrotondamento angoli
 
-        // Ombra (offset di 4px in basso-destra)
-        g2.setColor(coloreOmbra);
-        g2.fillRoundRect(x + 4, y + 4, w, h, raggio, raggio);
+        // ── Ombra offset ──────────────────────────────────────────────────────
+        g2.setColor(new Color(0, 0, 0, hover ? 140 : 100));
+        g2.fillRoundRect(x + 4, y + 5, w, h, 6, 6);
 
-        // Sfondo
-        if (disabilitato) {
-            g2.setColor(coloreDisab);
-        } else {
-            g2.setColor(hover ? coloreHover : coloreNormale);
-        }
-        g2.fillRoundRect(x, y, w, h, raggio, raggio);
+        // ── Sfondo con stile 3D pixel-art ────────────────────────────────────
+        Color bg = disabilitato ? coloreDisab : (hover ? coloreHover : coloreNormale);
+        g2.setColor(bg);
+        g2.fillRoundRect(x, y, w, h, 6, 6);
 
-        // Bordo
-        g2.setColor(disabilitato ? Color.DARK_GRAY : (hover ? coloreBordoHov : coloreBordo));
-        g2.setStroke(new BasicStroke(hover ? 2.5f : 1.5f));
-        g2.drawRoundRect(x, y, w, h, raggio, raggio);
-        g2.setStroke(new BasicStroke(1f)); // reset
-
-        // Evidenziazione superiore (effetto luce)
+        // Top highlight (bordo superiore chiaro — effetto pressione)
         if (!disabilitato) {
-            g2.setColor(new Color(255, 255, 255, hover ? 30 : 15));
-            g2.fillRoundRect(x + 2, y + 2, w - 4, h / 2, raggio, raggio);
+            Color hlTop = new Color(
+                    Math.min(255, bg.getRed()   + 55),
+                    Math.min(255, bg.getGreen() + 38),
+                    Math.min(255, bg.getBlue()  + 22), 200);
+            g2.setColor(hlTop);
+            g2.fillRoundRect(x, y, w, 3, 3, 3);
+            g2.fillRoundRect(x, y, 3, h, 3, 3);
+            // Bottom-right ombra
+            Color shBot = new Color(
+                    Math.max(0, bg.getRed()   - 30),
+                    Math.max(0, bg.getGreen() - 22),
+                    Math.max(0, bg.getBlue()  - 10), 200);
+            g2.setColor(shBot);
+            g2.fillRoundRect(x + w - 3, y, 3, h, 3, 3);
+            g2.fillRoundRect(x, y + h - 3, w, 3, 3, 3);
         }
 
-        // Testo centrato — font proporzionale all'altezza del bottone
+        // ── Bordo pixel-art a due strati ──────────────────────────────────────
+        Color brd = disabilitato ? Color.DARK_GRAY : (hover ? coloreBordoHov : coloreBordo);
+        g2.setStroke(new BasicStroke(hover ? 2f : 1.5f));
+        g2.setColor(new Color(0, 0, 0, 80));
+        g2.drawRoundRect(x + 1, y + 1, w - 1, h - 1, 6, 6);
+        g2.setColor(brd);
+        g2.drawRoundRect(x, y, w, h, 6, 6);
+        g2.setStroke(new BasicStroke(1f));
+
+        // ── Hover: glow animato ────────────────────────────────────────────────
+        if (hover && !disabilitato) {
+            long ms = System.currentTimeMillis();
+            float gp = 0.5f + 0.5f * (float) Math.sin(ms * 0.006);
+            g2.setColor(new Color(
+                    coloreBordoHov.getRed(), coloreBordoHov.getGreen(), coloreBordoHov.getBlue(),
+                    Math.max(0, (int)(45 * gp))));
+            g2.setStroke(new BasicStroke(3f));
+            g2.drawRoundRect(x - 1, y - 1, w + 2, h + 2, 8, 8);
+            g2.setStroke(new BasicStroke(1f));
+            // Highlight inset
+            g2.setColor(new Color(255, 255, 255, (int)(22 * gp)));
+            g2.fillRoundRect(x + 3, y + 3, w - 6, h / 3, 4, 4);
+        }
+
+        // ── Testo centrato ────────────────────────────────────────────────────
         int btnFs = Math.max(10, (int)(h * 0.42));
-        g2.setFont(new Font("Consolas", Font.BOLD, btnFs));
+        if (fontCustom != null)
+            g2.setFont(fontCustom.deriveFont(Font.PLAIN, (float)btnFs));
+        else
+            g2.setFont(new Font("Consolas", Font.BOLD, btnFs));
         FontMetrics fm = g2.getFontMetrics();
         int tx = x + (w - fm.stringWidth(label)) / 2;
         int ty = y + (h + fm.getAscent() - fm.getDescent()) / 2;
 
         // Ombra testo
-        g2.setColor(new Color(0, 0, 0, 100));
+        g2.setColor(new Color(0, 0, 0, hover ? 130 : 90));
         g2.drawString(label, tx + 1, ty + 1);
-
         // Testo principale
         g2.setColor(disabilitato ? Color.GRAY : coloreTesto);
         g2.drawString(label, tx, ty);

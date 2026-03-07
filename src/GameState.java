@@ -72,10 +72,19 @@ public class GameState {
 
     // ── Effetto bruciatura (boss 3) ───────────────────────────────────────────
     public boolean burnAttivo  = false;
-    public int     burnTimer   = 0;          // frame rimanenti di burn
-    public int     burnTick    = 0;          // contatore per danno periodico
-    public static final int BURN_DURATA    = 180; // 3 secondi a 60fps
-    public static final int BURN_INTERVALLO = 40; // danno ogni ~0.66s
+    public int     burnTimer   = 0;
+    public int     burnTick    = 0;
+    // Freeze (ghiaccio) — immobilizza il giocatore temporaneamente
+    public boolean freezeAttivo = false;
+    public int     freezeTimer  = 0;
+    public static final int FREEZE_DURATA = 180; // 3 secondi
+    // Slow (tile ghiaccio) — riduce velocità temporaneamente
+    public boolean slowAttivo  = false;
+    public int     slowTimer   = 0;
+    public static final int SLOW_DURATA   = 180; // 3 secondi
+    public static final float SLOW_MULT   = 0.45f;
+    public static final int BURN_DURATA     = 90;  // ~1.5s = esattamente 2 tick di danno
+    public static final int BURN_INTERVALLO = 40;  // danno ogni ~0.66s
     public static final int BURN_DANNO      = 1;
     public int     stanzaNelMondo      = 1;
     public int     indiceStanzaMemoria = 0;
@@ -89,6 +98,9 @@ public class GameState {
      * solo all'inizio di una nuova partita completa.
      */
     public boolean shopSbloccato = false;
+
+    // ── UI Controlli scroll ───────────────────────────────────────────────────
+    public int controlliScrollY = 0; // offset pixel scroll tendina controlli
 
     // ── Risorse ───────────────────────────────────────────────────────────────
     public int monete = 0;
@@ -120,7 +132,7 @@ public class GameState {
     public static final int ALTEZZA_GIOCO   = RIG_TOTALI * TILE_SIZE;
     public static final int PG_SIZE         = 50;
     public static final int STANZA_BOSS     = 8;
-    public static final int MONDI_STORIA_MAX = 4;
+    public static final int MONDI_STORIA_MAX = 5;
 
     // ── Input movimento ───────────────────────────────────────────────────────
     public boolean up, down, left, right;
@@ -131,6 +143,7 @@ public class GameState {
 
     // Ricompensa stanza ardua
     public boolean ardua_completed = false; // completata in questo mondo
+    public int     stanzaConPortaArdua = 4; // stanza in cui appare la porta sud (random 3-6 per mondo)
     public String  arduaRicompensaMsg = ""; // messaggio ricompensa da mostrare
     public int     arduaRicompensaTimer = 0;
     // Malus attivi durante la stanza ardua (ripristinati all'uscita)
@@ -203,6 +216,7 @@ public class GameState {
         meleeCooldown  = 0;
         meleeAttivo    = false;
         ardua_completed      = false;
+        stanzaConPortaArdua  = 4; // verrà randomizzata da RoomManager
         arduaRicompensaMsg   = "";
         arduaRicompensaTimer = 0;
         arduaMalusDanno      = 0;
@@ -236,6 +250,8 @@ public class GameState {
         dialogoNarrazione.pulisci();
         dialogoShopkeeperNarrazioneAvviata = false;
         burnAttivo = false; burnTimer = 0; burnTick = 0;
+        freezeAttivo = false; freezeTimer = 0;
+        slowAttivo = false; slowTimer = 0;
         resetGiocatore();
     }
 

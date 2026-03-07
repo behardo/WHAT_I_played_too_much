@@ -34,7 +34,15 @@ public class InputHandler {
                 switch (state.statoGioco) {
                     case MENU                  -> gestisciMenu(k);
                     case IMPOSTAZIONI          -> gestisciImpostazioni(k);
-                    case CONTROLLI             -> { if (k == KeyEvent.VK_ESCAPE) state.statoGioco = GameState.StatoGioco.MENU; }
+                    case CONTROLLI             -> {
+                        if (k == KeyEvent.VK_ESCAPE) {
+                            state.statoGioco = state.statoPrecedente != null
+                                    ? state.statoPrecedente : GameState.StatoGioco.MENU;
+                            state.controlliScrollY = 0;
+                        }
+                        if (k == KeyEvent.VK_DOWN || k == KeyEvent.VK_S) state.controlliScrollY += 28;
+                        if (k == KeyEvent.VK_UP   || k == KeyEvent.VK_W) state.controlliScrollY = Math.max(0, state.controlliScrollY - 28);
+                    }
                     case SELEZIONE_PERSONAGGIO -> gestisciSelezionePG(k);
                     case SELEZIONE_MODALITA    -> gestisciSelezioneModalita(k);
                     case TETRIS                -> gestisciTetris(k);
@@ -65,6 +73,13 @@ public class InputHandler {
             public void mouseClicked(MouseEvent e) {
                 Point p = fullscreenMgr.scalaCoordinate(e.getX(), e.getY());
                 gestisciClick(p);
+            }
+
+            @Override
+            public void mouseWheelMoved(java.awt.event.MouseWheelEvent e) {
+                if (state.statoGioco == GameState.StatoGioco.CONTROLLI) {
+                    state.controlliScrollY = Math.max(0, state.controlliScrollY + (int)(e.getWheelRotation() * 28));
+                }
             }
 
             @Override
@@ -253,8 +268,9 @@ public class InputHandler {
                     state.statoPrecedente = GameState.StatoGioco.MENU;
                     state.statoGioco      = GameState.StatoGioco.IMPOSTAZIONI;
                 } else if (ui.btnControlli.contains(p)) {
-                    state.statoPrecedente = GameState.StatoGioco.MENU;
-                    state.statoGioco      = GameState.StatoGioco.CONTROLLI;
+                    state.statoPrecedente  = GameState.StatoGioco.MENU;
+                    state.statoGioco       = GameState.StatoGioco.CONTROLLI;
+                    state.controlliScrollY = 0;
                 } else if (ui.btnEsciMenu.contains(p))
                     System.exit(0);
             }

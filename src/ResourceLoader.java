@@ -18,7 +18,7 @@ public class ResourceLoader {
     public BufferedImage imgPersonaggioTank;
     public BufferedImage imgPersonaggioGod;
     public BufferedImage imgOstacolo;          // ostacolo.png — sovrapposto alla tile
-    public BufferedImage[] imgOstacoloPerMondo = new BufferedImage[4]; // ostacolo_m1..4.png
+    public BufferedImage[] imgOstacoloPerMondo = new BufferedImage[5]; // ostacolo_m1..5.png
     public BufferedImage imgBurn;              // burn.png — effetto bruciatura sul PG
 
     // ── Icone selezione personaggio ───────────────────────────────────────────
@@ -44,28 +44,41 @@ public class ResourceLoader {
     public BufferedImage imgPavimentoMondo3;
     public BufferedImage imgMuroMondo4;
     public BufferedImage imgPavimentoMondo4;
+    public BufferedImage imgMuroMondo5;
+    public BufferedImage imgPavimentoMondo5;
     public BufferedImage imgShopDoor;
+
+    // ── Tile effetto per mondo ────────────────────────────────────────────────
+    public BufferedImage imgTileVeleno;    // mondo 2 - Fogne
+    public BufferedImage imgTileGhiaccio;        // mondo 3 - Tundra (slow)
+    public BufferedImage imgTileGhiaccioForte;  // mondo 3 - Tundra (freeze)
+    public BufferedImage imgTileFuoco;     // mondo 4 - Fornace
+    public BufferedImage imgTileCannone;   // mondo 5 - Castello
 
     // ── Nemici per mondo (indice 0 = mondo 1, ecc.) ───────────────────────────
     // Se l'immagine specifica non esiste, fallback al mondo 1
-    public BufferedImage[] imgNemicoPerMondo  = new BufferedImage[4];
-    public BufferedImage[] imgNemicoFortePerMondo = new BufferedImage[4];
-    public BufferedImage[] imgBossPerMondo    = new BufferedImage[4];
+    public BufferedImage[] imgNemicoPerMondo  = new BufferedImage[5];
+    public BufferedImage[] imgNemicoFortePerMondo = new BufferedImage[5];
+    public BufferedImage[] imgBossPerMondo    = new BufferedImage[5];
     public BufferedImage   imgBossProjectile;
 
     // ── Proiettili per personaggio (0=BELLGERD, 1=VLAD, 2=PAUL, 3=JUICY, 4=GOD)
     public BufferedImage[] imgProiettilePerPG   = new BufferedImage[5];
     // ── Proiettili per boss (0=tipo1, 1=tipo2, 2=tipo3, 3=tipo4) ─────────────
-    public BufferedImage[] imgProiettilePerBoss = new BufferedImage[4];
+    public BufferedImage[] imgProiettilePerBoss = new BufferedImage[5];
     // ── Sprite mercante nemico ────────────────────────────────────────────────
     public BufferedImage   imgShopkeeperNemico;
     // ── Sfondi personalizzabili ───────────────────────────────────────────────
     public BufferedImage   imgSfondoMenu;
+    public BufferedImage   imgOcchioMenu;
+    public BufferedImage   imgOcchioMenu2;
+    public BufferedImage   imgOcchioMenuSmall;
     public BufferedImage   imgSfondoVittoria;
     public BufferedImage   imgSfondoGameOver;
     // ── Font bitmap ───────────────────────────────────────────────────────────
     public BitmapFont      bitmapFont;
-    public java.awt.Font   fontCustom;   // PHONIXEA.ttf se presente
+    public java.awt.Font   fontCustom;      // font principale UI
+    public java.awt.Font   fontCustomBold;  // variante bold
 
     // Mantenuti per compatibilità con codice esistente
     public BufferedImage imgNemico;
@@ -106,6 +119,7 @@ public class ResourceLoader {
         imgOstacoloPerMondo[1] = caricaConFallback("/ostacolo_m2.png", imgOstacolo);
         imgOstacoloPerMondo[2] = caricaConFallback("/ostacolo_m3.png", imgOstacolo);
         imgOstacoloPerMondo[3] = caricaConFallback("/ostacolo_m4.png", imgOstacolo);
+        imgOstacoloPerMondo[4] = caricaConFallback("/ostacolo_m5.png", imgOstacolo);
 
         // Icone selezione
         imgIconaP0             = load("/icona_p0.png");
@@ -128,6 +142,15 @@ public class ResourceLoader {
         imgPavimentoMondo3     = caricaConFallback("/pavimento3.png",  imgPavimentoMondo1);
         imgMuroMondo4          = caricaConFallback("/muro4.png",       imgMuroMondo2);
         imgPavimentoMondo4     = caricaConFallback("/pavimento4.png",  imgPavimentoMondo2);
+        imgMuroMondo5          = caricaConFallback("/muro5.png",       imgMuroMondo4);
+        imgPavimentoMondo5     = caricaConFallback("/pavimento5.png",  imgPavimentoMondo4);
+
+        // Tile effetto
+        imgTileVeleno   = caricaConFallback("/tile_veleno.png",   null);
+        imgTileGhiaccio      = caricaConFallback("/tile_ghiaccio.png",       null);
+        imgTileGhiaccioForte = caricaConFallback("/tile_ghiaccio_forte.png", null);
+        imgTileFuoco    = caricaConFallback("/tile_fuoco.png",    null);
+        imgTileCannone  = caricaConFallback("/tile_cannone.png",  null);
         imgShopDoor            = load("/shop_door.png");
 
         // Nemici base (compatibilità)
@@ -149,21 +172,32 @@ public class ResourceLoader {
         imgProiettilePerBoss[1] = caricaConFallback("/bullet_boss2.png",  imgBossProjectile);
         imgProiettilePerBoss[2] = caricaConFallback("/bullet_boss3.png",  imgBossProjectile);
         imgProiettilePerBoss[3] = caricaConFallback("/bullet_boss4.png",  imgBossProjectile);
+        imgProiettilePerBoss[4] = caricaConFallback("/bullet_boss5.png",  imgBossProjectile);
 
         // ── Sprite mercante nemico ────────────────────────────────────────────
         imgShopkeeperNemico = caricaConFallback("/shopkeeper_nemico.png", imgShopkeeper);
 
         // ── Sfondi personalizzabili ───────────────────────────────────────────
-        imgSfondoMenu     = load("/sfondo_menu.png");      // null = usa sfondo procedurale
+        imgSfondoMenu      = load("/sfondo_menu.png");
+        imgOcchioMenu      = load("/occhio_menu.png");
+        imgOcchioMenu2     = load("/occhio_menu2.png");
+        imgOcchioMenuSmall = load("/occhio_menu_small.png");
         imgSfondoVittoria = load("/sfondo_vittoria.png");  // null = usa sfondo procedurale
         imgSfondoGameOver = load("/sfondo_gameover.png");  // null = usa sfondo procedurale
 
         // ── Font bitmap ───────────────────────────────────────────────────────
         bitmapFont = new BitmapFont(load("/font.png"));
 
-        // Font TTF custom — prova PHONIXEA.ttf, poi .otf come fallback
-        fontCustom = caricaFontTTF("/PHONIXEA.ttf");
-        if (fontCustom == null) fontCustom = caricaFontTTF("/PHONIXEA.otf");
+        // Font PixelifySans — Regular per testo normale, Bold per titoli/HUD
+        fontCustom     = caricaFontTTF("/PixelifySans-Regular.ttf");
+        fontCustomBold = caricaFontTTF("/PixelifySans-Bold.ttf");
+        // Fallback: se Bold manca usa Regular
+        if (fontCustomBold == null) fontCustomBold = fontCustom;
+        // Compatibilità: se Regular manca prova il vecchio PHONIXEA
+        if (fontCustom == null) {
+            fontCustom     = caricaFontTTF("/PHONIXEA.ttf");
+            fontCustomBold = fontCustom;
+        }
 
         // ── Nemici per mondo specifico ────────────────────────────────────────
         // Mondo 1 — usa gli sprite base come fallback
@@ -181,10 +215,15 @@ public class ResourceLoader {
         imgNemicoFortePerMondo[2] = caricaConFallback("/nemico_forte_m3.png", imgNemico2);
         imgBossPerMondo[2]        = caricaConFallback("/boss_m3.png",         imgBoss);
 
-        // Mondo 4 — castello
+        // Mondo 4 — fornace
         imgNemicoPerMondo[3]      = caricaConFallback("/nemico_m4.png",      imgNemico);
         imgNemicoFortePerMondo[3] = caricaConFallback("/nemico_forte_m4.png", imgNemico2);
         imgBossPerMondo[3]        = caricaConFallback("/boss_m4.png",         imgBoss);
+
+        // Mondo 5 — castello
+        imgNemicoPerMondo[4]      = caricaConFallback("/nemico_m5.png",       imgNemicoPerMondo[0]);
+        imgNemicoFortePerMondo[4] = caricaConFallback("/nemico_forte_m5.png", imgNemicoFortePerMondo[0]);
+        imgBossPerMondo[4]        = caricaConFallback("/boss_m5.png",          imgBossPerMondo[0]);
 
         // Oggetti / UI
         imgCuore               = load("/cuore.png");
@@ -204,23 +243,17 @@ public class ResourceLoader {
      * Sprite nemico normale per il mondo dato (1-4, ciclico per infinita).
      */
     public BufferedImage getNemicoSprite(int mondoAttuale) {
-        int i = ((mondoAttuale - 1) % 4);
+        int i = ((mondoAttuale - 1) % 5);
         return imgNemicoPerMondo[i] != null ? imgNemicoPerMondo[i] : imgNemico;
     }
 
-    /**
-     * Sprite nemico forte per il mondo dato.
-     */
     public BufferedImage getNemicoForteSprite(int mondoAttuale) {
-        int i = ((mondoAttuale - 1) % 4);
+        int i = ((mondoAttuale - 1) % 5);
         return imgNemicoFortePerMondo[i] != null ? imgNemicoFortePerMondo[i] : imgNemico2;
     }
 
-    /**
-     * Sprite boss per il mondo dato.
-     */
     public BufferedImage getBossSprite(int mondoAttuale) {
-        int i = ((mondoAttuale - 1) % 4);
+        int i = ((mondoAttuale - 1) % 5);
         return imgBossPerMondo[i] != null ? imgBossPerMondo[i] : imgBoss;
     }
 

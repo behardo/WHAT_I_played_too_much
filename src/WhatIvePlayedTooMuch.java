@@ -68,6 +68,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         // 7. Renderer (dipende da tutti i precedenti)
         renderer   = new RenderEngine(state, res, roomMgr, ui, fullscreen);
         renderer.setPugniAttivi(gameLoop.pugniAttivi);
+        renderer.setProiettiliCannone(gameLoop.proiettiliCannone);
 
         // 8. Callback eventi: GameLoop → RoomManager → GameState già collegati
         //    Aggiunge listener per vittoria storia e game over se necessario
@@ -98,6 +99,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         addKeyListener(input.getKeyAdapter());
         addMouseListener(input.getMouseAdapter());
         addMouseMotionListener(input.getMouseAdapter());
+        addMouseWheelListener(input.getMouseAdapter());
 
         // 10. Avvia game loop a 60 fps
         new Timer(16, this).start();

@@ -73,7 +73,7 @@ public class TetrisGame {
     private int  tickContatore = 0;
     private int  tickInterval  = 40; // frame per caduta automatica
     private long tempoInizio;
-    public static final long DURATA_MS = 120_000; // 2 minuti
+    public static final long DURATA_MS = 120_000; // 40 secondi
     public boolean dialogoCasaMostrato = false;  // true dopo aver mostrato il dialogo fine-tetris
 
     private final Random random = new Random();
@@ -243,10 +243,17 @@ public class TetrisGame {
 
     /**
      * Power-up ottenuto in base al punteggio finale.
-     * Restituisce una stringa usata da RoomManager per generare il power-up Casa.
+     * I premi sono cumulativi: raggiungendo una soglia alta si ottengono
+     * anche tutti i premi delle soglie inferiori.
+     *   500+  → CURA
+     *   1500+ → VELOCITA  (+ CURA)
+     *   3000+ → DANNO     (+ VELOCITA + CURA)
+     *   5000+ → MELEE     (+ DANNO + VELOCITA + CURA)
+     *   6000+ → TUTTO     (tutto quanto sopra)
      */
     public String getPowerUp() {
         if (punteggio >= 6000) return "TUTTO";
+        if (punteggio >= 5000) return "MELEE";
         if (punteggio >= 3000) return "DANNO";
         if (punteggio >= 1500) return "VELOCITA";
         if (punteggio >= 500)  return "CURA";

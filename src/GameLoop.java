@@ -24,6 +24,9 @@ public class GameLoop {
     // Lista pugni condivisa con RenderEngine
     public final List<Pugno> pugniAttivi = new ArrayList<>();
 
+    // Proiettili sparati dai tile cannone (verso il giocatore)
+    public final List<BossProjectile> proiettiliCannone = new ArrayList<>();
+
     // ─────────────────────────────────────────────────────────────────────────
     public GameLoop(GameState state, RoomManager roomMgr) {
         this.state   = state;
@@ -34,7 +37,8 @@ public class GameLoop {
         this.state   = state;
         this.roomMgr = roomMgr;
         this.ui      = ui;
-        roomMgr.setPugniAttiviRef(pugniAttivi); // Per pulizia pugni al cambio stanza shop
+        roomMgr.setPugniAttiviRef(pugniAttivi);
+        roomMgr.setProiettiliCannoneRef(proiettiliCannone);
     }
 
     // ── Tick principale ───────────────────────────────────────────────────────
@@ -56,6 +60,8 @@ public class GameLoop {
         aggiornaPugni();
         aggiornaShop();
         aggiornaDialogoShopkeeper();
+        aggiornaTileEffetto();
+        aggiornaProiettiliCannone();
         aggiornaCollisioni();
         aggiornaNota();
         aggiornaUfficio();
@@ -96,7 +102,6 @@ public class GameLoop {
             float skX = sk.getX(), skY = sk.getY();
             sks.clear();
             roomMgr.getItemsShop().clear();
-            state.monete += 20;
             java.awt.image.BufferedImage imgSKN = shopkeeperNemicoImgRef != null
                     ? shopkeeperNemicoImgRef : shopkeeperImgRef;
             roomMgr.getShopNemici().add(new ShopkeeperNemico(skX, skY, imgSKN));
@@ -133,35 +138,39 @@ public class GameLoop {
         float minY = O * T;
         float maxY = (O + GameState.RIG_GIOCO) * T - GameState.PG_SIZE;
 
+        // Freeze: blocca completamente il movimento
+        if (state.freezeAttivo) return;
+
+        // Slow: velocità ridotta
+        float vel = state.velocita;
+        if (state.slowAttivo) vel *= GameState.SLOW_MULT;
+
         // Aggiorna direzione faccia (per melee)
         if      (state.up)    { state.facingX = 0;  state.facingY = -1; }
         else if (state.down)  { state.facingX = 0;  state.facingY =  1; }
         else if (state.left)  { state.facingX = -1; state.facingY =  0; }
         else if (state.right) { state.facingX =  1; state.facingY =  0; }
 
-        // ── Stanza 6-2 (porta sud dalla stanza 6) ────────────────────────────
-        if (roomMgr.inStanza62) {
-            if (state.up    && state.y > minY) state.y -= state.velocita;
-            if (state.down  && state.y < maxY) state.y += state.velocita;
-            if (state.left  && state.x > minX) state.x -= state.velocita;
-            if (state.right && state.x < maxX) state.x += state.velocita;
-            // Porta nord: esce dalla 6-2 solo se stanza pulita
-            if (state.up && state.y <= minY && inZonaCentroX()) {
-                if (roomMgr.getNemici62().isEmpty()) {
-                    roomMgr.esciDa62();
-                } else {
-                    state.y = minY + 2; // Blocca finché non hai battuto tutti
-                }
-            }
+        // ── Stanza Bonus (stanza ardua opzionale) ──────────────────────────────
+        // Una volta dentro non si puo uscire finche non si battono tutti i nemici.
+        // L'uscita avviene automaticamente dopo aver raccolto il powerup.
+        if (roomMgr.inStanzaBonus) {
+            if (state.up    && state.y > minY) state.y -= vel;
+            if (state.down  && state.y < maxY) state.y += vel;
+            if (state.left  && state.x > minX) state.x -= vel;
+            if (state.right && state.x < maxX) state.x += vel;
+            // Muri nord/sud invalicabili — il giocatore è bloccato
+            if (state.y <= minY) state.y = minY + 2;
+            if (state.y >= maxY) state.y = maxY - 2;
             return;
         }
 
         // ── Stanza Shop Nord ──────────────────────────────────────────────────
         if (roomMgr.inStanzaShop) {
-            if (state.up    && state.y > minY) state.y -= state.velocita;
-            if (state.down  && state.y < maxY) state.y += state.velocita;
-            if (state.left  && state.x > minX) state.x -= state.velocita;
-            if (state.right && state.x < maxX) state.x += state.velocita;
+            if (state.up    && state.y > minY) state.y -= vel;
+            if (state.down  && state.y < maxY) state.y += vel;
+            if (state.left  && state.x > minX) state.x -= vel;
+            if (state.right && state.x < maxX) state.x += vel;
 
             if (state.y >= maxY && state.down) {
                 roomMgr.esciDalloShop();
@@ -170,16 +179,16 @@ public class GameLoop {
         }
 
         // ── Movimento verticale ───────────────────────────────────────────────
-        if (state.up    && state.y > minY) { state.y -= state.velocita; if (collideOstacolo()) state.y += state.velocita; }
-        if (state.down  && state.y < maxY) { state.y += state.velocita; if (collideOstacolo()) state.y -= state.velocita; }
+        if (state.up    && state.y > minY) { state.y -= vel; if (collideOstacolo()) state.y += vel; }
+        if (state.down  && state.y < maxY) { state.y += vel; if (collideOstacolo()) state.y -= vel; }
 
-        // Porta sud 6-2: stanza 6, stanza pulita, giocatore in fondo al centro
-        boolean in62Aperta = state.stanzaNelMondo == 6
+        // Porta sud ardua: stanza random del mondo, pulita, non ancora completata
+        boolean in62Aperta = state.stanzaNelMondo == state.stanzaConPortaArdua
                 && !state.ardua_completed
                 && stanzaPulita()
                 && inZonaCentroX();
         if (state.down && state.y >= maxY && in62Aperta) {
-            roomMgr.entraIn62();
+            roomMgr.entraInBonus();
             return;
         }
 
@@ -200,8 +209,8 @@ public class GameLoop {
 
         if (state.left) {
             if (state.x > minX) {
-                state.x -= state.velocita;
-                if (collideOstacolo()) state.x += state.velocita;
+                state.x -= vel;
+                if (collideOstacolo()) state.x += vel;
             } else if (inZonaPorta && state.indiceStanzaMemoria > 0) {
                 // Bloccato se boss fight attiva (boss spawned e non sconfitto)
                 boolean bossAttivo = state.stanzaNelMondo == GameState.STANZA_BOSS
@@ -217,8 +226,8 @@ public class GameLoop {
 
         if (state.right) {
             if (state.x < maxX) {
-                state.x += state.velocita;
-                if (collideOstacolo()) state.x -= state.velocita;
+                state.x += vel;
+                if (collideOstacolo()) state.x -= vel;
             } else if (inZonaPorta) {
                 gestisciTransizioneDestra(maxX);
             }
@@ -362,7 +371,16 @@ public class GameLoop {
         if (!state.meleeUnlocked) return;
         if (state.meleeCooldown  > 0) state.meleeCooldown--;
         if (state.meleeNomeTimer > 0) state.meleeNomeTimer--;
-        if (state.arduaRicompensaTimer > 0) state.arduaRicompensaTimer--;
+        if (state.arduaRicompensaTimer > 0) {
+            state.arduaRicompensaTimer--;
+            if (state.arduaRicompensaTimer == 0) {
+                state.arduaRicompensaMsg = "";
+                // Esci dalla stanza bonus quando il popup finisce (qualsiasi ricompensa)
+                if (roomMgr.inStanzaBonus && state.ardua_completed) {
+                    roomMgr.esciDaBonus();
+                }
+            }
+        }
 
         if (state.meleeAttivo) {
             state.meleeAttivo = false;
@@ -428,6 +446,127 @@ public class GameLoop {
         BufferedImageRef(java.awt.image.BufferedImage img) { this.img = img; }
     }
 
+    // ── Tile effetto (veleno/ghiaccio/fuoco/cannone) ──────────────────────────
+
+    private void aggiornaTileEffetto() {
+        // Timer freeze/slow decrementati SEMPRE, indipendentemente dai tile presenti
+        if (state.freezeAttivo) {
+            state.freezeTimer--;
+            if (state.freezeTimer <= 0) { state.freezeAttivo = false; state.freezeTimer = 0; }
+        }
+        if (state.slowAttivo) {
+            state.slowTimer--;
+            if (state.slowTimer <= 0) { state.slowAttivo = false; state.slowTimer = 0; }
+        }
+
+        List<TileEffetto> tiles = roomMgr.getTileEffettoCorrenti();
+        if (tiles == null || tiles.isEmpty()) return;
+
+        for (TileEffetto te : tiles) {
+            te.tick();
+            boolean sopra = te.toccaGiocatore(state.x, state.y, GameState.PG_SIZE, GameState.TILE_SIZE);
+
+            // Cannone: spara a intervallo fisso INDIPENDENTEMENTE dalla posizione del giocatore
+            if (te.tipo == TileEffetto.Tipo.CANNONE) {
+                if (te.isReady()) lanciaProiettileCannone(te);
+                continue;
+            }
+
+            if (!sopra || !te.isReady()) continue;
+
+            switch (te.tipo) {
+                case VELENO -> {
+                    state.riceviDanno();
+                    if (state.arduaRicompensaTimer <= 50) {
+                        state.arduaRicompensaMsg   = "VELENO!";
+                        state.arduaRicompensaTimer = 50;
+                    }
+                    te.resetCooldown();
+                }
+                case FUOCO -> {
+                    state.riceviDanno();
+                    if (!state.burnAttivo) {
+                        state.burnAttivo = true;
+                        state.burnTimer  = GameState.BURN_DURATA;
+                        state.burnTick   = 0;
+                    }
+                    te.resetCooldown();
+                }
+                case GHIACCIO -> {
+                    state.slowAttivo = true;
+                    state.slowTimer  = GameState.SLOW_DURATA;
+                    te.resetCooldown();
+                }
+                case GHIACCIO_FORTE -> {
+                    if (!state.freezeAttivo) {
+                        state.freezeAttivo = true;
+                        state.freezeTimer  = GameState.FREEZE_DURATA;
+                        if (state.arduaRicompensaTimer <= 50) {
+                            state.arduaRicompensaMsg   = "CONGELATO!";
+                            state.arduaRicompensaTimer = 50;
+                        }
+                    }
+                    te.resetCooldown();
+                }
+                case CANNONE -> {
+                    lanciaProiettileCannone(te);
+                    te.resetCooldown();
+                }
+            }
+        }
+    }
+
+    private void lanciaProiettileCannone(TileEffetto te) {
+        int T = GameState.TILE_SIZE;
+        // Posizione centro tile cannone (pixel)
+        float sx = te.col * T + T / 2f;
+        float sy = te.rig * T + T / 2f;
+        // Posizione centro giocatore (pixel)
+        float tx = state.x + GameState.PG_SIZE / 2f;
+        float ty = state.y + GameState.PG_SIZE / 2f;
+        // Spara un BossProjectile verso il giocatore
+        proiettiliCannone.add(new BossProjectile(sx, sy, tx, ty,
+                null, BossProjectile.Tipo.NORMAL));
+        te.resetCooldown();
+    }
+
+    private void aggiornaProiettiliCannone() {
+        if (proiettiliCannone.isEmpty()) return;
+        int T   = GameState.TILE_SIZE;
+        int pgW = GameState.PG_SIZE;
+        Rectangle hbPG = new Rectangle((int)state.x, (int)state.y, pgW, pgW);
+        int maxX = GameState.COL_TOTALI * T;
+        int maxY = GameState.RIG_TOTALI * T;
+
+        for (int i = proiettiliCannone.size() - 1; i >= 0; i--) {
+            BossProjectile p = proiettiliCannone.get(i);
+            p.update();
+            // Rimuovi se fuori schermo
+            if (p.x < 0 || p.x > maxX || p.y < 0 || p.y > maxY) {
+                proiettiliCannone.remove(i);
+                continue;
+            }
+            // Collisione con giocatore
+            Rectangle hbP = new Rectangle((int)p.x - 8, (int)p.y - 8, 16, 16);
+            if (!state.invulnerabile && hbP.intersects(hbPG)) {
+                state.riceviDanno();
+                if (state.arduaRicompensaTimer <= 50) {
+                    state.arduaRicompensaMsg   = "CANNONE!";
+                    state.arduaRicompensaTimer = 50;
+                }
+                proiettiliCannone.remove(i);
+            }
+        }
+
+        // Pulisci i proiettili al cambio stanza
+        if (roomMgr.inStanzaBonus != (proiettiliCannone.size() > 0 &&
+                roomMgr.getTileEffettoCorrenti() != null &&
+                roomMgr.getTileEffettoCorrenti().stream()
+                        .anyMatch(te -> te.tipo == TileEffetto.Tipo.CANNONE))) {
+            // non fare nulla - li pulisce aggiornaTransizioneStanza
+        }
+    }
+
     // ── Aggiornamento pugni ───────────────────────────────────────────────────
 
     private void aggiornaPugni() {
@@ -450,8 +589,8 @@ public class GameLoop {
         java.util.List<Shopkeeper> shopkeepers = roomMgr.inStanzaShop
                 ? roomMgr.getShopkeeperShop()
                 : roomMgr.getShopkeepersCorrenti();
-        java.util.List<ShopItem> items = roomMgr.inStanza62
-                ? roomMgr.getItems62()
+        java.util.List<ShopItem> items = roomMgr.inStanzaBonus
+                ? roomMgr.getItemsBonus()
                 : roomMgr.inStanzaShop
                 ? roomMgr.getItemsShop()
                 : roomMgr.getShopItemsCorrenti();
@@ -465,6 +604,7 @@ public class GameLoop {
                 state.monete -= si.getCosto();
                 si.setAcquistato();
                 applicaEffettoItem(si.getTipo());
+                // Esce dalla bonus room quando il popup finisce (gestito dal timer in aggiornaMisc)
             }
         }
     }
@@ -475,22 +615,22 @@ public class GameLoop {
                 state.viteMaxGiocatore++;
                 state.vite = Math.min(state.vite + 1, state.viteMaxGiocatore);
                 state.arduaRicompensaMsg   = "+1 SLOT VITA!";
-                state.arduaRicompensaTimer = 180;
+                state.arduaRicompensaTimer = 90;
             }
             case "VELOCITA" -> {
                 state.velocita += 1.5f;
                 state.arduaRicompensaMsg   = "+1.5 VELOCITA!";
-                state.arduaRicompensaTimer = 180;
+                state.arduaRicompensaTimer = 90;
             }
             case "DANNO" -> {
                 state.dannoPugno += 2;
                 state.arduaRicompensaMsg   = "+2 DANNO!";
-                state.arduaRicompensaTimer = 180;
+                state.arduaRicompensaTimer = 90;
             }
             case "FIRE RATE" -> {
                 state.sparoDelayRiduzione = Math.min(state.sparoDelayRiduzione + 3, 8);
                 state.arduaRicompensaMsg   = "FIRE RATE UP!";
-                state.arduaRicompensaTimer = 180;
+                state.arduaRicompensaTimer = 90;
             }
         }
     }
@@ -498,8 +638,8 @@ public class GameLoop {
     // ── Collisioni ────────────────────────────────────────────────────────────
 
     private void aggiornaCollisioni() {
-        List<Nemico> nemici = roomMgr.inStanza62
-                ? roomMgr.getNemici62()
+        List<Nemico> nemici = roomMgr.inStanzaBonus
+                ? roomMgr.getNemiciBonus()
                 : roomMgr.inStanzaShop
                 ? roomMgr.getShopNemici()
                 : roomMgr.getNemiciCorrenti();
@@ -512,6 +652,16 @@ public class GameLoop {
 
             if (n.toccaGiocatore(state.x, state.y, GameState.PG_SIZE)) {
                 state.riceviDanno();
+                int mondoN = state.mondoAttuale;
+                if (n instanceof NemicoForte) {
+                    // Mondo 3 (Fornace) → burn a contatto
+                    if (mondoN == 3 && !state.burnAttivo) {
+                        state.burnAttivo = true;
+                        state.burnTimer  = GameState.BURN_DURATA;
+                        state.burnTick   = 0;
+                    }
+                    // Mondo 4 (Ghiacciaio): lo slow viene dai tile, non dal contatto nemico
+                }
             }
             if (n instanceof Boss b) {
                 BossProjectile.Tipo colpito =
@@ -519,9 +669,19 @@ public class GameLoop {
                 if (colpito != null) {
                     state.riceviDanno();
                     if (colpito == BossProjectile.Tipo.FUOCO) {
-                        state.burnAttivo = true;
-                        state.burnTimer  = GameState.BURN_DURATA;
-                        state.burnTick   = 0;
+                        // Boss tipo 4 (Ghiacciaio) → freeze; boss tipo 3 (Fornace) → burn
+                        if (b.getTipo() == 4) {
+                            if (!state.freezeAttivo) {
+                                state.freezeAttivo = true;
+                                state.freezeTimer  = GameState.FREEZE_DURATA;
+                                state.arduaRicompensaMsg   = "CONGELATO!";
+                                state.arduaRicompensaTimer = 60;
+                            }
+                        } else {
+                            state.burnAttivo = true;
+                            state.burnTimer  = GameState.BURN_DURATA;
+                            state.burnTick   = 0;
+                        }
                     }
                 }
             }
@@ -571,7 +731,7 @@ public class GameLoop {
                     } else if (isShopkeeper) {
                         // Shopkeeper sconfitto: sblocca melee o buffa danno se gia sbloccato
                         roomMgr.onShopkeeperSconfitto();
-                    } else if (nemici.isEmpty() && roomMgr.inStanza62) {
+                    } else if (nemici.isEmpty() && roomMgr.inStanzaBonus) {
                         // Ultimo nemico nella stanza ardua: spawna ricompensa in stanza
                         roomMgr.completaStanzaArdua();
                     } else if (nemici.isEmpty() && !roomMgr.inStanzaShop
@@ -607,7 +767,7 @@ public class GameLoop {
                         state.audio.suonaMusica(AudioManager.VITTORIA);
                     } else if (isShopkeeper2) {
                         roomMgr.onShopkeeperSconfitto();
-                    } else if (nemici.isEmpty() && roomMgr.inStanza62) {
+                    } else if (nemici.isEmpty() && roomMgr.inStanzaBonus) {
                         roomMgr.completaStanzaArdua();
                     } else if (nemici.isEmpty() && !roomMgr.inStanzaShop
                             && state.stanzaNelMondo != GameState.STANZA_BOSS) {
