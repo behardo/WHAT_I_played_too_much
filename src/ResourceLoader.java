@@ -71,6 +71,8 @@ public class ResourceLoader {
     // ── Sfondi personalizzabili ───────────────────────────────────────────────
     public BufferedImage   imgSfondoMenu;
     public BufferedImage   imgOcchioMenu;
+    public BufferedImage   imgBandieraIT;   // 🇮🇹 bandiera italiana
+    public BufferedImage   imgBandieraEN;   // 🇬🇧 bandiera inglese
     public BufferedImage   imgOcchioMenu2;
     public BufferedImage   imgOcchioMenuSmall;
     public BufferedImage   imgSfondoVittoria;
@@ -180,6 +182,8 @@ public class ResourceLoader {
         // ── Sfondi personalizzabili ───────────────────────────────────────────
         imgSfondoMenu      = load("/sfondo_menu.png");
         imgOcchioMenu      = load("/occhio_menu.png");
+        imgBandieraIT      = load("/bandiera_it.png");
+        imgBandieraEN      = load("/bandiera_en.png");
         imgOcchioMenu2     = load("/occhio_menu2.png");
         imgOcchioMenuSmall = load("/occhio_menu_small.png");
         imgSfondoVittoria = load("/sfondo_vittoria.png");  // null = usa sfondo procedurale

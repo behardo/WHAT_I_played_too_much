@@ -89,12 +89,12 @@ public class GameLoop {
             java.awt.image.BufferedImage sprPg = res.getImgGiocatorePerIndice(state.indicePersonaggioSelezionato);
             java.awt.image.BufferedImage sprSk = shopkeeperImgRef;
             state.dialogoNarrazione.pulisci();
-            state.dialogoNarrazione.aggiungi("NEGOZIANTE", sprSk,
-                    "Ehi! Non toccare la merce se non hai intenzione di comprare.", false);
-            state.dialogoNarrazione.aggiungi(state.nomePersonaggioCorrente(), sprPg,
-                    "Rilassati, sto solo dando un'occhiata...", true);
-            state.dialogoNarrazione.aggiungi("NEGOZIANTE", sprSk,
-                    "Vuoi attaccarmi?!", false);
+            state.dialogoNarrazione.aggiungiKey("dial.shop.nome", sprSk,
+                    "dial.shop.sk0", false);
+            state.dialogoNarrazione.aggiungiPgKey(state.nomePersonaggioCorrente(), sprPg,
+                    "dial.shop.pg0", true);
+            state.dialogoNarrazione.aggiungiKey("dial.shop.nome", sprSk,
+                    "dial.shop.sk1", false);
             state.dialogoNarrazione.avvia();
         }
 
@@ -350,20 +350,20 @@ public class GameLoop {
         String nomePg = state.nomePersonaggioCorrente();
 
         state.dialogoNarrazione.pulisci();
-        state.dialogoNarrazione.aggiungi("CAPO", sprCapo,
-                "Finalmente sei arrivato. Ti aspettavo.", false);
-        state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                "Ho attraversato quattro mondi per arrivare qui.", true);
-        state.dialogoNarrazione.aggiungi("CAPO", sprCapo,
-                "Lo so. Ho visto tutto.", false);
-        state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                "Allora sai anche perche sono in ritardo.", true);
-        state.dialogoNarrazione.aggiungi("CAPO", sprCapo,
-                "Sai cosa mi fa piu ridere? La riunione e stata spostata a domani.", false);
-        state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                "...", true);
-        state.dialogoNarrazione.aggiungi("CAPO", sprCapo,
-                "Siediti. Hai l'aria di qualcuno che ha bisogno di un caffe.", false);
+        state.dialogoNarrazione.aggiungiKey("dial.capo.nome", sprCapo,
+                "dial.capo.sk0", false);
+        state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg,
+                "dial.capo.pg0", true);
+        state.dialogoNarrazione.aggiungiKey("dial.capo.nome", sprCapo,
+                "dial.capo.sk1", false);
+        state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg,
+                "dial.capo.pg1", true);
+        state.dialogoNarrazione.aggiungiKey("dial.capo.nome", sprCapo,
+                "dial.capo.sk2", false);
+        state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg,
+                "dial.capo.pg2", true);
+        state.dialogoNarrazione.aggiungiKey("dial.capo.nome", sprCapo,
+                "dial.capo.sk3", false);
         state.dialogoNarrazione.avvia();
     }
 
@@ -478,7 +478,7 @@ public class GameLoop {
                 case VELENO -> {
                     state.riceviDanno();
                     if (state.arduaRicompensaTimer <= 50) {
-                        state.arduaRicompensaMsg   = "VELENO!";
+                        state.arduaRicompensaMsg   = Lang.t("popup.veleno");
                         state.arduaRicompensaTimer = 50;
                     }
                     te.resetCooldown();
@@ -502,7 +502,7 @@ public class GameLoop {
                         state.freezeAttivo = true;
                         state.freezeTimer  = GameState.FREEZE_DURATA;
                         if (state.arduaRicompensaTimer <= 50) {
-                            state.arduaRicompensaMsg   = "CONGELATO!";
+                            state.arduaRicompensaMsg   = Lang.t("popup.congelato");
                             state.arduaRicompensaTimer = 50;
                         }
                     }
@@ -551,7 +551,7 @@ public class GameLoop {
             if (!state.invulnerabile && hbP.intersects(hbPG)) {
                 state.riceviDanno();
                 if (state.arduaRicompensaTimer <= 50) {
-                    state.arduaRicompensaMsg   = "CANNONE!";
+                    state.arduaRicompensaMsg   = Lang.t("popup.cannone");
                     state.arduaRicompensaTimer = 50;
                 }
                 proiettiliCannone.remove(i);
@@ -614,22 +614,22 @@ public class GameLoop {
             case "CURA", "HP UP" -> {
                 state.viteMaxGiocatore++;
                 state.vite = Math.min(state.vite + 1, state.viteMaxGiocatore);
-                state.arduaRicompensaMsg   = "+1 SLOT VITA!";
+                state.arduaRicompensaMsg   = Lang.t("popup.vita");
                 state.arduaRicompensaTimer = 90;
             }
             case "VELOCITA" -> {
                 state.velocita += 1.5f;
-                state.arduaRicompensaMsg   = "+1.5 VELOCITA!";
+                state.arduaRicompensaMsg   = Lang.t("popup.velocita");
                 state.arduaRicompensaTimer = 90;
             }
             case "DANNO" -> {
                 state.dannoPugno += 2;
-                state.arduaRicompensaMsg   = "+2 DANNO!";
+                state.arduaRicompensaMsg   = Lang.t("popup.danno2");
                 state.arduaRicompensaTimer = 90;
             }
             case "FIRE RATE" -> {
                 state.sparoDelayRiduzione = Math.min(state.sparoDelayRiduzione + 3, 8);
-                state.arduaRicompensaMsg   = "FIRE RATE UP!";
+                state.arduaRicompensaMsg   = Lang.t("popup.firerate");
                 state.arduaRicompensaTimer = 90;
             }
         }
@@ -674,7 +674,7 @@ public class GameLoop {
                             if (!state.freezeAttivo) {
                                 state.freezeAttivo = true;
                                 state.freezeTimer  = GameState.FREEZE_DURATA;
-                                state.arduaRicompensaMsg   = "CONGELATO!";
+                                state.arduaRicompensaMsg   = Lang.t("popup.congelato");
                                 state.arduaRicompensaTimer = 60;
                             }
                         } else {

@@ -17,7 +17,7 @@ import java.awt.*;
 public class MenuButton {
 
     // ── Dati ─────────────────────────────────────────────────────────────────
-    public final String    label;
+    public String          label;
     public Rectangle bounds;
 
     /** Aggiorna posizione e dimensione del bottone (per layout fluido). */
@@ -53,8 +53,11 @@ public class MenuButton {
 
     // ── Font personalizzabile ─────────────────────────────────────────────────
     private java.awt.Font fontCustom = null;
-
     public MenuButton setFont(java.awt.Font f) { this.fontCustom = f; return this; }
+
+    // ── Icona/bandiera opzionale ──────────────────────────────────────────────
+    private java.awt.image.BufferedImage imgIcona = null;
+    public MenuButton setIcona(java.awt.image.BufferedImage img) { this.imgIcona = img; return this; }
 
 
     public MenuButton setColori(Color normale, Color hover, Color bordoNorm, Color bordoHov) {
@@ -144,22 +147,37 @@ public class MenuButton {
             g2.fillRoundRect(x + 3, y + 3, w - 6, h / 3, 4, 4);
         }
 
-        // ── Testo centrato ────────────────────────────────────────────────────
+        // ── Testo + icona centrati ────────────────────────────────────────────
         int btnFs = Math.max(10, (int)(h * 0.42));
         if (fontCustom != null)
             g2.setFont(fontCustom.deriveFont(Font.PLAIN, (float)btnFs));
         else
             g2.setFont(new Font("Consolas", Font.BOLD, btnFs));
         FontMetrics fm = g2.getFontMetrics();
-        int tx = x + (w - fm.stringWidth(label)) / 2;
+
+        int flagW = 0, flagH = 0, flagGap = 0;
+        if (imgIcona != null) {
+            flagH   = (int)(h * 0.55f);
+            flagW   = (int)(flagH * ((float)imgIcona.getWidth() / imgIcona.getHeight()));
+            flagGap = 6;
+        }
+        int totalW = flagW + flagGap + fm.stringWidth(label);
+        int startX = x + (w - totalW) / 2;
         int ty = y + (h + fm.getAscent() - fm.getDescent()) / 2;
+
+        // Disegna bandiera
+        if (imgIcona != null) {
+            int fy = y + (h - flagH) / 2;
+            g2.drawImage(imgIcona, startX, fy, flagW, flagH, null);
+            startX += flagW + flagGap;
+        }
 
         // Ombra testo
         g2.setColor(new Color(0, 0, 0, hover ? 130 : 90));
-        g2.drawString(label, tx + 1, ty + 1);
+        g2.drawString(label, startX + 1, ty + 1);
         // Testo principale
         g2.setColor(disabilitato ? Color.GRAY : coloreTesto);
-        g2.drawString(label, tx, ty);
+        g2.drawString(label, startX, ty);
     }
 
     // ── Utility posizione ─────────────────────────────────────────────────────

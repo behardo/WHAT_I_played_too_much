@@ -16,6 +16,7 @@ public class UIManager {
 
     // ── Bottoni ───────────────────────────────────────────────────────────────
     public final MenuButton btnGioca, btnImpostazioni, btnControlli, btnEsciMenu;
+    public final MenuButton btnLingua;
     public final MenuButton btnRiprendi, btnImpostazioniPausa, btnMenuPrincipalePausa, btnEsciPausa;
     public final MenuButton btnRiprova, btnMenuPrincipaleGO, btnEsciGO;
     public final MenuButton btnMenuPrincipaleVittoria;
@@ -66,19 +67,27 @@ public class UIManager {
         // ── Menu Principale ───────────────────────────────────────────────────
         {
             int s = 170;
-            btnGioca        = b("GIOCA",        CX, s,             BW, BH, nVerde, hVerde, bVerde, bVerH);
-            btnImpostazioni = b("IMPOSTAZIONI", CX, s+(BH+GAP),   BW, BH, nDark,  hBlu,   bBlu,   bBluH);
-            btnControlli    = b("CONTROLLI",    CX, s+(BH+GAP)*2, BW, BH, nDark,  hBlu,   bBlu,   bBluH);
-            btnEsciMenu     = b("ESCI",         CX, s+(BH+GAP)*3, BW, BH, nRosso, hRosso, bRosso, bRosH);
+            btnGioca        = b(Lang.t("btn.gioca"),        CX, s,             BW, BH, nVerde, hVerde, bVerde, bVerH);
+            btnImpostazioni = b(Lang.t("btn.impostazioni"), CX, s+(BH+GAP),   BW, BH, nDark,  hBlu,   bBlu,   bBluH);
+            btnControlli    = b(Lang.t("btn.controlli"),    CX, s+(BH+GAP)*2, BW, BH, nDark,  hBlu,   bBlu,   bBluH);
+            btnEsciMenu     = b(Lang.t("btn.esci"),         CX, s+(BH+GAP)*3, BW, BH, nRosso, hRosso, bRosso, bRosH);
+            // Bottone lingua — in basso a destra
+            Color nLingua  = new Color(28, 22, 48);
+            Color hLingua  = new Color(65, 50, 105);
+            Color bLingua  = new Color(95, 75, 145);
+            Color bLinguaH = new Color(155, 125, 215);
+            btnLingua = b(Lang.t("btn.lingua"), W-184, H-46, 168, 34, nLingua, hLingua, bLingua, bLinguaH);
+            // Bandiera iniziale (IT di default)
+            if (res.imgBandieraIT != null) btnLingua.setIcona(res.imgBandieraIT);
         }
 
         // ── Pausa ─────────────────────────────────────────────────────────────
         {
             int s = 154;
-            btnRiprendi            = b("RIPRENDI",     CX, s,             BW, BH, nVerde, hVerde, bVerde, bVerH);
-            btnImpostazioniPausa   = b("IMPOSTAZIONI", CX, s+(BH+GAP),   BW, BH, nDark,  hBlu,   bBlu,   bBluH);
-            btnMenuPrincipalePausa = b("MENU",         CX, s+(BH+GAP)*2, BW, BH, nDark,  hBlu,   bBlu,   bBluH);
-            btnEsciPausa           = b("ESCI",         CX, s+(BH+GAP)*3, BW, BH, nRosso, hRosso, bRosso, bRosH);
+            btnRiprendi            = b(Lang.t("btn.riprendi"),     CX, s,             BW, BH, nVerde, hVerde, bVerde, bVerH);
+            btnImpostazioniPausa   = b(Lang.t("btn.impostazioni"), CX, s+(BH+GAP),   BW, BH, nDark,  hBlu,   bBlu,   bBluH);
+            btnMenuPrincipalePausa = b(Lang.t("btn.menu"),         CX, s+(BH+GAP)*2, BW, BH, nDark,  hBlu,   bBlu,   bBluH);
+            btnEsciPausa           = b(Lang.t("btn.esci"),         CX, s+(BH+GAP)*3, BW, BH, nRosso, hRosso, bRosso, bRosH);
         }
 
         // ── Game Over ─────────────────────────────────────────────────────────
@@ -86,13 +95,13 @@ public class UIManager {
             int bw3 = 185, g3 = 12;
             int x0  = W/2 - (bw3*3 + g3*2)/2;
             int y0  = 265;
-            btnRiprova          = b("RIPROVA", x0,            y0, bw3, BH, nVerde, hVerde, bVerde, bVerH);
-            btnMenuPrincipaleGO = b("MENU",    x0+bw3+g3,     y0, bw3, BH, nDark,  hBlu,   bBlu,   bBluH);
-            btnEsciGO           = b("ESCI",    x0+(bw3+g3)*2, y0, bw3, BH, nRosso, hRosso, bRosso, bRosH);
+            btnRiprova          = b(Lang.t("btn.riprova"), x0,            y0, bw3, BH, nVerde, hVerde, bVerde, bVerH);
+            btnMenuPrincipaleGO = b(Lang.t("btn.menu"),    x0+bw3+g3,     y0, bw3, BH, nDark,  hBlu,   bBlu,   bBluH);
+            btnEsciGO           = b(Lang.t("btn.esci"),    x0+(bw3+g3)*2, y0, bw3, BH, nRosso, hRosso, bRosso, bRosH);
         }
 
         // ── Vittoria ──────────────────────────────────────────────────────────
-        btnMenuPrincipaleVittoria = b("MENU PRINCIPALE",
+        btnMenuPrincipaleVittoria = b(Lang.t("btn.menu.principale"),
                 W/2 - 150, H*3/4 - BH/2, 300, BH, nDark, hBlu, bBlu, bBluH);
 
         // ── Impostazioni ──────────────────────────────────────────────────────
@@ -108,17 +117,17 @@ public class UIManager {
             btnMusPiu             = b("+",        CX2+SW+155,  s,         SW,  SH, nVerde, hVerde, bVerde, bVerH);
             btnEffMeno            = b("-",        CX2,         s+RH,      SW,  SH, nRosso, hRosso, bRosso, bRosH);
             btnEffPiu             = b("+",        CX2+SW+155,  s+RH,      SW,  SH, nVerde, hVerde, bVerde, bVerH);
-            btnChiudiImpostazioni = b("INDIETRO", W/2-100,     s+RH*2+10, 200, BH, nDark,  hBlu,   bBlu,   bBluH);
+            btnChiudiImpostazioni = b(Lang.t("btn.indietro"), W/2-100,     s+RH*2+10, 200, BH, nDark,  hBlu,   bBlu,   bBluH);
 
             _impLabelX = LX;   _impCtrlX = CX2;  _impSw = SW;
             _impStartY = s;    _impRigaH = RH;   _impSh = SH;
         }
 
         // ── Controlli ─────────────────────────────────────────────────────────
-        btnChiudiControlli = b("INDIETRO", W/2-100, H-75, 200, BH, nDark, hBlu, bBlu, bBluH);
+        btnChiudiControlli = b(Lang.t("btn.indietro"), W/2-100, H-75, 200, BH, nDark, hBlu, bBlu, bBluH);
 
         tuttiBottoni = new MenuButton[][] {
-                { btnGioca, btnImpostazioni, btnControlli, btnEsciMenu },
+                { btnGioca, btnImpostazioni, btnControlli, btnEsciMenu, btnLingua },
                 { btnRiprendi, btnImpostazioniPausa, btnMenuPrincipalePausa, btnEsciPausa },
                 { btnRiprova, btnMenuPrincipaleGO, btnEsciGO },
                 { btnMenuPrincipaleVittoria },
@@ -148,25 +157,25 @@ public class UIManager {
         // BELLGERD — factotum equilibrato, valigia come arma
         listaPersonaggi.add(new DatiPersonaggio("BELLGERD", 6, 6.5f, 3,
                 res.getIconaPerIndice(0), res.imgPersonaggioDefault,
-                "Tuttofare. Niente di speciale.",
+                "pg.bellgerd.desc",
                 res.getBulletPerPG(0)));
 
         // VLAD — velocissimo, quasi di vetro, chiave inglese letale
         listaPersonaggi.add(new DatiPersonaggio("VLAD", 3, 11.5f, 2,
                 res.getIconaPerIndice(1), res.imgPersonaggioVeloce,
-                "Veloce. Molto veloce. Troppo.",
+                "pg.vlad.desc",
                 res.getBulletPerPG(1)));
 
         // PAUL — lentissimo ma distrugge tutto, accetta
         listaPersonaggi.add(new DatiPersonaggio("PAUL", 5, 3.5f, 6,
                 res.getIconaPerIndice(2), res.imgPersonaggioForte,
-                "Lento. Ogni colpo vale tre.",
+                "pg.paul.desc",
                 res.getBulletPerPG(2)));
 
         // JUICY — tank puro, gamepad come arma contundente
         listaPersonaggi.add(new DatiPersonaggio("JUICY", 12, 3.0f, 3,
                 res.getIconaPerIndice(3), res.imgPersonaggioTank,
-                "Non si ferma. Mai.",
+                "pg.juicy.desc",
                 res.getBulletPerPG(3)));
 
         // D.I.T.T.O. — segreto, tutto al massimo
@@ -174,7 +183,7 @@ public class UIManager {
                 "D.I.T.T.O.", 99, 14.0f, 30,
                 res.getIconaPerIndice(4),
                 res.imgPersonaggioGod != null ? res.imgPersonaggioGod : res.imgPersonaggioDefault,
-                "???",
+                "pg.ditto.desc",
                 res.getBulletPerPG(4)));
     }
 
@@ -213,6 +222,8 @@ public class UIManager {
         btnImpostazioni.setBounds(CX, s1 + (BH+GAP),   BW, BH);
         btnControlli.setBounds(CX, s1 + (BH+GAP)*2, BW, BH);
         btnEsciMenu.setBounds(CX, s1 + (BH+GAP)*3, BW, BH);
+        // Bottone lingua — angolo basso destra, fisso
+        btnLingua.setBounds(W - (int)(W*0.169), H - (int)(H*0.103), (int)(W*0.154), (int)(H*0.076));
 
         // ── Pausa ─────────────────────────────────────────────────────────────
         int s2 = (int)(H * 0.34);
@@ -222,12 +233,14 @@ public class UIManager {
         btnEsciPausa.setBounds(CX, s2 + (BH+GAP)*3, BW, BH);
 
         // ── Game Over ─────────────────────────────────────────────────────────
-        int bw3 = (int)(W * 0.17), g3 = (int)(W * 0.011);
-        int x0 = W/2 - (bw3*3 + g3*2)/2;
-        int y0 = (int)(H * 0.59);
-        btnRiprova.setBounds(x0,            y0, bw3, BH);
-        btnMenuPrincipaleGO.setBounds(x0+bw3+g3,     y0, bw3, BH);
-        btnEsciGO.setBounds(x0+(bw3+g3)*2, y0, bw3, BH);
+        // I bottoni GO vengono posizionati dinamicamente da RenderEngine
+        // ogni frame, subito sotto il pannello testo. Init con valore safe.
+        int bw3go = (int)(W * 0.155), g3go = (int)(W * 0.012);
+        int x0go  = W/2 - (bw3go*3 + g3go*2)/2;
+        int y0go  = (int)(H * 0.78);  // valore safe iniziale, sovrascritto dal renderer
+        btnRiprova.setBounds(x0go,               y0go, bw3go, BH);
+        btnMenuPrincipaleGO.setBounds(x0go + bw3go + g3go,    y0go, bw3go, BH);
+        btnEsciGO.setBounds(x0go + (bw3go + g3go)*2, y0go, bw3go, BH);
 
         // ── Vittoria ──────────────────────────────────────────────────────────
         int bvW = (int)(W * 0.27);

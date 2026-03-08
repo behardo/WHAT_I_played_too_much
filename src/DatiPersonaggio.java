@@ -12,11 +12,15 @@ public class DatiPersonaggio {
     public final int           dannoBase;
     public final BufferedImage imgIcona;
     public final BufferedImage imgGioco;
-    public final String        descrizione;
+    public final String        descrizioneKey; // chiave Lang.t() per la descrizione
+    /** Ritorna la descrizione nella lingua corrente. */
+    public String descrizione() { return Lang.t(descrizioneKey); }
+    /** Compatibilità — alias di descrizione() */
+    public String getDescrizione() { return Lang.t(descrizioneKey); }
     public final BufferedImage imgProiettile; // Proiettile specifico del personaggio
 
     public DatiPersonaggio(String nome, int vitaMax, float velocitaBase, int dannoBase,
-                           BufferedImage imgIcona, BufferedImage imgGioco, String descrizione,
+                           BufferedImage imgIcona, BufferedImage imgGioco, String descrizioneKey,
                            BufferedImage imgProiettile) {
         this.nome          = nome;
         this.vitaMax       = vitaMax;
@@ -24,7 +28,7 @@ public class DatiPersonaggio {
         this.dannoBase     = dannoBase;
         this.imgIcona      = imgIcona;
         this.imgGioco      = imgGioco;
-        this.descrizione   = descrizione;
+        this.descrizioneKey = descrizioneKey;
         this.imgProiettile = imgProiettile;
     }
 }

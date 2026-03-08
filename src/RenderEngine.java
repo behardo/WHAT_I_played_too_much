@@ -152,13 +152,16 @@ public class RenderEngine {
         ui.btnImpostazioni.draw(g2);
         ui.btnControlli.draw(g2);
         ui.btnEsciMenu.draw(g2);
+        // Bottone lingua
+        ui.btnLingua.label = Lang.t("btn.lingua");
+        ui.btnLingua.draw(g2);
 
 
         // ── Footer ────────────────────────────────────────────────────────────
         int fFs = Math.max(9, (int)(H * 0.018f));
         g2.setFont(new Font("Consolas", Font.PLAIN, fFs));
         g2.setColor(new Color(80, 60, 15, 170));
-        g2.drawString("F11 = Fullscreen", 16, H - 14);
+        g2.drawString(Lang.t("footer.fullscreen"), 16, H - 14);
         g2.drawString("v1.0", W - 46, H - 14);
     }
 
@@ -254,13 +257,15 @@ public class RenderEngine {
         g2.setColor(new Color(15,15,35,150)); g2.fillOval(lX-lR+lR/3,lY-lR,lR*2,lR*2);
         g2.setColor(new Color(185,190,230,180));
         g2.fillOval(lX-lR/3,lY-lR/5,lR/3,lR/4); g2.fillOval(lX+lR/5,lY+lR/5,lR/4,lR/5);
-        int cityY=(int)(H*0.54f), bW=W/18;
+        // cityY più basso = edifici più bassi, più cielo visibile
+        int cityY=(int)(H*0.72f), bW=W/18;
         g2.setColor(new Color(8,6,16));
         for (int i=0; i<21; i++) {
             rng.setSeed(i*137L);
-            int bH=(int)(H*(0.08f+rng.nextFloat()*0.22f));
+            // Altezza edifici: max 28% di H → non superano il 44% dall'alto
+            int bH=(int)(H*(0.06f+rng.nextFloat()*0.22f));
             int bX=i*bW-bW/5;
-            g2.fillRect(bX,cityY-bH,bW-2,bH+H);
+            g2.fillRect(bX, cityY-bH, bW-2, bH+(H-cityY));
             for (int wy=cityY-bH+6; wy<cityY-4; wy+=(int)(H*0.042f)) {
                 for (int wx=bX+4; wx<bX+bW-8; wx+=(int)(bW*0.42f)) {
                     long wSeed=i*1000L+wy+wx;
@@ -272,23 +277,29 @@ public class RenderEngine {
                 }
             }
         }
+        // Suolo piatto sotto la skyline
         g2.setColor(new Color(5,4,12)); g2.fillRect(0,cityY,W,H-cityY);
-        for (int ry=cityY; ry<cityY+(int)(H*0.05f); ry++) {
-            float ta=1f-(float)(ry-cityY)/(H*0.05f);
-            g2.setColor(new Color(200,200,120, Math.max(0,Math.min(255,(int)(14*ta)))));
+        // Riflesso luna sul suolo
+        for (int ry=cityY; ry<cityY+(int)(H*0.04f); ry++) {
+            float ta=1f-(float)(ry-cityY)/(H*0.04f);
+            g2.setColor(new Color(200,200,120, Math.max(0,Math.min(255,(int)(12*ta)))));
             g2.drawLine(lX-6,ry,lX+6,ry);
         }
         if (pioggia) {
+            // Pioggia clippata: cade solo sopra la skyline (cielo) — non attraversa gli edifici
+            g2.setClip(0, 0, W, cityY);
             int rainSeed=(int)(ms/30);
             java.util.Random rainRng=new java.util.Random(rainSeed);
             g2.setStroke(new BasicStroke(1f));
-            for (int i=0; i<120; i++) {
+            for (int i=0; i<130; i++) {
                 int rx=rainRng.nextInt(W+40)-20;
-                int ry=(int)((rainRng.nextInt(H)+(ms/15.0))%H);
-                g2.setColor(new Color(150,180,255,60+rainRng.nextInt(80)));
-                g2.drawLine(rx,ry,rx-3,ry+8+rainRng.nextInt(14));
+                int ry=(int)((rainRng.nextInt(cityY)+(ms/15.0))%cityY);
+                int alpha=55+rainRng.nextInt(70);
+                g2.setColor(new Color(150,180,255,alpha));
+                g2.drawLine(rx,ry,rx-3,ry+9+rainRng.nextInt(12));
             }
             g2.setStroke(new BasicStroke(1f));
+            g2.setClip(null); // ripristina clip
         }
     }
 
@@ -340,7 +351,7 @@ public class RenderEngine {
         int titFs=Math.max(20,(int)(H*0.072f));
         g2.setFont(res.fontCustomBold!=null?res.fontCustomBold.deriveFont(Font.PLAIN,(float)titFs):new Font("Consolas",Font.BOLD,titFs));
         FontMetrics fmT=g2.getFontMetrics();
-        String titStr="IMPOSTAZIONI";
+        String titStr=Lang.t("imp.titolo");
         int titX=W/2-fmT.stringWidth(titStr)/2;
         int titY2=panY+(int)(H*0.074f);
         // Alone titolo pulsante
@@ -377,7 +388,7 @@ public class RenderEngine {
         g2.setFont(res.fontCustomBold!=null?res.fontCustomBold.deriveFont(Font.PLAIN,(float)lbFs):new Font("Consolas",Font.BOLD,lbFs));
         g2.setColor(new Color(220,160,50,Math.max(0,Math.min(255,(int)(220*notePulse)))));
         g2.drawString("♪",LX,s+SH/2+3);
-        g2.setColor(new Color(240,222,172)); g2.drawString("MUSICA",LX+(int)(lbFs*1.3f),s+SH/2+3);
+        g2.setColor(new Color(240,222,172)); g2.drawString(Lang.t("imp.musica"),LX+(int)(lbFs*1.3f),s+SH/2+3);
         ui.btnMusMeno.draw(g2);
         disegnaSliderPixel(g2,sliderX,s+2,sliderW,SH-4,imp.volumeMusica,new Color(140,75,10),new Color(235,152,42));
         g2.setFont(res.fontCustomBold!=null?res.fontCustomBold.deriveFont(Font.PLAIN,(float)(lbFs-1)):new Font("Consolas",Font.BOLD,lbFs-1));
@@ -391,7 +402,7 @@ public class RenderEngine {
         g2.setFont(res.fontCustomBold!=null?res.fontCustomBold.deriveFont(Font.PLAIN,(float)lbFs):new Font("Consolas",Font.BOLD,lbFs));
         g2.setColor(new Color(100,205,122,Math.max(0,Math.min(255,(int)(210*effPulse)))));
         g2.drawString("♦",LX,s+RH+SH/2+3);
-        g2.setColor(new Color(200,242,202)); g2.drawString("EFFETTI",LX+(int)(lbFs*1.3f),s+RH+SH/2+3);
+        g2.setColor(new Color(200,242,202)); g2.drawString(Lang.t("imp.effetti"),LX+(int)(lbFs*1.3f),s+RH+SH/2+3);
         ui.btnEffMeno.draw(g2);
         disegnaSliderPixel(g2,sliderX,s+RH+2,sliderW,SH-4,imp.volumeEffetti,new Color(30,115,52),new Color(82,205,102));
         g2.setFont(res.fontCustomBold!=null?res.fontCustomBold.deriveFont(Font.PLAIN,(float)(lbFs-1)):new Font("Consolas",Font.BOLD,lbFs-1));
@@ -484,7 +495,7 @@ public class RenderEngine {
         int titFs=Math.max(18,(int)(H*0.070f));
         g2.setFont(res.fontCustomBold!=null?res.fontCustomBold.deriveFont(Font.PLAIN,(float)titFs):new Font("Consolas",Font.BOLD,titFs));
         FontMetrics fmT=g2.getFontMetrics();
-        String titStr="CONTROLLI";
+        String titStr=Lang.t("ctrl.titolo");
         int titX=W/2-fmT.stringWidth(titStr)/2;
         int titY2=panY+(int)(H*0.055f);
         float titGlow=0.65f+0.35f*(float)Math.sin(ms*0.0022);
@@ -512,26 +523,26 @@ public class RenderEngine {
         int startY=panY+(int)(H*0.102f)-scrollY;
         int rigaH=(int)(H*0.090f);
 
-        disegnaSezioneLabel(g2,col1X,startY-4,"GIOCO",W,H);
+        disegnaSezioneLabel(g2,col1X,startY-4,Lang.t("ctrl.sezione.gioco"),W,H);
         startY+=(int)(H*0.032f);
-        disegnaTastoInfo(g2,col1X,startY,         "W A S D","Movimento");
-        disegnaTastoInfo(g2,col2X,startY,         "Frecce", "Sparo direzionale");
-        disegnaTastoInfo(g2,col1X,startY+rigaH,   "Z",      "Attacco corpo a corpo");
-        disegnaTastoInfo(g2,col2X,startY+rigaH,   "ESC",    "Pausa");
-        disegnaTastoInfo(g2,col1X,startY+rigaH*2, "F11",    "Fullscreen");
-        disegnaTastoInfo(g2,col2X,startY+rigaH*2, "Click",  "Interagisci / Acquista");
-        disegnaTastoInfo(g2,col1X,startY+rigaH*3, "INVIO",  "Conferma dialogo");
-        disegnaTastoInfo(g2,col2X,startY+rigaH*3, "Q",      "Esci (in pausa)");
+        disegnaTastoInfo(g2,col1X,startY,         "W A S D",Lang.t("ctrl.wasd"));
+        disegnaTastoInfo(g2,col2X,startY,         "Frecce", Lang.t("ctrl.frecce"));
+        disegnaTastoInfo(g2,col1X,startY+rigaH,   "Z",      Lang.t("ctrl.z"));
+        disegnaTastoInfo(g2,col2X,startY+rigaH,   "ESC",    Lang.t("ctrl.esc"));
+        disegnaTastoInfo(g2,col1X,startY+rigaH*2, "F11",    Lang.t("ctrl.f11"));
+        disegnaTastoInfo(g2,col2X,startY+rigaH*2, "Click",  Lang.t("ctrl.click"));
+        disegnaTastoInfo(g2,col1X,startY+rigaH*3, "INVIO",  Lang.t("ctrl.invio"));
+        disegnaTastoInfo(g2,col2X,startY+rigaH*3, "Q",      Lang.t("ctrl.q"));
 
         int tetY=startY+rigaH*4+(int)(H*0.045f);
-        disegnaSezioneLabel(g2,col1X,tetY-4,"TETRIS  (stanza iniziale)",W,H);
+        disegnaSezioneLabel(g2,col1X,tetY-4,Lang.t("ctrl.sezione.tetris"),W,H);
         tetY+=(int)(H*0.032f);
-        disegnaTastoInfo(g2,col1X,tetY,         "A / D",  "Muovi pezzo");
-        disegnaTastoInfo(g2,col2X,tetY,         "W",      "Ruota pezzo");
-        disegnaTastoInfo(g2,col1X,tetY+rigaH,   "S",      "Scendi veloce");
-        disegnaTastoInfo(g2,col2X,tetY+rigaH,   "SPAZIO", "Caduta istantanea");
-        disegnaTastoInfo(g2,col1X,tetY+rigaH*2, "ESC",    "Salta Tetris");
-        disegnaTastoInfo(g2,col2X,tetY+rigaH*2, "500+ pt","CURA | 1500: VEL | 3000: DANNO | 5000: MELEE | 6000: TUTTO");
+        disegnaTastoInfo(g2,col1X,tetY,         "A / D",  Lang.t("ctrl.ad"));
+        disegnaTastoInfo(g2,col2X,tetY,         "W",      Lang.t("ctrl.w"));
+        disegnaTastoInfo(g2,col1X,tetY+rigaH,   "S",      Lang.t("ctrl.s"));
+        disegnaTastoInfo(g2,col2X,tetY+rigaH,   "SPAZIO", Lang.t("ctrl.spazio"));
+        disegnaTastoInfo(g2,col1X,tetY+rigaH*2, "ESC",    Lang.t("ctrl.escsalta"));
+        disegnaTastoInfo(g2,col2X,tetY+rigaH*2, "500+ pt",Lang.t("ctrl.punteggi"));
 
         int contenutoFine=tetY+rigaH*3+(int)(H*0.05f);
         int scrollMax=Math.max(0,contenutoFine-(panY+panH)+(int)(H*0.02f)+scrollY);
@@ -615,71 +626,173 @@ public class RenderEngine {
 
     private void disegnaSelezionePersonaggio(Graphics2D g2, int W, int H) {
         long ms = System.currentTimeMillis();
+        float sec = ms * 0.001f;
 
-        // ── Sfondo: tramonto viola/arancio ────────────────────────────────────
+        // ══ SFONDO: cielo notturno profondo blu-indaco ════════════════════════
         for (int y = 0; y < H; y++) {
             float t = (float) y / H;
-            int r  = (int)(220 - 80  * t);
-            int gv = (int)(100 - 60  * t);
-            int b  = (int)(180 - 60  * t);
-            g2.setColor(new Color(Math.max(0,r), Math.max(0,gv), Math.max(0,b)));
+            // Da blu-indaco scuro in alto a blu-notte con tocco teal in basso
+            int r  = (int)(8  + 14 * (1-t));
+            int gv = (int)(6  + 18 * (1-t));
+            int b  = (int)(28 + 42 * (1-t));
+            g2.setColor(new Color(r, gv, b));
             g2.drawLine(0, y, W, y);
         }
 
-        // ── Stelle (zona alta) ────────────────────────────────────────────────
-        java.util.Random rng = new java.util.Random(7);
-        for (int i = 0; i < 50; i++) {
-            int sx = rng.nextInt(W);
-            int sy = rng.nextInt((int)(H * 0.45f));
-            float blink = 0.5f + 0.5f * (float)Math.sin(ms * 0.0015 + i * 0.9);
-            g2.setColor(new Color(255, 240, 200, Math.max(0, Math.min(255, Math.max(0, Math.min(255, (int)(160 * blink)))))));
-            g2.fillRect(sx, sy, 2, 2);
+        // ── Nebulosa sfumata al centro ─────────────────────────────────────────
+        float nebPulse = 0.55f + 0.45f * (float)Math.sin(sec * 0.4f);
+        for (int ring = 8; ring >= 1; ring--) {
+            int nw = (int)(W * 0.55f * ring / 8f);
+            int nh = (int)(H * 0.55f * ring / 8f);
+            int nx = W/2 - nw/2;
+            int ny = H/2 - nh/2;
+            int alpha = Math.max(0, (int)(18 * nebPulse * (1f - ring / 9f)));
+            g2.setColor(new Color(40, 30, 90, alpha));
+            g2.fillOval(nx, ny, nw, nh);
         }
 
-        // ── Silhouette città bassa ────────────────────────────────────────────
-        int edH = (int)(H * 0.28f);
-        g2.setColor(new Color(18, 14, 28));
-        g2.fillRect(0, H - edH, W, edH);
-        // Finestre sparse accese
-        java.util.Random bldRng = new java.util.Random(13);
-        for (int col = 0; col < 14; col++) {
-            for (int row = 1; row <= 4; row++) {
-                if (bldRng.nextFloat() < 0.30f) {
-                    int fw = (int)(W * 0.018f), fh = (int)(H * 0.028f);
-                    int fx = (int)(W * 0.065f * col) + bldRng.nextInt(10);
-                    int fy = H - edH + (int)(H * 0.055f * row);
-                    int amber = 160 + bldRng.nextInt(80);
-                    g2.setColor(new Color(amber, (int)(amber * 0.75f), 50, 180));
-                    g2.fillRect(fx, fy, fw, fh);
+        // ── Stelle con scintillio ──────────────────────────────────────────────
+        java.util.Random rng = new java.util.Random(7);
+        for (int i = 0; i < 90; i++) {
+            int sx   = rng.nextInt(W);
+            int sy   = rng.nextInt(H);
+            float speed = 0.0008f + rng.nextFloat() * 0.002f;
+            float blink  = 0.4f + 0.6f * (float)Math.sin(ms * speed + i * 1.3f);
+            int   sz   = rng.nextFloat() < 0.12f ? 3 : 2;
+            // Stelle più alte sono più luminose
+            float brightnessBoost = 1f - (float)sy / H * 0.5f;
+            int alpha = Math.max(0, Math.min(255, (int)(200 * blink * brightnessBoost)));
+            // Variazione colore: bianche, bluastre, oro rare
+            int[] cols = rng.nextFloat() < 0.15f
+                    ? new int[]{255, 230, 130}   // stelle oro
+                    : rng.nextFloat() < 0.3f
+                    ? new int[]{180, 210, 255} // stelle blu
+                    : new int[]{255, 248, 230}; // stelle bianche
+            g2.setColor(new Color(cols[0], cols[1], cols[2], alpha));
+            g2.fillRect(sx, sy, sz, sz);
+            // Alone a croce sulle stelle grandi
+            if (sz == 3 && blink > 0.75f) {
+                int ca = Math.max(0, (int)(alpha * 0.4f));
+                g2.setColor(new Color(cols[0], cols[1], cols[2], ca));
+                g2.drawLine(sx-2, sy+1, sx+4, sy+1);
+                g2.drawLine(sx+1, sy-2, sx+1, sy+4);
+            }
+        }
+
+        // ── Pianeti decorativi sullo sfondo ────────────────────────────────────
+        // Pianeta grande a sinistra
+        int p1x = (int)(W * 0.07f), p1y = (int)(H * 0.12f), p1r = (int)(H * 0.08f);
+        g2.setColor(new Color(45, 35, 80, 120));
+        g2.fillOval(p1x - p1r, p1y - p1r, p1r*2, p1r*2);
+        g2.setColor(new Color(80, 60, 130, 60));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawOval(p1x - (int)(p1r*1.6f), p1y - (int)(p1r*0.35f), (int)(p1r*3.2f), (int)(p1r*0.7f));
+        g2.setStroke(new BasicStroke(1f));
+        // Pianeta piccolo a destra
+        int p2x = (int)(W * 0.91f), p2y = (int)(H * 0.18f), p2r = (int)(H * 0.04f);
+        g2.setColor(new Color(30, 55, 70, 100));
+        g2.fillOval(p2x - p2r, p2y - p2r, p2r*2, p2r*2);
+
+        // ── Silhouette edifici in basso (skyline) ──────────────────────────────
+        int edH = (int)(H * 0.24f);
+        // Gradiente edifici
+        for (int y = H - edH; y < H; y++) {
+            float t = (float)(y - (H - edH)) / edH;
+            g2.setColor(new Color((int)(8+6*t), (int)(8+5*t), (int)(18+10*t)));
+            g2.drawLine(0, y, W, y);
+        }
+        // Profilo edifici con altezze variabili
+        java.util.Random bldRng = new java.util.Random(42);
+        int numBld = 22;
+        int bldW = W / numBld;
+        for (int b = 0; b < numBld; b++) {
+            int bx   = b * bldW;
+            int bh   = (int)(edH * (0.3f + bldRng.nextFloat() * 0.65f));
+            int by2  = H - bh;
+            // Corpo edificio
+            int dark = 12 + bldRng.nextInt(10);
+            g2.setColor(new Color(dark, dark, dark + 8));
+            g2.fillRect(bx, by2, bldW - 1, bh);
+            // Finestre animate (alcune lampeggiano)
+            int wCols = 2 + bldRng.nextInt(3);
+            int wRows = bh / 14;
+            java.util.Random wRng = new java.util.Random(b * 100 + 7);
+            for (int wc = 0; wc < wCols; wc++) {
+                for (int wr = 1; wr <= wRows; wr++) {
+                    if (wRng.nextFloat() < 0.35f) {
+                        int wx = bx + 3 + wc * (bldW / (wCols+1));
+                        int wy = by2 + wr * 12;
+                        // Alcune finestre lampeggiano lentamente
+                        float flicker = wRng.nextFloat() < 0.08f
+                                ? (float)Math.abs(Math.sin(sec * 1.2f + b*0.7f + wr))
+                                : 1f;
+                        int amb = (int)((140 + wRng.nextInt(80)) * flicker);
+                        if (amb > 40) {
+                            g2.setColor(new Color(
+                                    Math.min(255, amb),
+                                    Math.min(255, (int)(amb * 0.78f)),
+                                    Math.min(255, (int)(amb * 0.25f)), 200));
+                            g2.fillRect(wx, wy, 4, 5);
+                        }
+                    }
                 }
             }
         }
 
-        // ── Pannello titolo ────────────────────────────────────────────────────
-        int titFs = Math.max(18, (int)(H * 0.07f));
-        // Ombra
-        g2.setColor(new Color(40, 0, 60, 180));
-        drawTextCentered(g2, "SCEGLI IL TUO PERSONAGGIO", W/2 + 2, (int)(H*0.10f)+2, titFs);
-        // Testo
+        // ── Particelle luminose fluttuanti ─────────────────────────────────────
+        java.util.Random pRng = new java.util.Random(55);
+        for (int i = 0; i < 28; i++) {
+            float baseX  = pRng.nextFloat() * W;
+            float baseY  = pRng.nextFloat() * (H * 0.75f);
+            float driftX = (float)Math.sin(sec * 0.3f + i * 0.8f) * 14f;
+            float driftY = (float)Math.cos(sec * 0.22f + i * 1.1f) * 9f
+                    - sec * (5f + pRng.nextFloat() * 8f) % (H * 0.75f);
+            float px     = (baseX + driftX + W) % W;
+            float py     = ((baseY + driftY) % (H * 0.75f) + H * 0.75f) % (H * 0.75f);
+            float bright = 0.5f + 0.5f * (float)Math.sin(sec * 1.5f + i * 2.1f);
+            int   palpha = Math.max(0, Math.min(255, (int)(180 * bright)));
+            // Colori particelle: azzurro, oro, viola
+            int[][] palette = {{120,180,255},{255,210,80},{180,120,255},{100,230,200}};
+            int[] col = palette[i % palette.length];
+            g2.setColor(new Color(col[0], col[1], col[2], palpha));
+            g2.fillOval((int)px - 2, (int)py - 2, 4, 4);
+            // Scia leggera
+            g2.setColor(new Color(col[0], col[1], col[2], palpha / 4));
+            g2.fillOval((int)px - 3, (int)py + 3, 6, 3);
+        }
+
+        // ── Titolo ────────────────────────────────────────────────────────────
+        int titFs = Math.max(18, (int)(H * 0.067f));
         g2.setFont(res.fontCustomBold != null
                 ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)titFs)
                 : new Font("Consolas", Font.BOLD, titFs));
-        g2.setColor(new Color(255, 230, 160));
-        drawTextCentered(g2, "SCEGLI IL TUO PERSONAGGIO", W/2, (int)(H*0.10f), titFs);
+        // Glow titolo
+        float titGlow = 0.7f + 0.3f * (float)Math.sin(sec * 1.2f);
+        for (int gi = 3; gi >= 1; gi--) {
+            g2.setColor(new Color(100, 160, 255, Math.max(0, (int)(35 * titGlow / gi))));
+            drawTextCentered(g2, Lang.t("pg.scegli"), W/2 - gi, (int)(H*0.095f), titFs);
+            drawTextCentered(g2, Lang.t("pg.scegli"), W/2 + gi, (int)(H*0.095f), titFs);
+        }
+        g2.setColor(new Color(0, 10, 30, 160));
+        drawTextCentered(g2, Lang.t("pg.scegli"), W/2 + 2, (int)(H*0.095f)+2, titFs);
+        g2.setColor(new Color(210, 235, 255));
+        drawTextCentered(g2, Lang.t("pg.scegli"), W/2, (int)(H*0.095f), titFs);
 
-        // Sottolineatura decorativa
-        int lineW = Math.min(W/2, (int)(W*0.5f));
+        // Sottolineatura animata
+        int lineW = (int)(W * 0.38f);
+        float lineAnim = 0.6f + 0.4f * (float)Math.sin(sec * 0.9f);
+        int lineAlpha = Math.max(0, Math.min(255, (int)(200 * lineAnim)));
         g2.setStroke(new BasicStroke(2f));
-        g2.setColor(new Color(255, 180, 80, 160));
-        g2.drawLine(W/2 - lineW/2, (int)(H*0.10f)+6, W/2 + lineW/2, (int)(H*0.10f)+6);
+        g2.setColor(new Color(120, 180, 255, lineAlpha));
+        g2.drawLine(W/2 - lineW/2, (int)(H*0.095f)+7, W/2 + lineW/2, (int)(H*0.095f)+7);
         g2.setStroke(new BasicStroke(1f));
 
         // Hint navigazione
-        int hintFs = Math.max(9, (int)(H * 0.025f));
+        int hintFs = Math.max(9, (int)(H * 0.024f));
         g2.setFont(new Font("Arial", Font.PLAIN, hintFs));
-        g2.setColor(new Color(220, 200, 255, 180));
-        String hint = "[Frecce/Mouse] naviga    [INVIO/Click] conferma    [ESC] indietro";
-        g2.drawString(hint, W/2 - g2.getFontMetrics().stringWidth(hint)/2, (int)(H*0.17f));
+        g2.setColor(new Color(150, 175, 220, 170));
+        String hint = Lang.t("pg.hint");
+        g2.drawString(hint, W/2 - g2.getFontMetrics().stringWidth(hint)/2, (int)(H*0.165f));
 
         // Hint combo segreto
         int comboB = state.sistemaPersonaggi.getContatoreBCombo();
@@ -695,56 +808,80 @@ public class RenderEngine {
         for (int i = 0; i < numMostra; i++) {
             java.awt.Rectangle r = ui.rectsSelezionePG[i];
             if (r == null) continue;
-            int rx = r.x, ry = r.y, rw = r.width, rh = r.height;
+            int rx = r.x, rw = r.width, rh = r.height;
 
             DatiPersonaggio pg      = ui.listaPersonaggi.get(i);
             boolean         lock    = !state.sistemaPersonaggi.isSbloccato(i);
             boolean         segreto = (i == SistemaPersonaggi.INDICE_SEGRETO);
             boolean         sel     = (i == state.indicePersonaggioSelezionato) && !lock;
 
-            // ── Sfondo card con gradiente simulato ────────────────────────────
+            // ── Bob verticale animato (solo card sbloccate/selezionate) ────────
+            float bobOffset = sel
+                    ? (float)Math.sin(sec * 2.2f + i * 0.9f) * 5f
+                    : (float)Math.sin(sec * 0.8f + i * 1.4f) * 2.5f;
+            int ry = r.y + (int)bobOffset;
+
+            // ── Sfondo card ───────────────────────────────────────────────────
             if (segreto) {
-                // Card oro scuro per il personaggio segreto
                 for (int dy = 0; dy < rh; dy++) {
                     float tt = (float) dy / rh;
                     g2.setColor(new Color(
-                            (int)(80 + 40*tt), (int)(45 + 20*tt), (int)(0 + 10*tt),
-                            sel ? 200 : 140));
+                            (int)(70 + 50*tt), (int)(42 + 22*tt), (int)(5 + 12*tt),
+                            sel ? 215 : 150));
                     g2.drawLine(rx+1, ry+dy, rx+rw-2, ry+dy);
                 }
             } else if (lock) {
                 for (int dy = 0; dy < rh; dy++) {
                     float tt = (float) dy / rh;
-                    g2.setColor(new Color(12, (int)(12+8*tt), (int)(22+15*tt), 160));
+                    g2.setColor(new Color(10, (int)(10+8*tt), (int)(20+18*tt), 155));
                     g2.drawLine(rx+1, ry+dy, rx+rw-2, ry+dy);
                 }
             } else {
+                // Colori card per personaggio: ogni pg ha sfumatura unica
+                int[][] cardPalette = {
+                        {25, 30, 65},   // BELLGERD — blu notte
+                        {15, 45, 25},   // VLAD — verde scuro
+                        {55, 22, 15},   // PAUL — rosso mattone
+                        {20, 20, 50},   // JUICY — indaco
+                        {60, 42,  5},   // D.I.T.T.O. — oro
+                };
+                int[] cp = cardPalette[Math.min(i, cardPalette.length-1)];
                 for (int dy = 0; dy < rh; dy++) {
                     float tt = (float) dy / rh;
-                    int base = sel ? 60 : 30;
-                    int cr = Math.min(255, Math.max(0, (int)(base + 20*tt)));
-                    int cg = Math.min(255, Math.max(0, (int)(base*0.6f)));
-                    int cb = Math.min(255, Math.max(0, (int)(base*1.4f + 30*tt)));
-                    g2.setColor(new Color(cr, cg, cb, sel ? 210 : 160));
+                    int cr = Math.min(255, (int)(cp[0] + (sel?30:14)*tt));
+                    int cg = Math.min(255, (int)(cp[1] + (sel?22:10)*tt));
+                    int cb = Math.min(255, (int)(cp[2] + (sel?35:18)*tt));
+                    g2.setColor(new Color(cr, cg, cb, sel ? 215 : 165));
                     g2.drawLine(rx+1, ry+dy, rx+rw-2, ry+dy);
                 }
             }
 
-            // ── Bordo ─────────────────────────────────────────────────────────
-            float strokeW = sel ? 3f : 1.5f;
-            Color bordo = segreto ? new Color(255, 210, 60)
-                    : lock    ? new Color(45, 45, 70)
-                    : sel     ? new Color(255, 200, 80)
-                    : new Color(120, 90, 160);
-            // Glow per selezionato
+            // ── Bordi e glow ─────────────────────────────────────────────────
+            Color bordo = segreto ? new Color(255, 200, 50)
+                    : lock    ? new Color(35, 38, 65)
+                    : sel     ? new Color(140, 200, 255)
+                    : new Color(70, 90, 140);
             if (sel) {
-                float glow = 0.6f + 0.4f * (float)Math.sin(ms * 0.004);
-                g2.setColor(new Color(255, 200, 80, Math.max(0, Math.min(255, Math.max(0, Math.min(255, (int)(60 * glow)))))));
-                g2.setStroke(new BasicStroke(7f));
+                // Glow esterno multilivello pulsante
+                float glow = 0.55f + 0.45f * (float)Math.sin(sec * 2.5f);
+                int[] glowLayers = {9, 6, 4};
+                int[] glowAlphas = {25, 45, 70};
+                for (int gl = 0; gl < 3; gl++) {
+                    int ga = Math.max(0, Math.min(255, (int)(glowAlphas[gl] * glow)));
+                    g2.setColor(new Color(100, 180, 255, ga));
+                    g2.setStroke(new BasicStroke(glowLayers[gl]));
+                    g2.drawRoundRect(rx - glowLayers[gl]/2, ry - glowLayers[gl]/2,
+                            rw + glowLayers[gl], rh + glowLayers[gl], 14, 14);
+                }
+            } else if (segreto) {
+                // Glow oro per D.I.T.T.O.
+                float glow2 = 0.5f + 0.5f * (float)Math.sin(sec * 1.5f + i);
+                g2.setColor(new Color(255, 190, 30, Math.max(0,(int)(50*glow2))));
+                g2.setStroke(new BasicStroke(5f));
                 g2.drawRoundRect(rx-2, ry-2, rw+4, rh+4, 14, 14);
             }
             g2.setColor(bordo);
-            g2.setStroke(new BasicStroke(strokeW));
+            g2.setStroke(new BasicStroke(sel ? 2.5f : 1.5f));
             g2.drawRoundRect(rx, ry, rw, rh, 10, 10);
             g2.setStroke(new BasicStroke(1f));
 
@@ -761,57 +898,74 @@ public class RenderEngine {
                 // Immagine svanita
                 if (pg.imgIcona != null) {
                     g2.setComposite(java.awt.AlphaComposite.getInstance(
-                            java.awt.AlphaComposite.SRC_OVER, 0.18f));
+                            java.awt.AlphaComposite.SRC_OVER, 0.15f));
                     g2.drawImage(pg.imgIcona, imgX, imgY, imgSize, imgSize, null);
                     g2.setComposite(java.awt.AlphaComposite.getInstance(
                             java.awt.AlphaComposite.SRC_OVER, 1f));
                 }
-                // Nome grigio
                 g2.setFont(res.fontCustomBold != null
                         ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)cardFs)
                         : new Font("Consolas", Font.BOLD, cardFs));
-                g2.setColor(new Color(70, 65, 90));
+                g2.setColor(new Color(60, 58, 82));
                 FontMetrics fmL = g2.getFontMetrics();
                 g2.drawString(pg.nome, rx + (rw - fmL.stringWidth(pg.nome))/2, nomeY);
-                // Icona lucchetto (ASCII)
-                int lockFs = Math.max(14, (int)(rh * 0.14f));
+                int lockFs = Math.max(14, (int)(rh * 0.13f));
                 g2.setFont(new Font("Consolas", Font.BOLD, lockFs));
-                g2.setColor(new Color(80, 75, 105));
+                g2.setColor(new Color(65, 62, 95));
                 String lockLbl = "[X]";
                 FontMetrics fmLk = g2.getFontMetrics();
                 g2.drawString(lockLbl, rx + (rw - fmLk.stringWidth(lockLbl))/2,
                         ry + (int)(rh * 0.72f));
-                // Testo sblocco
                 g2.setFont(new Font("Arial", Font.PLAIN, smallFs));
-                g2.setColor(new Color(110, 100, 135));
-                String[] righe = state.sistemaPersonaggi.testoSblocco(i).split("\n");
-                for (int rr = 0; rr < righe.length; rr++) {
+                g2.setColor(new Color(95, 88, 125));
+                // Testo sblocco recuperato LIVE dalla lingua corrente
+                String sbloccoKey = switch (i) {
+                    case 1 -> "pg.sblocco.1";
+                    case 2 -> "pg.sblocco.2";
+                    case 3 -> "pg.sblocco.3";
+                    case 4 -> "pg.sblocco.4";
+                    default -> "";
+                };
+                if (!sbloccoKey.isEmpty()) {
+                    // Linea 1 e linea 2 come chiavi separate per evitare problemi di escape
+                    String r1 = Lang.t(sbloccoKey + ".r1");
+                    String r2 = Lang.t(sbloccoKey + ".r2");
                     FontMetrics fm2 = g2.getFontMetrics();
-                    g2.drawString(righe[rr],
-                            rx + (rw - fm2.stringWidth(righe[rr]))/2,
-                            statsY + rr * (smallFs + 3));
+                    g2.drawString(r1, rx + (rw - fm2.stringWidth(r1))/2, statsY);
+                    if (!r2.equals(sbloccoKey + ".r2")) { // chiave non trovata = fallback
+                        g2.drawString(r2, rx + (rw - fm2.stringWidth(r2))/2, statsY + smallFs + 3);
+                    }
                 }
                 continue;
             }
 
-            // ── Icona personaggio ─────────────────────────────────────────────
+            // ── Sprite con effetti ─────────────────────────────────────────────
             if (pg.imgIcona != null) {
-                // Alone colorato sotto l'icona del selezionato
                 if (sel) {
-                    float al = 0.4f + 0.4f * (float)Math.sin(ms * 0.004);
-                    g2.setColor(new Color(255, 210, 80, Math.max(0, Math.min(255, Math.max(0, Math.min(255, (int)(50*al)))))));
-                    g2.fillOval(imgX - 6, imgY + imgSize - 12, imgSize + 12, 24);
+                    // Alone ellittico colorato sotto lo sprite (riflesso)
+                    float glowA = 0.4f + 0.4f * (float)Math.sin(sec * 2.2f);
+                    g2.setColor(new Color(100, 180, 255, Math.max(0,(int)(55*glowA))));
+                    g2.fillOval(imgX - 8, imgY + imgSize - 10, imgSize + 16, 20);
+                    // Alone attorno allo sprite (multi-layer)
+                    for (int gl = 3; gl >= 1; gl--) {
+                        int ga = Math.max(0, Math.min(255, (int)(30 * glowA / gl)));
+                        g2.setColor(new Color(120, 190, 255, ga));
+                        g2.fillOval(imgX - gl*2, imgY - gl*2, imgSize + gl*4, imgSize + gl*4);
+                    }
                 }
-                g2.drawImage(pg.imgIcona, imgX, imgY, imgSize, imgSize, null);
+                // Sprite con leggero scale-up se selezionato
+                int drawSize = sel ? (int)(imgSize * 1.06f) : imgSize;
+                int drawX    = rx + (rw - drawSize) / 2;
+                int drawY    = imgY + (imgSize - drawSize) / 2;
+                g2.drawImage(pg.imgIcona, drawX, drawY, drawSize, drawSize, null);
             } else if (segreto) {
                 g2.setFont(new Font("Serif", Font.BOLD, (int)(rh * 0.22f)));
                 g2.setColor(new Color(255, 215, 0));
                 String star = "*";
                 FontMetrics fmS = g2.getFontMetrics();
-                g2.drawString(star, rx + (rw - fmS.stringWidth(star))/2,
-                        imgY + imgSize - 4);
+                g2.drawString(star, rx + (rw - fmS.stringWidth(star))/2, imgY + imgSize - 4);
             } else {
-                g2.setColor(new Color(130, 100, 180));
+                g2.setColor(new Color(90, 70, 140));
                 g2.fillOval(imgX, imgY, imgSize, imgSize);
             }
 
@@ -819,39 +973,35 @@ public class RenderEngine {
             g2.setFont(res.fontCustomBold != null
                     ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)cardFs)
                     : new Font("Consolas", Font.BOLD, cardFs));
-            // Ombra nome
-            g2.setColor(new Color(0, 0, 0, 100));
+            g2.setColor(new Color(0, 0, 0, 110));
             FontMetrics fmN = g2.getFontMetrics();
             g2.drawString(pg.nome, rx + (rw - fmN.stringWidth(pg.nome))/2 + 1, nomeY+1);
-            // Nome
-            g2.setColor(segreto ? new Color(255, 215, 60)
-                    : sel    ? new Color(255, 230, 100)
-                    : new Color(230, 215, 255));
+            g2.setColor(segreto ? new Color(255, 210, 50)
+                    : sel    ? new Color(210, 235, 255)
+                    : new Color(180, 200, 240));
             g2.drawString(pg.nome, rx + (rw - fmN.stringWidth(pg.nome))/2, nomeY);
 
-            // ── Linea separatore ──────────────────────────────────────────────
-            g2.setColor(new Color(180, 140, 255, 60));
+            // Linea separatore
+            int sepAlpha = sel ? 120 : 55;
+            g2.setColor(new Color(120, 160, 255, sepAlpha));
             g2.drawLine(rx + rw/5, nomeY + 4, rx + rw*4/5, nomeY + 4);
 
             // ── Descrizione ───────────────────────────────────────────────────
             g2.setFont(new Font("Arial", Font.ITALIC, smallFs));
-            g2.setColor(segreto ? new Color(255, 195, 80) : new Color(190, 175, 220));
+            g2.setColor(segreto ? new Color(255, 195, 70) : new Color(160, 180, 225));
             FontMetrics fmD = g2.getFontMetrics();
-            g2.drawString(pg.descrizione,
-                    rx + (rw - fmD.stringWidth(pg.descrizione))/2, descY);
+            g2.drawString(pg.descrizione(), rx + (rw - fmD.stringWidth(pg.descrizione()))/2, descY);
 
             // ── Stats ─────────────────────────────────────────────────────────
             g2.setFont(new Font("Consolas", Font.BOLD, smallFs));
             int icoS = smallFs;
-            // Vita
             if (res.imgCuore != null)
                 g2.drawImage(res.imgCuore, rx + 6, statsY - icoS + 2, icoS, icoS, null);
-            g2.setColor(new Color(255, 110, 110));
+            g2.setColor(new Color(255, 100, 110));
             g2.drawString("" + pg.vitaMax, rx + 8 + icoS, statsY);
-            // Velocità e danno
-            g2.setColor(new Color(100, 210, 255));
+            g2.setColor(new Color(80, 200, 255));
             g2.drawString("V:" + pg.velocitaBase, rx + 6, statsY + smallFs + 4);
-            g2.setColor(new Color(255, 200, 80));
+            g2.setColor(new Color(255, 195, 60));
             g2.drawString("D:" + pg.dannoBase, rx + rw/2, statsY + smallFs + 4);
         }
     }
@@ -860,185 +1010,328 @@ public class RenderEngine {
     // ── Selezione Modalità ────────────────────────────────────────────────────
 
     private void disegnaSelezioneModalita(Graphics2D g2, int W, int H) {
-        long ms = System.currentTimeMillis();
+        long ms  = System.currentTimeMillis();
+        float sec = ms * 0.001f;
 
-        // ── Sfondo: cielo notturno blu-indaco ─────────────────────────────────
+        // ══ SFONDO: cielo notturno blu-indaco profondo ════════════════════════
         for (int y = 0; y < H; y++) {
             float t = (float) y / H;
-            int r  = (int)(10  + 15  * (1-t));
-            int gv = (int)(10  + 10  * (1-t));
-            int b  = (int)(50  + 50  * (1-t));
-            g2.setColor(new Color(r, gv, b));
+            g2.setColor(new Color((int)(5+10*(1-t)), (int)(5+12*(1-t)), (int)(18+35*(1-t))));
             g2.drawLine(0, y, W, y);
         }
 
-        // ── Stelle ────────────────────────────────────────────────────────────
-        java.util.Random rng = new java.util.Random(99);
-        for (int i = 0; i < 80; i++) {
-            int sx = rng.nextInt(W);
-            int sy = rng.nextInt((int)(H * 0.60f));
-            float blink = 0.5f + 0.5f * (float)Math.sin(ms * 0.0013 + i * 1.1);
-            int sz = rng.nextFloat() < 0.15f ? 3 : 2;
-            g2.setColor(new Color(200, 215, 255, Math.max(0, Math.min(255, Math.max(0, Math.min(255, (int)(180 * blink)))))));
+        // ── Stelle animate con scintillio ─────────────────────────────────────
+        java.util.Random rngSt = new java.util.Random(31);
+        for (int i = 0; i < 110; i++) {
+            int sx = rngSt.nextInt(W), sy = rngSt.nextInt((int)(H * 0.72f));
+            float spd = 0.0007f + rngSt.nextFloat() * 0.0025f;
+            float blink = 0.35f + 0.65f * (float)Math.sin(ms * spd + i * 1.7f);
+            int sz = rngSt.nextFloat() < 0.1f ? 3 : 2;
+            int alpha = Math.max(0, Math.min(255, (int)(210 * blink * (1f - (float)sy/H*0.35f))));
+            int[] c = rngSt.nextFloat()<0.12f ? new int[]{255,230,120}
+                    : rngSt.nextFloat()<0.25f  ? new int[]{160,200,255}
+                    : new int[]{255,250,240};
+            g2.setColor(new Color(c[0],c[1],c[2],alpha));
             g2.fillRect(sx, sy, sz, sz);
-        }
-
-        // ── Luna piena a destra ───────────────────────────────────────────────
-        float lunaPulse = 0.97f + 0.03f * (float)Math.sin(ms * 0.0009);
-        int lunaR = (int)(W * 0.048f * lunaPulse);
-        int lunaX = (int)(W * 0.84f), lunaY = (int)(H * 0.16f);
-        for (int r = lunaR + 35; r > lunaR; r -= 5) {
-            float a = 1f - (float)(r - lunaR) / 35f;
-            g2.setColor(new Color(180, 200, 255, Math.max(0, Math.min(255, (int)(20 * a)))));
-            g2.fillOval(lunaX - r, lunaY - r, r*2, r*2);
-        }
-        g2.setColor(new Color(215, 225, 255));
-        g2.fillOval(lunaX - lunaR, lunaY - lunaR, lunaR*2, lunaR*2);
-        g2.setColor(new Color(12, 12, 50, 130));
-        g2.fillOval(lunaX - lunaR + lunaR/3, lunaY - lunaR, lunaR*2, lunaR*2);
-
-        // ── Silhouette città ─────────────────────────────────────────────────
-        int edH = (int)(H * 0.30f);
-        g2.setColor(new Color(10, 10, 20));
-        g2.fillRect(0, H - edH, W, edH);
-        java.util.Random bldRng = new java.util.Random(55);
-        for (int col = 0; col < 16; col++) {
-            for (int row = 1; row <= 5; row++) {
-                if (bldRng.nextFloat() < 0.22f) {
-                    int fw = (int)(W * 0.016f), fh = (int)(H * 0.024f);
-                    int fx = (int)(W * 0.058f * col) + bldRng.nextInt(8);
-                    int fy = H - edH + (int)(H * 0.048f * row);
-                    int amber = 130 + bldRng.nextInt(60);
-                    g2.setColor(new Color(amber, (int)(amber*0.7f), 30, 160));
-                    g2.fillRect(fx, fy, fw, fh);
-                }
+            if (sz==3 && blink>0.8f) {
+                g2.setColor(new Color(c[0],c[1],c[2], Math.max(0,(int)(alpha*0.3f))));
+                g2.drawLine(sx-3,sy+1,sx+5,sy+1); g2.drawLine(sx+1,sy-3,sx+1,sy+5);
             }
         }
 
-        // ── Titolo ────────────────────────────────────────────────────────────
-        int titFs = Math.max(18, (int)(H * 0.07f));
-        g2.setColor(new Color(20, 10, 50, 180));
-        drawTextCentered(g2, "SELEZIONA LA SFIDA", W/2 + 2, (int)(H*0.10f)+2, titFs);
+        // ── Luna grande con alone e cratere ───────────────────────────────────
+        float lunaPulse = 0.97f + 0.03f * (float)Math.sin(sec * 0.4f);
+        int lunaR = (int)(W * 0.072f * lunaPulse);
+        int lunaX = (int)(W * 0.80f), lunaY = (int)(H * 0.20f);
+        // Alone esterno multi-strato
+        for (int ring = 8; ring >= 1; ring--) {
+            int rr = lunaR + ring * 8;
+            float a = 1f - (float)ring / 9f;
+            g2.setColor(new Color(200, 220, 255, Math.max(0, (int)(18 * a * lunaPulse))));
+            g2.fillOval(lunaX - rr, lunaY - rr, rr*2, rr*2);
+        }
+        // Luna piena base (bianco-crema caldo)
+        for (int r2 = lunaR; r2 >= 0; r2--) {
+            float t = 1f - (float)r2/lunaR;
+            g2.setColor(new Color(
+                    Math.min(255,(int)(230 + 20*t)),
+                    Math.min(255,(int)(235 + 15*t)),
+                    Math.min(255,(int)(210 + 30*t)), 255));
+            g2.fillOval(lunaX-r2, lunaY-r2, r2*2, r2*2);
+        }
+        // Ombra lieve (effetto sfumato lato sinistro)
+        g2.setColor(new Color(8, 10, 28, 30));
+        g2.fillOval(lunaX - lunaR + lunaR/4, lunaY - lunaR, lunaR*2, lunaR*2);
+        // Cratere 1
+        g2.setColor(new Color(180, 190, 210, 80));
+        g2.fillOval(lunaX - (int)(lunaR*0.25f), lunaY - (int)(lunaR*0.3f),
+                (int)(lunaR*0.28f), (int)(lunaR*0.18f));
+        // Cratere 2
+        g2.setColor(new Color(180, 190, 210, 60));
+        g2.fillOval(lunaX + (int)(lunaR*0.15f), lunaY + (int)(lunaR*0.15f),
+                (int)(lunaR*0.18f), (int)(lunaR*0.12f));
+        // Bordo sottile
+        g2.setColor(new Color(220, 228, 255, 60));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawOval(lunaX - lunaR, lunaY - lunaR, lunaR*2, lunaR*2);
+        g2.setStroke(new BasicStroke(1f));
+
+        // ── Nuvole leggere che passano davanti alla luna ───────────────────────
+        for (int nc = 0; nc < 3; nc++) {
+            float cx = ((sec * (18f + nc * 7f) + nc * W * 0.35f) % (W * 1.4f)) - W * 0.2f;
+            float cy = lunaY + nc * (int)(H * 0.035f) - (int)(H * 0.04f);
+            int cw = (int)(W * (0.14f + nc * 0.04f)), ch = (int)(H * 0.04f);
+            // Nuvola = ellissi sovrapposte
+            g2.setColor(new Color(180, 195, 230, 22 - nc * 5));
+            g2.fillOval((int)cx, (int)cy, cw, ch);
+            g2.fillOval((int)(cx + cw*0.25f), (int)(cy - ch*0.3f), (int)(cw*0.55f), (int)(ch*0.7f));
+            g2.fillOval((int)(cx + cw*0.55f), (int)(cy - ch*0.1f), (int)(cw*0.45f), (int)(ch*0.6f));
+        }
+
+        // ── Albero grande a sinistra ───────────────────────────────────────────
+        // Tronco
+        int trX = (int)(W * 0.11f), trYbase = H, trH = (int)(H * 0.62f);
+        int trW = (int)(W * 0.018f);
+        // Tronco con leggero movimento nel vento
+        float wind = (float)Math.sin(sec * 0.6f) * 2f;
+        int[] trunkX = {trX - trW/2, trX + trW/2,
+                trX + trW/2 + (int)(wind*2), trX - trW/2 + (int)(wind*2),
+                trX - trW/3 + (int)(wind*4), trX + trW/3 + (int)(wind*4)};
+        // Gradiente tronco (più scuro in basso, più chiaro in alto)
+        for (int seg = 0; seg < 20; seg++) {
+            float t = (float)seg / 20;
+            int ty1 = trYbase - (int)(trH * t), ty2 = trYbase - (int)(trH * (t + 0.05f));
+            int ww = Math.max(4, (int)(trW * (1f - t * 0.45f)));
+            int windOff = (int)(wind * t * 3);
+            g2.setColor(new Color((int)(28+12*t),(int)(18+8*t),(int)(8+4*t)));
+            g2.fillRect(trX - ww/2 + windOff, ty2, ww, ty1-ty2+1);
+        }
+        // Rami principali
+        java.util.Random branchRng = new java.util.Random(5);
+        int[] branchSegs = {6, 9, 12, 15, 17};
+        for (int b = 0; b < branchSegs.length; b++) {
+            float t = (float)branchSegs[b] / 20f;
+            int bx = trX + (int)(wind * t * 3);
+            int by = trYbase - (int)(trH * t);
+            int bLen = (int)(W * (0.055f + (1-t)*0.03f));
+            int bH   = (int)(H * 0.015f);
+            int dir  = (b % 2 == 0) ? 1 : -1;
+            float tilt = (float)Math.sin(sec * 0.6f + b * 0.8f) * 2f;
+            g2.setColor(new Color(22,14,6));
+            // Ramo come linea spessa
+            g2.setStroke(new BasicStroke(Math.max(2, (int)(trW * 0.5f * (1-t*0.3f)))));
+            g2.drawLine(bx, by, bx + dir * bLen + (int)(tilt*2), by - bH);
+            g2.setStroke(new BasicStroke(1f));
+        }
+        // Chioma — ellissi nere/verde scurissimo a strati
+        int foliageLayers = 7;
+        for (int layer = foliageLayers; layer >= 0; layer--) {
+            float t = (float)layer / foliageLayers;
+            float wOff = (float)Math.sin(sec * 0.6f + layer * 0.4f) * (3f * (1f-t));
+            int fw = (int)(W * (0.16f + t * 0.06f));
+            int fh = (int)(H * (0.18f + t * 0.06f));
+            int fx = trX - fw/2 + (int)(wind * (1-t) * 2) + (int)wOff;
+            int fy = trYbase - trH - (int)(H * 0.08f) - (int)(fh * t * 0.35f);
+            int green = (int)(8 + 12*t), blue = (int)(5 + 8*t);
+            int alpha = layer == 0 ? 255 : 200 + layer*6;
+            g2.setColor(new Color(6, green, blue, alpha));
+            g2.fillOval(fx, fy, fw, fh);
+        }
+        // Dettagli chioma: piccoli rami visibili
+        g2.setStroke(new BasicStroke(1.2f));
+        g2.setColor(new Color(15, 10, 4, 180));
+        for (int rb = 0; rb < 5; rb++) {
+            float t = (float)rb / 5f;
+            int rx2 = trX - (int)(W*0.06f) + rb * (int)(W*0.03f);
+            int ry2 = trYbase - trH - (int)(H*0.06f) - rb*(int)(H*0.02f);
+            float wo = (float)Math.sin(sec * 0.6f + rb) * 3f;
+            g2.drawLine(rx2, ry2, rx2 + (int)((rb-2)*14 + wo*2), ry2 - (int)(H*0.04f));
+        }
+        g2.setStroke(new BasicStroke(1f));
+
+        // ── Corvi che volano ───────────────────────────────────────────────────
+        int[][] crowData = {
+                // {seed_x, seed_y, speed_mult, size}
+                {(int)(W*0.45f), (int)(H*0.12f), 12, 8},
+                {(int)(W*0.60f), (int)(H*0.08f), 9,  6},
+                {(int)(W*0.35f), (int)(H*0.18f), 7,  7},
+                {(int)(W*0.72f), (int)(H*0.14f), 14, 5},
+                {(int)(W*0.55f), (int)(H*0.22f), 11, 6},
+        };
+        for (int[] cr : crowData) {
+            float t2 = sec * cr[2] * 0.04f;
+            // Vola in un percorso sinusoidale
+            float cx2 = ((cr[0] + t2 * W * 0.18f) % (W * 1.3f)) - W * 0.15f;
+            float cy2 = cr[1] + (float)Math.sin(t2 * 2.1f + cr[0]) * (H * 0.04f);
+            int s = cr[3];
+            // Ali in 3 posizioni: su, mezzo, giù (ogni 0.4 secondi)
+            float wingPhase = (sec * 3.5f + cr[0] * 0.01f) % 1f;
+            int wingY = wingPhase < 0.33f ? -s :
+                    wingPhase < 0.66f ? 0  : s/2;
+            // Corpo
+            g2.setColor(new Color(10, 8, 15, 230));
+            g2.fillOval((int)cx2 - s/2, (int)cy2 - s/4, s, s/2);
+            // Ali (due triangoli)
+            int[] wx1 = {(int)cx2, (int)cx2 - s*2, (int)cx2 - s};
+            int[] wy1 = {(int)cy2, (int)cy2 + wingY, (int)cy2 - 1};
+            int[] wx2 = {(int)cx2, (int)cx2 + s*2, (int)cx2 + s};
+            int[] wy2 = {(int)cy2, (int)cy2 + wingY, (int)cy2 - 1};
+            g2.fillPolygon(wx1, wy1, 3);
+            g2.fillPolygon(wx2, wy2, 3);
+        }
+
+        // ── Erba e terreno in basso ────────────────────────────────────────────
+        int grassY = H - (int)(H * 0.08f);
+        // Gradiente terreno
+        for (int y = grassY; y < H; y++) {
+            float t = (float)(y - grassY) / (H - grassY);
+            g2.setColor(new Color((int)(8+6*t),(int)(12+8*t),(int)(6+4*t)));
+            g2.drawLine(0, y, W, y);
+        }
+        // Fili d'erba animati
+        java.util.Random gRng = new java.util.Random(17);
+        for (int gi = 0; gi < 60; gi++) {
+            int gx = gRng.nextInt(W);
+            int gh = (int)(H * (0.025f + gRng.nextFloat() * 0.04f));
+            float gw = (float)Math.sin(sec * 1.2f + gi * 0.5f) * 2.5f;
+            g2.setColor(new Color(15, 28+gRng.nextInt(15), 8, 200));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawLine(gx, grassY, gx + (int)gw, grassY - gh);
+            g2.setStroke(new BasicStroke(1f));
+        }
+
+        // ── Titolo animato ────────────────────────────────────────────────────
+        int titFs = Math.max(18, (int)(H * 0.067f));
         g2.setFont(res.fontCustomBold != null
                 ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)titFs)
                 : new Font("Consolas", Font.BOLD, titFs));
-        g2.setColor(new Color(180, 210, 255));
-        drawTextCentered(g2, "SELEZIONA LA SFIDA", W/2, (int)(H*0.10f), titFs);
-
-        int lineW = (int)(W * 0.40f);
+        float titGlow = 0.65f + 0.35f * (float)Math.sin(sec * 1.1f);
+        for (int gi = 3; gi >= 1; gi--) {
+            g2.setColor(new Color(200, 220, 255, Math.max(0,(int)(28*titGlow/gi))));
+            drawTextCentered(g2, Lang.t("mod.seleziona"), W/2-gi, (int)(H*0.088f), titFs);
+            drawTextCentered(g2, Lang.t("mod.seleziona"), W/2+gi, (int)(H*0.088f), titFs);
+        }
+        g2.setColor(new Color(0,5,20,160));
+        drawTextCentered(g2, Lang.t("mod.seleziona"), W/2+2, (int)(H*0.088f)+2, titFs);
+        g2.setColor(new Color(230, 240, 255));
+        drawTextCentered(g2, Lang.t("mod.seleziona"), W/2, (int)(H*0.088f), titFs);
+        float lineA = 0.55f + 0.45f*(float)Math.sin(sec*0.85f);
         g2.setStroke(new BasicStroke(2f));
-        g2.setColor(new Color(120, 160, 255, 140));
-        g2.drawLine(W/2 - lineW/2, (int)(H*0.10f)+6, W/2 + lineW/2, (int)(H*0.10f)+6);
+        g2.setColor(new Color(180,210,255,Math.max(0,Math.min(255,(int)(180*lineA)))));
+        int lW2=(int)(W*0.34f);
+        g2.drawLine(W/2-lW2/2,(int)(H*0.088f)+7,W/2+lW2/2,(int)(H*0.088f)+7);
         g2.setStroke(new BasicStroke(1f));
 
-        int hintFs = Math.max(9, (int)(H * 0.025f));
+        int hintFs = Math.max(9,(int)(H*0.023f));
         g2.setFont(new Font("Arial", Font.PLAIN, hintFs));
-        g2.setColor(new Color(160, 185, 230, 180));
-        String hint = "[Frecce/Mouse] naviga    [INVIO/Click] conferma    [ESC] indietro";
-        g2.drawString(hint, W/2 - g2.getFontMetrics().stringWidth(hint)/2, (int)(H*0.17f));
+        g2.setColor(new Color(140,165,210,165));
+        String hint = Lang.t("mod.hint");
+        g2.drawString(hint, W/2-g2.getFontMetrics().stringWidth(hint)/2, (int)(H*0.158f));
 
         // ── Card modalità ─────────────────────────────────────────────────────
-        String[] nomi  = { "STORIA CLASSICA", "MODALITA INFINITA" };
-        String[] desc1 = { "Sconfiggi 4 Boss", "Sopravvivi all'infinito!" };
-        String[] desc2 = { "per salvare il cantiere", "Nemici sempre piu forti." };
+        String[] nomi  = { Lang.t("mod.storia"), Lang.t("mod.infinita") };
+        String[] desc1 = { Lang.t("mod.storia.d1"),  Lang.t("mod.infinita.d1") };
+        String[] desc2 = { Lang.t("mod.storia.d2"),  Lang.t("mod.infinita.d2") };
         BufferedImage[] icone = { res.imgIconaStoria, res.imgIconaInfinita };
 
-        // Palette diversa per ciascuna card
-        int[][] colTop = { {50,30,90}, {15,55,90} };    // indigo vs blu oceano
-        int[][] colBot = { {25,15,50}, {8,28,55} };
-        Color[] bordoNorm  = { new Color(100,70,180), new Color(40,110,200) };
-        Color[] bordoSel   = { new Color(200,160,255), new Color(80,180,255) };
-        Color[] nomeColore = { new Color(220,180,255), new Color(130,210,255) };
+        // Card STORIA: verde notte bosco | INFINITA: blu ghiaccio lunare
+        int[][] cardTop = { {18, 32, 18}, {12, 20, 48} };
+        int[][] cardBot = { {8,  16, 10}, {5,  10, 28} };
+        Color[] bordoN  = { new Color(35,80,40),     new Color(30,65,120) };
+        Color[] bordoS  = { new Color(80,180,90),    new Color(80,160,255) };
+        Color[] nomeCol = { new Color(150,220,140),  new Color(130,200,255) };
 
         for (int i = 0; i < 2; i++) {
             java.awt.Rectangle rect = ui.rectsSelezioneModalita[i];
             if (rect == null) continue;
             boolean sel = (i == state.indiceModalitaSelezionata);
 
-            // Gradiente card
-            for (int dy = 0; dy < rect.height; dy++) {
-                float t = (float) dy / rect.height;
-                int r  = Math.min(255, Math.max(0, (int)(colTop[i][0] + (colBot[i][0]-colTop[i][0])*t)));
-                int gv = Math.min(255, Math.max(0, (int)(colTop[i][1] + (colBot[i][1]-colTop[i][1])*t)));
-                int b  = Math.min(255, Math.max(0, (int)(colTop[i][2] + (colBot[i][2]-colTop[i][2])*t)));
-                int alpha = sel ? 230 : 170;
-                g2.setColor(new Color(r, gv, b, alpha));
-                g2.drawLine(rect.x+1, rect.y+dy, rect.x+rect.width-2, rect.y+dy);
+            // Bob verticale
+            float bob = sel ? (float)Math.sin(sec*2.0f+i*0.6f)*4f
+                    : (float)Math.sin(sec*0.7f+i*1.6f)*1.8f;
+            int ry2 = rect.y + (int)bob;
+
+            // Gradiente sfondo
+            for (int dy=0; dy<rect.height; dy++) {
+                float t=(float)dy/rect.height;
+                int boost = sel ? 20 : 0;
+                int cr=Math.min(255,(int)(cardTop[i][0]+(cardBot[i][0]-cardTop[i][0])*t)+boost);
+                int cg=Math.min(255,(int)(cardTop[i][1]+(cardBot[i][1]-cardTop[i][1])*t)+boost);
+                int cb=Math.min(255,(int)(cardTop[i][2]+(cardBot[i][2]-cardTop[i][2])*t)+boost);
+                g2.setColor(new Color(cr,cg,cb, sel?225:170));
+                g2.drawLine(rect.x+1, ry2+dy, rect.x+rect.width-2, ry2+dy);
             }
 
             // Glow selezione
             if (sel) {
-                float glow = 0.5f + 0.5f * (float)Math.sin(ms * 0.004);
-                g2.setColor(new Color(
-                        bordoSel[i].getRed(), bordoSel[i].getGreen(),
-                        bordoSel[i].getBlue(), Math.max(0, Math.min(255, Math.max(0, Math.min(255, (int)(55 * glow)))))));
-                g2.setStroke(new BasicStroke(8f));
-                g2.drawRoundRect(rect.x-3, rect.y-3, rect.width+6, rect.height+6, 18, 18);
+                float glow=0.5f+0.5f*(float)Math.sin(sec*2.3f);
+                int[] glL={9,6,4}, glA={20,40,62};
+                for (int gl=0; gl<3; gl++) {
+                    g2.setColor(new Color(bordoS[i].getRed(),bordoS[i].getGreen(),
+                            bordoS[i].getBlue(),Math.max(0,Math.min(255,(int)(glA[gl]*glow)))));
+                    g2.setStroke(new BasicStroke(glL[gl]));
+                    g2.drawRoundRect(rect.x-glL[gl]/2, ry2-glL[gl]/2,
+                            rect.width+glL[gl], rect.height+glL[gl], 16,16);
+                }
             }
-
-            // Bordo
-            g2.setColor(sel ? bordoSel[i] : bordoNorm[i]);
-            g2.setStroke(new BasicStroke(sel ? 3f : 1.8f));
-            g2.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 14, 14);
+            g2.setColor(sel ? bordoS[i] : bordoN[i]);
+            g2.setStroke(new BasicStroke(sel?2.5f:1.8f));
+            g2.drawRoundRect(rect.x, ry2, rect.width, rect.height, 14,14);
             g2.setStroke(new BasicStroke(1f));
 
-            int imgSize = (int)(rect.width * 0.42f);
-            int imgX    = rect.x + (rect.width - imgSize) / 2;
-            int imgY    = rect.y + (int)(rect.height * 0.07f);
-            int nomeY   = rect.y + (int)(rect.height * 0.60f);
-            int d1Y     = rect.y + (int)(rect.height * 0.73f);
-            int d2Y     = rect.y + (int)(rect.height * 0.84f);
-            int nomeFs  = Math.max(11, (int)(rect.width * 0.092f));
-            int descFs  = Math.max(9,  (int)(rect.width * 0.075f));
+            int imgSize=(int)(rect.width*0.42f), imgX=rect.x+(rect.width-imgSize)/2;
+            int imgY=ry2+(int)(rect.height*0.07f);
+            int nomeY=ry2+(int)(rect.height*0.60f);
+            int d1Y=ry2+(int)(rect.height*0.73f), d2Y=ry2+(int)(rect.height*0.84f);
+            int nomeFs=Math.max(11,(int)(rect.width*0.088f));
+            int descFs=Math.max(9,(int)(rect.width*0.072f));
 
-            // Icona
             if (icone[i] != null) {
                 if (sel) {
-                    float al = 0.35f + 0.35f * (float)Math.sin(ms * 0.003);
-                    g2.setColor(new Color(bordoSel[i].getRed(), bordoSel[i].getGreen(),
-                            bordoSel[i].getBlue(), Math.max(0, Math.min(255, Math.max(0, Math.min(255, (int)(45*al)))))));
-                    g2.fillOval(imgX - 8, imgY + imgSize - 14, imgSize + 16, 28);
+                    float al=0.35f+0.35f*(float)Math.sin(sec*2.0f+i*0.6f);
+                    g2.setColor(new Color(bordoS[i].getRed(),bordoS[i].getGreen(),
+                            bordoS[i].getBlue(),Math.max(0,Math.min(255,(int)(45*al)))));
+                    g2.fillOval(imgX-8, imgY+imgSize-14, imgSize+16, 28);
+                    for (int gl=3; gl>=1; gl--) {
+                        g2.setColor(new Color(bordoS[i].getRed(),bordoS[i].getGreen(),
+                                bordoS[i].getBlue(),Math.max(0,(int)(25*al/gl))));
+                        g2.fillOval(imgX-gl*2, imgY-gl*2, imgSize+gl*4, imgSize+gl*4);
+                    }
                 }
-                g2.drawImage(icone[i], imgX, imgY, imgSize, imgSize, null);
+                int dSz=sel?(int)(imgSize*1.05f):imgSize;
+                g2.drawImage(icone[i], rect.x+(rect.width-dSz)/2, imgY+(imgSize-dSz)/2, dSz,dSz,null);
             } else {
-                // Fallback testuale elegante
-                g2.setFont(res.fontCustomBold != null
-                        ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)(rect.height * 0.24f))
-                        : new Font("Consolas", Font.BOLD, (int)(rect.height * 0.24f)));
-                g2.setColor(sel ? bordoSel[i] : bordoNorm[i]);
-                String fb = i == 0 ? "S" : "INF";
-                FontMetrics fmFb = g2.getFontMetrics();
-                g2.drawString(fb, rect.x + (rect.width - fmFb.stringWidth(fb))/2,
-                        imgY + imgSize);
+                g2.setFont(res.fontCustomBold!=null
+                        ? res.fontCustomBold.deriveFont(Font.PLAIN,(float)(rect.height*0.24f))
+                        : new Font("Consolas",Font.BOLD,(int)(rect.height*0.24f)));
+                g2.setColor(sel?bordoS[i]:bordoN[i]);
+                String fb = i==0 ? Lang.t("mod.s.desc") : Lang.t("mod.inf.desc");
+                FontMetrics fmFb=g2.getFontMetrics();
+                g2.drawString(fb, rect.x+(rect.width-fmFb.stringWidth(fb))/2, imgY+imgSize);
             }
 
-            // Nome
-            g2.setColor(new Color(0, 0, 0, 100));
-            g2.setFont(res.fontCustomBold != null
-                    ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)nomeFs)
-                    : new Font("Consolas", Font.BOLD, nomeFs));
-            FontMetrics fmNm = g2.getFontMetrics();
-            g2.drawString(nomi[i], rect.x + (rect.width - fmNm.stringWidth(nomi[i]))/2+1, nomeY+1);
-            g2.setColor(sel ? bordoSel[i] : nomeColore[i]);
-            g2.drawString(nomi[i], rect.x + (rect.width - fmNm.stringWidth(nomi[i]))/2, nomeY);
+            g2.setFont(res.fontCustomBold!=null
+                    ? res.fontCustomBold.deriveFont(Font.PLAIN,(float)nomeFs)
+                    : new Font("Consolas",Font.BOLD,nomeFs));
+            FontMetrics fmN=g2.getFontMetrics();
+            g2.setColor(new Color(0,0,0,115));
+            g2.drawString(nomi[i], rect.x+(rect.width-fmN.stringWidth(nomi[i]))/2+1, nomeY+1);
+            g2.setColor(sel ? bordoS[i] : nomeCol[i]);
+            g2.drawString(nomi[i], rect.x+(rect.width-fmN.stringWidth(nomi[i]))/2, nomeY);
 
-            // Separatore
-            g2.setColor(new Color(bordoNorm[i].getRed(), bordoNorm[i].getGreen(),
-                    bordoNorm[i].getBlue(), 80));
-            g2.drawLine(rect.x + rect.width/5, nomeY+5,
-                    rect.x + rect.width*4/5, nomeY+5);
+            g2.setColor(new Color(bordoN[i].getRed(),bordoN[i].getGreen(),
+                    bordoN[i].getBlue(), sel?100:45));
+            g2.drawLine(rect.x+rect.width/5, nomeY+5, rect.x+rect.width*4/5, nomeY+5);
 
-            // Descrizione
             g2.setFont(new Font("Arial", Font.ITALIC, descFs));
-            g2.setColor(new Color(190, 200, 230));
-            FontMetrics fmD = g2.getFontMetrics();
-            g2.drawString(desc1[i], rect.x + (rect.width - fmD.stringWidth(desc1[i]))/2, d1Y);
+            g2.setColor(sel ? new Color(195,220,200) : new Color(140,170,155));
+            FontMetrics fmD=g2.getFontMetrics();
+            g2.drawString(desc1[i], rect.x+(rect.width-fmD.stringWidth(desc1[i]))/2, d1Y);
             g2.setFont(new Font("Arial", Font.PLAIN, descFs));
-            g2.setColor(new Color(150, 165, 200));
-            g2.drawString(desc2[i], rect.x + (rect.width - fmD.stringWidth(desc2[i]))/2, d2Y);
+            g2.setColor(sel ? new Color(170,200,180) : new Color(115,148,132));
+            g2.drawString(desc2[i], rect.x+(rect.width-fmD.stringWidth(desc2[i]))/2, d2Y);
         }
     }
-
     // ── Pausa ─────────────────────────────────────────────────────────────────
 
     private void disegnaPausa(Graphics2D g2, int W, int H) {
@@ -1082,12 +1375,12 @@ public class RenderEngine {
         int titFs=(int)(H*0.065f);
         g2.setFont(res.fontCustomBold!=null?res.fontCustomBold.deriveFont(Font.PLAIN,(float)titFs):new Font("Consolas",Font.BOLD,titFs));
         FontMetrics fmT=g2.getFontMetrics();
-        int txp=W/2-fmT.stringWidth("PAUSA")/2;
+        int txp=W/2-fmT.stringWidth(Lang.t("pausa.titolo"))/2;
         int typ=titY2+(int)(H*0.044f);
         float tGlow=0.65f+0.35f*(float)Math.sin(ms*0.0025);
-        for (int i=3;i>0;i--){g2.setColor(new Color(220,155,38,Math.max(0,(int)(26*tGlow*i))));g2.drawString("PAUSA",txp-i,typ);g2.drawString("PAUSA",txp+i,typ);g2.drawString("PAUSA",txp,typ-i);g2.drawString("PAUSA",txp,typ+i);}
-        g2.setColor(new Color(45,25,4,175)); g2.drawString("PAUSA",txp+2,typ+2);
-        g2.setColor(new Color(235,192,78));  g2.drawString("PAUSA",txp,typ);
+        for (int i=3;i>0;i--){g2.setColor(new Color(220,155,38,Math.max(0,(int)(26*tGlow*i))));g2.drawString(Lang.t("pausa.titolo"),txp-i,typ);g2.drawString(Lang.t("pausa.titolo"),txp+i,typ);g2.drawString(Lang.t("pausa.titolo"),txp,typ-i);g2.drawString(Lang.t("pausa.titolo"),txp,typ+i);}
+        g2.setColor(new Color(45,25,4,175)); g2.drawString(Lang.t("pausa.titolo"),txp+2,typ+2);
+        g2.setColor(new Color(235,192,78));  g2.drawString(Lang.t("pausa.titolo"),txp,typ);
         // Linea
         int lhw=(int)(panW*0.32f);
         g2.setColor(new Color(108,62,13,215)); g2.fillRect(W/2-lhw,titY2+(int)(H*0.054f),lhw*2,2);
@@ -1111,39 +1404,262 @@ public class RenderEngine {
     // ── Game Over ─────────────────────────────────────────────────────────────
 
     private void disegnaGameOver(Graphics2D g2, int W, int H) {
-        long ms = System.currentTimeMillis();
-        sfondoCitta(g2, W, H, ms, true);
+        long ms  = System.currentTimeMillis();
+        java.util.Random rng = new java.util.Random();
 
-        // ── Pannello testo centrale ────────────────────────────────────────────
-        int panW = (int)(W*0.58f), panH = (int)(H*0.38f);
-        int panX = W/2-panW/2, panY = (int)(H*0.33f);
-        disegnaPannelloPixel(g2, panX, panY, panW, panH, new Color(8,6,22,220), new Color(60,70,120));
+        // ══════════════════════════════════════════════════════════════════════
+        // SFONDO — statico TV bianco/grigio che lampeggia
+        // ══════════════════════════════════════════════════════════════════════
+        // Base nera
+        g2.setColor(Color.BLACK);
+        g2.fillRect(0, 0, W, H);
 
-        // ── Titolo ─────────────────────────────────────────────────────────────
-        int titFs = Math.max(22, (int)(H*0.092f));
-        g2.setFont(res.fontCustomBold!=null ? res.fontCustomBold.deriveFont(Font.PLAIN,(float)titFs) : new Font("Consolas",Font.BOLD,titFs));
-        g2.setColor(new Color(0,0,30,200));    drawTextCentered(g2,"NON CE L'HAI FATTA.",W/2+3,panY+(int)(panH*0.36f)+3,titFs);
-        g2.setColor(new Color(200,215,255));   drawTextCentered(g2,"NON CE L'HAI FATTA.",W/2,  panY+(int)(panH*0.36f),  titFs);
-        // Linea
-        disegnaLineaOrnamentale(g2, W/2, panY+(int)(panH*0.46f), (int)(panW*0.40f));
-
-        // ── Sottotitolo ────────────────────────────────────────────────────────
-        int subFs = Math.max(12, (int)(H*0.028f));
-        g2.setFont(res.fontCustom!=null ? res.fontCustom.deriveFont(Font.PLAIN,(float)subFs) : new Font("Consolas",Font.PLAIN,subFs));
-        g2.setColor(new Color(155,170,215,210));
-        drawTextCentered(g2,"L'ufficio aspettera ancora.",W/2,panY+(int)(panH*0.57f),subFs);
-
-        // ── Stats ──────────────────────────────────────────────────────────────
-        int stFs = Math.max(10, (int)(H*0.024f));
-        g2.setFont(res.fontCustomBold!=null ? res.fontCustomBold.deriveFont(Font.PLAIN,(float)stFs) : new Font("Consolas",Font.BOLD,stFs));
-        g2.setColor(new Color(130,148,195,200));
-        String stats = "Mondo "+state.mondoAttuale+"  |  Stanza "+state.stanzaNelMondo+"  |  Monete "+state.monete;
-        drawTextCentered(g2, stats, W/2, panY+(int)(panH*0.72f), stFs);
-        if (state.modalitaScelta == GameState.Modalita.INFINITA) {
-            int tot = (state.mondoAttuale-1)*GameState.STANZA_BOSS+state.stanzaNelMondo;
-            g2.setColor(new Color(175,155,98,200));
-            drawTextCentered(g2,"Stanze totali: "+tot, W/2, panY+(int)(panH*0.86f), stFs);
+        // Statico: rumore casuale di pixel bianchi/grigi su tutto lo schermo
+        rng.setSeed(ms / 40); // cambia ~25fps per effetto statico
+        for (int i = 0; i < W * H / 6; i++) {
+            int sx = rng.nextInt(W);
+            int sy = rng.nextInt(H);
+            int br = 30 + rng.nextInt(200);
+            int sz = rng.nextInt(3) == 0 ? 2 : 1;
+            g2.setColor(new Color(br, br, br, 160 + rng.nextInt(95)));
+            g2.fillRect(sx, sy, sz, sz);
         }
+
+        // Linee orizzontali scansione CRT — strisce scure ogni ~4px
+        for (int y = 0; y < H; y += 4) {
+            g2.setColor(new Color(0, 0, 0, 80));
+            g2.drawLine(0, y, W, y);
+        }
+
+        // Vignette bordi schermo
+        for (int v = 0; v < 80; v++) {
+            float a = (float)v / 80f;
+            int al = Math.max(0, (int)(180 * (1 - a)));
+            g2.setColor(new Color(0, 0, 0, al));
+            g2.drawRect(v, v, W - v*2, H - v*2);
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // MONITOR — cornice CRT al centro
+        // ══════════════════════════════════════════════════════════════════════
+        // Layout verticale garantito: monitor + controller + bottoni entrano tutti
+        int btnH_est = ui.btnRiprova.bounds.height; // altezza bottone stimata
+        int ctrlH_est = (int)((W * 0.32f) * 0.48f); // altezza controller stimata
+        int gap1 = (int)(H * 0.018f); // gap monitor→controller
+        int gap2 = (int)(H * 0.025f); // gap controller→bottoni
+        int totalBottom = ctrlH_est + gap1 + gap2 + btnH_est + (int)(H * 0.02f);
+        int mH = H - (int)(H * 0.06f) - totalBottom; // monitor prende il resto
+        int mW = (int)(W * 0.66f);
+        int mX = W/2 - mW/2;
+        int mY = (int)(H * 0.06f);
+
+        // Corpo monitor (grigio plastica)
+        int depth = (int)(mW * 0.025f);
+        // Lato destro (ombra)
+        g2.setColor(new Color(55, 52, 50));
+        g2.fillRect(mX + mW, mY + depth, depth, mH);
+        // Lato basso (ombra)
+        g2.fillRect(mX + depth, mY + mH, mW, depth);
+        // Faccia principale
+        g2.setColor(new Color(88, 84, 78));
+        g2.fillRoundRect(mX, mY, mW, mH, 18, 18);
+        // Highlight angolo top-left
+        g2.setColor(new Color(115, 110, 104));
+        g2.fillRoundRect(mX, mY, mW - 8, mH - 8, 18, 18);
+        // Cornice plastica interna
+        g2.setColor(new Color(40, 38, 35));
+        int brd = (int)(mW * 0.032f);
+        g2.fillRoundRect(mX + brd, mY + brd, mW - brd*2, mH - brd*2, 8, 8);
+
+        // Schermo (area interna) — la parte con lo statico
+        int sX = mX + brd + 4;
+        int sY = mY + brd + 4;
+        int sW = mW - brd*2 - 8;
+        int sH = mH - brd*2 - 8;
+
+        // Clip allo schermo — lo statico già disegnato, ora overlay colorato sul solo schermo
+        g2.setClip(sX, sY, sW, sH);
+
+        // Tinta verdina fosforescente sullo statico dello schermo
+        g2.setColor(new Color(0, 255, 80, 18));
+        g2.fillRect(sX, sY, sW, sH);
+
+        // Linee di scansione più marcate sullo schermo
+        for (int y = sY; y < sY + sH; y += 3) {
+            g2.setColor(new Color(0, 0, 0, 55));
+            g2.drawLine(sX, y, sX + sW, y);
+        }
+
+        // Glitch bar orizzontale — una banda che scorre verso il basso
+        float glitchY = (float)((ms * 0.12) % (sH + 80)) - 40;
+        g2.setColor(new Color(255, 255, 255, 35));
+        g2.fillRect(sX, sY + (int)glitchY, sW, 22);
+
+        // Distorsione geometrica — poche strisce spostate orizzontalmente
+        rng.setSeed(ms / 120);
+        for (int gi = 0; gi < 5; gi++) {
+            int gy = sY + rng.nextInt(sH);
+            int gshift = (rng.nextInt(16) - 8);
+            int gh = 2 + rng.nextInt(4);
+            if (rng.nextInt(3) == 0) { // solo alcune strisce si spostano
+                g2.copyArea(sX, gy, sW/2, gh, gshift, 0);
+            }
+        }
+
+        // ── Testo "HAI PERSO" / "GAME OVER" sul monitor ──────────────────────
+        int goFs = Math.max(20, (int)(sH * 0.18f));
+        g2.setFont(res.fontCustomBold != null
+                ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) goFs)
+                : new Font("Monospaced", Font.BOLD, goFs));
+
+        // Effetto glitch: testo sfasato in rosso/ciano
+        String goTxt = Lang.t("go.titolo");
+        int gShiftX = (int)(3 * Math.sin(ms * 0.008f));
+        g2.setColor(new Color(255, 0, 60, 140));
+        drawTextCentered(g2, goTxt, W/2 + gShiftX + 3, sY + (int)(sH * 0.38f), goFs);
+        g2.setColor(new Color(0, 255, 200, 100));
+        drawTextCentered(g2, goTxt, W/2 - gShiftX - 3, sY + (int)(sH * 0.38f), goFs);
+        // Testo principale bianco
+        g2.setColor(new Color(230, 240, 220));
+        drawTextCentered(g2, goTxt, W/2, sY + (int)(sH * 0.38f), goFs);
+
+        // Stats piccole sotto il titolo
+        int stFs = Math.max(9, (int)(sH * 0.085f));
+        g2.setFont(res.fontCustom != null
+                ? res.fontCustom.deriveFont(Font.PLAIN, (float) stFs)
+                : new Font("Monospaced", Font.PLAIN, stFs));
+        g2.setColor(new Color(180, 220, 180, 200));
+        String stats = String.format(Lang.t("go.stats"),
+                state.mondoAttuale, state.stanzaNelMondo, state.monete);
+        drawTextCentered(g2, stats, W/2, sY + (int)(sH * 0.56f), stFs);
+
+        if (state.modalitaScelta == GameState.Modalita.INFINITA) {
+            int tot = (state.mondoAttuale - 1) * GameState.STANZA_BOSS + state.stanzaNelMondo;
+            g2.setColor(new Color(200, 190, 120, 200));
+            drawTextCentered(g2, String.format(Lang.t("go.stanze"), tot),
+                    W/2, sY + (int)(sH * 0.67f), stFs);
+        }
+
+        // Riflesso vetro sullo schermo
+        g2.setColor(new Color(255, 255, 255, 12));
+        int[] refX = { sX + 4, sX + sW/3, sX + sW/4, sX + 4 };
+        int[] refY = { sY + 4, sY + 4, sY + sH/3, sY + sH/3 };
+        g2.fillPolygon(refX, refY, 4);
+
+        g2.setClip(null);
+
+        // Bordo schermo luminoso
+        g2.setColor(new Color(20, 20, 20));
+        g2.setStroke(new BasicStroke(2f));
+        g2.drawRoundRect(sX - 1, sY - 1, sW + 2, sH + 2, 4, 4);
+        g2.setStroke(new BasicStroke(1f));
+
+        // Spia LED rossa lampeggiante in basso a destra del monitor
+        float blink = (float)Math.sin(ms * 0.005f);
+        int ledAlpha = Math.max(60, Math.min(255, (int)(160 + 95 * blink)));
+        int ledX = mX + mW - brd - 10, ledY = mY + mH - brd - 10;
+        g2.setColor(new Color(255, 30, 30, ledAlpha / 3));
+        g2.fillOval(ledX - 4, ledY - 4, 14, 14);
+        g2.setColor(new Color(255, 40, 40, ledAlpha));
+        g2.fillOval(ledX, ledY, 6, 6);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // CONTROLLER pixel-art — sotto il monitor, a sinistra
+        // ══════════════════════════════════════════════════════════════════════
+        int ctrlW = (int)(W * 0.32f);
+        int ctrlH = (int)(ctrlW * 0.48f);
+        int ctrlX = (int)(W * 0.10f);
+        int ctrlY = mY + mH + gap1;
+
+        // Corpo controller (grigio scuro pixelato)
+        // Forma a trapezio arrotondato
+        g2.setColor(new Color(55, 52, 50));    // ombra
+        g2.fillRoundRect(ctrlX + 3, ctrlY + 3, ctrlW, ctrlH, 20, 20);
+        g2.setColor(new Color(78, 74, 70));    // corpo
+        g2.fillRoundRect(ctrlX, ctrlY, ctrlW, ctrlH, 20, 20);
+        g2.setColor(new Color(95, 90, 85));    // highlight top
+        g2.fillRoundRect(ctrlX, ctrlY, ctrlW, ctrlH/2, 20, 20);
+        // Grip sinistro
+        g2.setColor(new Color(65, 62, 58));
+        g2.fillRoundRect(ctrlX + 4, ctrlY + ctrlH - ctrlH/3, ctrlW/3, ctrlH/3, 10, 10);
+        // Grip destro
+        g2.fillRoundRect(ctrlX + ctrlW - ctrlW/3 - 4, ctrlY + ctrlH - ctrlH/3, ctrlW/3, ctrlH/3, 10, 10);
+
+        // D-pad (sinistra)
+        int dpCX = ctrlX + (int)(ctrlW * 0.27f);
+        int dpCY = ctrlY + (int)(ctrlH * 0.44f);
+        int dpA  = (int)(ctrlW * 0.06f);
+        g2.setColor(new Color(40, 38, 36));
+        // croce
+        g2.fillRect(dpCX - dpA, dpCY - dpA/2, dpA*2, dpA); // orizzontale
+        g2.fillRect(dpCX - dpA/2, dpCY - dpA, dpA, dpA*2); // verticale
+
+        // Analogico sinistro
+        int an1X = ctrlX + (int)(ctrlW * 0.38f);
+        int an1Y = ctrlY + (int)(ctrlH * 0.65f);
+        int anR  = (int)(ctrlW * 0.07f);
+        g2.setColor(new Color(40, 38, 36));
+        g2.fillOval(an1X - anR - 2, an1Y - anR - 2, (anR+2)*2, (anR+2)*2);
+        g2.setColor(new Color(60, 57, 54));
+        g2.fillOval(an1X - anR, an1Y - anR, anR*2, anR*2);
+        g2.setColor(new Color(80, 76, 72));
+        g2.fillOval(an1X - anR/2, an1Y - anR/2, anR, anR);
+
+        // Analogico destro
+        int an2X = ctrlX + (int)(ctrlW * 0.65f);
+        int an2Y = ctrlY + (int)(ctrlH * 0.65f);
+        g2.setColor(new Color(40, 38, 36));
+        g2.fillOval(an2X - anR - 2, an2Y - anR - 2, (anR+2)*2, (anR+2)*2);
+        g2.setColor(new Color(60, 57, 54));
+        g2.fillOval(an2X - anR, an2Y - anR, anR*2, anR*2);
+        g2.setColor(new Color(80, 76, 72));
+        g2.fillOval(an2X - anR/2, an2Y - anR/2, anR, anR);
+
+        // Pulsanti ABXY (destra)
+        int btnCX = ctrlX + (int)(ctrlW * 0.75f);
+        int btnCY = ctrlY + (int)(ctrlH * 0.44f);
+        int bR    = (int)(ctrlW * 0.05f);
+        int[][] btnPos = {{0,-1},{1,0},{0,1},{-1,0}};
+        Color[] btnCol = {new Color(200,60,60), new Color(60,160,60),
+                new Color(60,100,200), new Color(200,180,60)};
+        for (int bi = 0; bi < 4; bi++) {
+            int bx = btnCX + (int)(btnPos[bi][0] * bR * 2.2f);
+            int by = btnCY + (int)(btnPos[bi][1] * bR * 2.2f);
+            g2.setColor(btnCol[bi].darker());
+            g2.fillOval(bx - bR, by - bR + 2, bR*2, bR*2);
+            g2.setColor(btnCol[bi]);
+            g2.fillOval(bx - bR, by - bR, bR*2, bR*2);
+        }
+
+        // Start/Select
+        int midX = ctrlX + ctrlW/2;
+        int midY = ctrlY + (int)(ctrlH * 0.38f);
+        int smR  = (int)(ctrlW * 0.032f);
+        g2.setColor(new Color(50, 48, 45));
+        g2.fillOval(midX - smR*3 - smR, midY - smR, smR*2, smR*2);
+        g2.fillOval(midX + smR,          midY - smR, smR*2, smR*2);
+
+        // Cavo controller che pende
+        g2.setColor(new Color(40, 38, 36));
+        g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        int cableX = ctrlX + ctrlW/2 - 10;
+        int cableY = ctrlY + ctrlH;
+        g2.drawLine(cableX, cableY, cableX - 5, cableY + 15);
+        g2.setStroke(new BasicStroke(1f));
+
+        // ══════════════════════════════════════════════════════════════════════
+        // BOTTONI — centrati orizzontalmente, sotto il controller
+        // ══════════════════════════════════════════════════════════════════════
+        int btnH    = ui.btnRiprova.bounds.height;
+        int bw3     = (int)(W * 0.155f);
+        int bg3     = (int)(W * 0.012f);
+        int totalBW = bw3 * 3 + bg3 * 2;
+        int bx0     = W/2 - totalBW/2;
+        int byR     = ctrlY + ctrlH + gap2;
+
+        ui.btnRiprova.setBounds(bx0,              byR, bw3, btnH);
+        ui.btnMenuPrincipaleGO.setBounds(bx0 + bw3 + bg3, byR, bw3, btnH);
+        ui.btnEsciGO.setBounds(bx0 + (bw3+bg3)*2, byR, bw3, btnH);
 
         ui.btnRiprova.draw(g2);
         ui.btnMenuPrincipaleGO.draw(g2);
@@ -1152,6 +1668,8 @@ public class RenderEngine {
 
 
     // ── Vittoria Storia ───────────────────────────────────────────────────────
+
+    // ── Stanza Ufficio ────────────────────────────────────────────────────────
 
     // ── Stanza Ufficio ────────────────────────────────────────────────────────
 
@@ -1219,7 +1737,7 @@ public class RenderEngine {
         }
 
         // Banner "UFFICIO" in alto
-        String banTxt = "UFFICIO";
+        String banTxt = Lang.t("ufficio.banner");
         int banFs = Math.max(18, (int)(H * 0.042f));
         g2.setFont(res.fontCustomBold != null
                 ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) banFs)
@@ -1240,7 +1758,7 @@ public class RenderEngine {
             // Fallback hint se dialogo non avviato ancora
             g2.setFont(new Font("Consolas", Font.ITALIC, Math.max(10, (int)(H * 0.018f))));
             g2.setColor(new Color(200, 200, 200, 160));
-            String hint2 = "[ INVIO per continuare ]";
+            String hint2 = Lang.t("dial.continua");
             g2.drawString(hint2, W / 2 - g2.getFontMetrics().stringWidth(hint2) / 2,
                     H - 20);
         }
@@ -1322,11 +1840,11 @@ public class RenderEngine {
         // ── Titolo ─────────────────────────────────────────────────────────────
         int titFs = Math.max(22, (int)(H*0.092f));
         g2.setFont(res.fontCustomBold!=null ? res.fontCustomBold.deriveFont(Font.PLAIN,(float)titFs) : new Font("Consolas",Font.BOLD,titFs));
-        g2.setColor(new Color(80,50,0,160));  drawTextCentered(g2,"SEI ARRIVATO.",W/2+3,panY+(int)(panH*0.32f)+3,titFs);
-        g2.setColor(new Color(255,240,180));  drawTextCentered(g2,"SEI ARRIVATO.",W/2,  panY+(int)(panH*0.32f),  titFs);
+        g2.setColor(new Color(80,50,0,160));  drawTextCentered(g2,Lang.t("win.titolo"),W/2+3,panY+(int)(panH*0.32f)+3,titFs);
+        g2.setColor(new Color(255,240,180));  drawTextCentered(g2,Lang.t("win.titolo"),W/2,  panY+(int)(panH*0.32f),  titFs);
         // Linea dorata
         FontMetrics fmT = g2.getFontMetrics();
-        int tw = fmT.stringWidth("SEI ARRIVATO.");
+        int tw = fmT.stringWidth(Lang.t("win.titolo"));
         g2.setColor(new Color(180,120,20,180)); g2.fillRect(W/2-tw/2-6,panY+(int)(panH*0.42f),tw+12,2);
         g2.setColor(new Color(255,210,80,100)); g2.fillRect(W/2-tw/2-6,panY+(int)(panH*0.42f),tw+12,1);
 
@@ -1334,21 +1852,21 @@ public class RenderEngine {
         int subFs = Math.max(12, (int)(H*0.030f));
         g2.setFont(res.fontCustom!=null ? res.fontCustom.deriveFont(Font.PLAIN,(float)subFs) : new Font("Consolas",Font.PLAIN,subFs));
         g2.setColor(new Color(255,255,220,210));
-        String sub = "Con "+(GameState.MELEE_DELAY>0?"un po' di ritardo.":"ritardo.");
+        String sub = (GameState.MELEE_DELAY>0?Lang.t("win.sub.ritardo"):Lang.t("win.sub.molto"));
         drawTextCentered(g2, sub, W/2, panY+(int)(panH*0.54f), subFs);
 
         // ── Monete ─────────────────────────────────────────────────────────────
         int mFs = Math.max(11, (int)(H*0.026f));
         g2.setFont(res.fontCustomBold!=null ? res.fontCustomBold.deriveFont(Font.PLAIN,(float)mFs) : new Font("Consolas",Font.BOLD,mFs));
         g2.setColor(new Color(255,215,0));
-        drawTextCentered(g2,"Monete guadagnate: "+state.monete, W/2, panY+(int)(panH*0.70f), mFs);
+        drawTextCentered(g2,String.format(Lang.t("win.monete"), state.monete), W/2, panY+(int)(panH*0.70f), mFs);
 
         // ── Codice debug ────────────────────────────────────────────────────────
         if (state.notaRaccolta) {
             int codFs = Math.max(10,(int)(H*0.022f));
             g2.setFont(res.fontCustom!=null ? res.fontCustom.deriveFont(Font.PLAIN,(float)codFs) : new Font("Consolas",Font.ITALIC,codFs));
             g2.setColor(new Color(180,255,180,200));
-            drawTextCentered(g2,"Codice trovato: "+GameState.CODICE_DEBUG, W/2, panY+(int)(panH*0.84f), codFs);
+            drawTextCentered(g2,String.format(Lang.t("win.codice"), GameState.CODICE_DEBUG), W/2, panY+(int)(panH*0.84f), codFs);
         }
 
         ui.btnMenuPrincipaleVittoria.draw(g2);
@@ -1447,7 +1965,7 @@ public class RenderEngine {
         g2.fillRect(lcdX, lcdY, lcdW, lcdH);
 
         // Logo "GAME BOY" style sotto la griglia dentro il body
-        String logo = "WHAT TETRIS";
+        String logo = Lang.t("tet.logo");
         int logoFs = Math.max(9, (int)(cellH * 0.55f));
         // Riduci se troppo largo per il body
         g2.setFont(cf.apply((float) logoFs));
@@ -1491,7 +2009,7 @@ public class RenderEngine {
         g2.setFont(cfl.apply((float) timerLabelFs));
         FontMetrics fmTL = g2.getFontMetrics();
         g2.setColor(urg ? new Color(255, 120, 120) : new Color(150, 150, 200));
-        g2.drawString("TEMPO", timerBoxX + (timerBoxW - fmTL.stringWidth("TEMPO")) / 2,
+        g2.drawString(Lang.t("tet.tempo"), timerBoxX + (timerBoxW - fmTL.stringWidth("TEMPO")) / 2,
                 timerBoxY + timerLabelFs + 3);
         g2.setFont(cf.apply((float) timerValFs));
         FontMetrics fmTV = g2.getFontMetrics();
@@ -1561,7 +2079,7 @@ public class RenderEngine {
             int iFs = Math.max(9, (int)(cellH * 0.55f));
             g2.setFont(cfl.apply((float) iFs));
             g2.setColor(new Color(80, 80, 110));
-            String istr = "A/D muovi   W ruota   S scendi   SPAZIO caduta   ESC salta";
+            String istr = Lang.t("tet.istr");
             FontMetrics fmI = g2.getFontMetrics();
             g2.drawString(istr, W / 2 - fmI.stringWidth(istr) / 2,
                     shellY + shellH + (int)(cellH * 0.9f));
@@ -1574,14 +2092,14 @@ public class RenderEngine {
             int oFs1 = (int)(cellH * 1.6f);
             int oFs2 = (int)(cellH * 1.05f);
             int oFs3 = (int)(cellH * 0.80f);
-            String msg = t.gameOver ? "GAME OVER" : "TEMPO SCADUTO!";
+            String msg = Lang.t(t.gameOver ? "tet.gameover" : "tet.timeout");
             g2.setFont(cf.apply((float) oFs1));
             FontMetrics fm1 = g2.getFontMetrics();
             g2.setColor(Color.WHITE);
             g2.drawString(msg, W/2 - fm1.stringWidth(msg)/2, H/2 - cellH);
             g2.setFont(cfl.apply((float) oFs2));
             FontMetrics fm2 = g2.getFontMetrics();
-            String ptsTxt = "Punteggio: " + t.punteggio;
+            String ptsTxt = String.format(Lang.t("tet.punteggio"), t.punteggio);
             g2.setColor(new Color(200, 200, 255));
             g2.drawString(ptsTxt, W/2 - fm2.stringWidth(ptsTxt)/2, H/2 + (int)(cellH * 0.7f));
             String premioTxt = t.getPowerUp().equals("NESSUNO")
@@ -1593,7 +2111,7 @@ public class RenderEngine {
             g2.setFont(cfl.apply((float) oFs3));
             FontMetrics fm4 = g2.getFontMetrics();
             g2.setColor(new Color(160, 160, 200));
-            String hint = "INVIO per continuare";
+            String hint = Lang.t("tet.hint");
             g2.drawString(hint, W/2 - fm4.stringWidth(hint)/2, H/2 + (int)(cellH * 3.8f));
         }
     }
@@ -1665,7 +2183,7 @@ public class RenderEngine {
             g2.setFont(cfl.apply((float) labelFs));
             FontMetrics fmL = g2.getFontMetrics();
             g2.setColor(new Color(140, 135, 180));
-            g2.drawString("PROSSIMO", px + (pw - fmL.stringWidth("PROSSIMO")) / 2, cy);
+            g2.drawString(Lang.t("tet.prossimo"), px + (pw - fmL.stringWidth("PROSSIMO")) / 2, cy);
             cy += (int)(labelFs * 0.5f);
 
             // Next piece centrata
@@ -1688,15 +2206,15 @@ public class RenderEngine {
             g2.setFont(cfl.apply((float) labelFs));
             FontMetrics fmP = g2.getFontMetrics();
             g2.setColor(new Color(140, 135, 180));
-            g2.drawString("PREMIO", px + (pw - fmP.stringWidth("PREMIO")) / 2, cy);
+            g2.drawString(Lang.t("tet.premio"), px + (pw - fmP.stringWidth("PREMIO")) / 2, cy);
             cy += (int)(labelFs * 1.1f);
 
             String pu = t.getPowerUp();
             String puLabel = switch (pu) {
-                case "CURA"     -> "+VITA";
-                case "VELOCITA" -> "+VEL";
-                case "DANNO"    -> "+DANNO";
-                case "TUTTO"    -> "TUTTO!";
+                case "CURA"     -> Lang.t("tet.cura");
+                case "VELOCITA" -> Lang.t("tet.velocita");
+                case "DANNO"    -> Lang.t("tet.danno");
+                case "TUTTO"    -> Lang.t("tet.tutto");
                 default         -> "NESSUNO";
             };
             Color puColor = switch (pu) {
@@ -1715,10 +2233,10 @@ public class RenderEngine {
             // Soglia prossimo premio
             String soglia = switch (pu) {
                 case "TUTTO"    -> "";
-                case "MELEE"   -> "6000: TUTTO";
-                case "DANNO"    -> "5000: MELEE";
-                case "VELOCITA" -> "3000: DANNO";
-                case "CURA"     -> "1500: VEL";
+                case "MELEE"   -> Lang.t("tet.next.melee");
+                case "DANNO"    -> Lang.t("tet.next.danno");
+                case "VELOCITA" -> Lang.t("tet.next.vel");
+                case "CURA"     -> Lang.t("tet.next.cura");
                 default         -> "500: CURA";
             };
             if (!soglia.isEmpty()) {
@@ -1871,7 +2389,7 @@ public class RenderEngine {
         }
 
         // Targa "NEGOZIO" in cima con font custom
-        String negozioTxt = "NEGOZIO";
+        String negozioTxt = Lang.t("shop.banner");
         Font fontNegozio = res.fontCustomBold != null
                 ? res.fontCustomBold.deriveFont(Font.PLAIN, 30f)
                 : new Font("Consolas", Font.BOLD, 28);
@@ -2413,7 +2931,7 @@ public class RenderEngine {
                 ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) nomeFs)
                 : new Font("Consolas", Font.BOLD, nomeFs));
         FontMetrics fmN = g2.getFontMetrics();
-        String nomeShop = "NEGOZIANTE";
+        String nomeShop = Lang.t("shop.nome");
         int nomeBgW = fmN.stringWidth(nomeShop) + 18;
         Color nomeColor = new Color(255, 120, 80);
         g2.setColor(new Color(nomeColor.getRed() / 4, nomeColor.getGreen() / 4,
@@ -2429,7 +2947,7 @@ public class RenderEngine {
         int lineY = sprY + fmN.getHeight() + (int)(H * 0.013f);
 
         // Riga 1: domanda
-        String domanda = "Vuoi attaccare il negoziante?";
+        String domanda = Lang.t("shop.domanda");
         disegnaRigaDialogo(g2, domanda, txtX, lineY);
         lineY += fmT.getHeight() + 3;
 
@@ -2437,7 +2955,7 @@ public class RenderEngine {
         int avvFs = Math.max(9, (int)(H * 0.017f));
         g2.setFont(new Font("Consolas", Font.PLAIN, avvFs));
         g2.setColor(new Color(180, 130, 120));
-        g2.drawString("Otterrai 20 monete, ma perderai lo shop.", txtX, lineY);
+        g2.drawString(Lang.t("shop.avviso"), txtX, lineY);
 
         // ── Bottoni SI / NO nello stile del box ──────────────────────────────
         int btnW   = (int)(txtW * 0.28f);
@@ -2507,7 +3025,7 @@ public class RenderEngine {
         int hintFs = Math.max(9, (int)(H * 0.015f));
         g2.setFont(new Font("Consolas", Font.ITALIC, hintFs));
         g2.setColor(new Color(120, 100, 100));
-        String hint = "A/D per scegliere   INVIO per confermare   ESC per annullare";
+        String hint = Lang.t("shop.hint");
         g2.drawString(hint, boxX + pad, boxY + boxH - 6);
     }
 
@@ -2569,7 +3087,7 @@ public class RenderEngine {
                 ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) nomeFs)
                 : new Font("Consolas", Font.BOLD, nomeFs));
         FontMetrics fmN = g2.getFontMetrics();
-        int nomeBgW = fmN.stringWidth(pag.nome) + 18;
+        int nomeBgW = fmN.stringWidth(pag.getNome()) + 18;
         // Sfondo nome
         Color nomeColor = isLeft ? new Color(255, 215, 0) : new Color(255, 120, 80);
         g2.setColor(new Color(nomeColor.getRed() / 4, nomeColor.getGreen() / 4,
@@ -2577,7 +3095,7 @@ public class RenderEngine {
         int nomeBgX = isLeft ? txtX - 2 : txtX - 2;
         g2.fillRoundRect(nomeBgX, sprY - 2, nomeBgW, fmN.getHeight() + 4, 6, 6);
         g2.setColor(nomeColor);
-        g2.drawString(pag.nome, txtX + 6, sprY + fmN.getAscent());
+        g2.drawString(pag.getNome(), txtX + 6, sprY + fmN.getAscent());
 
         // ── Testo con wrap ────────────────────────────────────────────────────
         int testoFs = Math.max(11, (int)(H * 0.022f));
@@ -2586,7 +3104,7 @@ public class RenderEngine {
         int lineY  = sprY + fmN.getHeight() + (int)(H * 0.013f);
         int lineH  = fmT.getHeight() + 3;
 
-        String[] parole = pag.testo.split(" ");
+        String[] parole = pag.getTesto().split(" ");
         StringBuilder riga = new StringBuilder();
         for (String p : parole) {
             String prova = riga.isEmpty() ? p : riga + " " + p;
@@ -2621,7 +3139,7 @@ public class RenderEngine {
             g2.setFont(new Font("Arial", Font.ITALIC, hFs));
             g2.setColor(new Color(borderColor.getRed(), borderColor.getGreen(),
                     borderColor.getBlue(), 200));
-            String hint = cur < tot ? "[ INVIO per continuare ]" : "[ INVIO per iniziare ]";
+            String hint = cur < tot ? Lang.t("dial.continua") : Lang.t("dial.inizia");
             FontMetrics fmH = g2.getFontMetrics();
             g2.drawString(hint, boxX + boxW - fmH.stringWidth(hint) - pad,
                     boxY + boxH - pad / 2);
@@ -2674,7 +3192,7 @@ public class RenderEngine {
                 ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) titoloFs)
                 : new Font("Consolas", Font.BOLD, titoloFs));
         g2.setColor(new Color(80, 50, 20));
-        String titolo = "NOTA DI SERVIZIO";
+        String titolo = Lang.t("nota.titolo");
         FontMetrics fmT = g2.getFontMetrics();
         g2.drawString(titolo, W / 2 - fmT.stringWidth(titolo) / 2, by + 38);
 
@@ -2691,12 +3209,12 @@ public class RenderEngine {
         FontMetrics fmB = g2.getFontMetrics();
 
         String[] righe = {
-                "A chiunque trovi questo foglio,",
-                "",
-                "Se il sistema smette di rispondere,",
-                "usa questo codice per il pannello",
-                "di diagnostica:",
-                "",
+                Lang.t("nota.riga0"),
+                Lang.t("nota.riga1"),
+                Lang.t("nota.riga2"),
+                Lang.t("nota.riga3"),
+                Lang.t("nota.riga4"),
+                Lang.t("nota.riga5"),
         };
 
         int ly = by + 62;
@@ -2730,13 +3248,13 @@ public class RenderEngine {
         // Firma
         g2.setFont(new Font("Consolas", Font.ITALIC, Math.max(10, testoFs - 2)));
         g2.setColor(new Color(100, 70, 30));
-        String firma = "- Il Capo";
+        String firma = Lang.t("nota.firma");
         g2.drawString(firma, bx + bw - pad - g2.getFontMetrics().stringWidth(firma), by + bh - 22);
 
         // Hint chiudi
         g2.setFont(new Font("Consolas", Font.ITALIC, Math.max(9, (int)(H * 0.016f))));
         g2.setColor(new Color(100, 80, 50));
-        String hint = "[ INVIO per chiudere ]";
+        String hint = Lang.t("nota.chiudi");
         g2.drawString(hint, W / 2 - g2.getFontMetrics().stringWidth(hint) / 2, by + bh + 18);
     }
 
@@ -2814,7 +3332,7 @@ public class RenderEngine {
         g2.drawString(nome, txtX + 6, nomeY + 1);
 
         // ── Testo dialogo (wrapping manuale) ─────────────────────────────────
-        String testo = "WHAT? I'VE PLAYED TOO MUCH, IM GONNA BE LATE!!!";
+        String testo = Lang.t("casa.intro");
         int testoFs  = Math.max(11, (int)(H * 0.022));
         g2.setFont(new Font("Consolas", Font.BOLD, testoFs));
         FontMetrics fmT = g2.getFontMetrics();
@@ -2851,7 +3369,7 @@ public class RenderEngine {
             int hintFs = Math.max(9, (int)(H * 0.016));
             g2.setFont(new Font("Arial", Font.ITALIC, hintFs));
             g2.setColor(new Color(160, 120, 220));
-            String hint = "[ INVIO per continuare ]";
+            String hint = Lang.t("dial.continua");
             g2.drawString(hint,
                     boxX + boxW - g2.getFontMetrics().stringWidth(hint) - pad,
                     boxY + boxH - pad / 2);
@@ -2873,7 +3391,7 @@ public class RenderEngine {
         g2.setFont(res.fontCustomBold != null ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)fs)
                 : new Font("Consolas", Font.BOLD, fs));
         g2.setColor(new Color(255, 200, 80));
-        String txt = "CASA";
+        String txt = Lang.t("banner.casa");
         FontMetrics fm = g2.getFontMetrics();
         g2.drawString(txt, W/2 - fm.stringWidth(txt)/2, banY + banH/2 + fm.getAscent()/2 - 2);
     }
@@ -2894,12 +3412,12 @@ public class RenderEngine {
         if (roomMgr.inStanzaBonus) {
             // ── Pannello malus verticale a destra del gioco ─────────────────
             java.util.List<String[]> righe = new java.util.ArrayList<>();
-            righe.add(new String[]{"STANZA BONUS", "header"});
+            righe.add(new String[]{Lang.t("bonus.titolo"), "header"});
             righe.add(new String[]{"─────────────", "sep"});
-            if (state.arduaMalusDanno    > 0) righe.add(new String[]{"-" + state.arduaMalusDanno + " DANNO",    "malus"});
-            if (state.arduaMalusVelocita > 0) righe.add(new String[]{"-" + (int)state.arduaMalusVelocita + " VELOCITA", "malus"});
-            if (state.arduaMalusFireRate > 0) righe.add(new String[]{"FUOCO LENTO", "malus"});
-            if (righe.size() == 2) righe.add(new String[]{"nessun malus", "note"});
+            if (state.arduaMalusDanno    > 0) righe.add(new String[]{"-" + state.arduaMalusDanno + " " + Lang.t("bonus.danno"),    "malus"});
+            if (state.arduaMalusVelocita > 0) righe.add(new String[]{"-" + (int)state.arduaMalusVelocita + " " + Lang.t("bonus.velocita"), "malus"});
+            if (state.arduaMalusFireRate > 0) righe.add(new String[]{Lang.t("bonus.fuocolento"), "malus"});
+            if (righe.size() == 2) righe.add(new String[]{Lang.t("bonus.nessunmalus"), "note"});
 
             g2.setFont(fontBold);
             FontMetrics fm = g2.getFontMetrics();
@@ -2978,12 +3496,12 @@ public class RenderEngine {
             g2.setFont(new Font("Consolas", Font.BOLD, fs));
             g2.setColor(ts.coloreTemaUI);
             String mondoStr = state.modalitaScelta == GameState.Modalita.STORIA
-                    ? "M" + state.mondoAttuale + ": " + ts.nomeMondo
-                    : "Inf M" + state.mondoAttuale + ": " + ts.nomeMondo;
+                    ? String.format(Lang.t("hud.mondo"), state.mondoAttuale) + ": " + ts.nomeMondo
+                    : "Inf W" + state.mondoAttuale + ": " + ts.nomeMondo;
             drawText(g2, mondoStr, cx, cy + fs/3, fs);
             cx += g2.getFontMetrics().stringWidth(mondoStr) + 18;
             g2.setColor(Color.WHITE);
-            String stanzaLbl = "Stanza " + state.stanzaNelMondo + "/" + GameState.STANZA_BOSS;
+            String stanzaLbl = String.format(Lang.t("hud.stanza"), state.stanzaNelMondo, GameState.STANZA_BOSS);
             g2.drawString(stanzaLbl, cx, cy + fs/3);
             cx += g2.getFontMetrics().stringWidth(stanzaLbl) + 10;
 
@@ -3012,7 +3530,7 @@ public class RenderEngine {
                             : new Font("Consolas", Font.BOLD, bFs));
                     g2.setColor(new Color(255, 210, 210));
                     FontMetrics fmB = g2.getFontMetrics();
-                    String bLbl = "BONUS";
+                    String bLbl = Lang.t("hud.bonus");
                     g2.drawString(bLbl, bX + (bW - fmB.stringWidth(bLbl))/2,
                             bY + (bH + fmB.getAscent())/2 - 2);
                 }
@@ -3048,41 +3566,50 @@ public class RenderEngine {
                 int rimasti = state.freezeTimer;
                 int totale  = GameState.FREEZE_DURATA;
                 float prog  = Math.max(0f, rimasti / (float)totale);
-                int barW    = Math.max(60, (int)(W * 0.09f));
-                int barH    = Math.max(8,  (int)(H * 0.013f));
+                String lblFrz = Lang.t("hud.freeze");
+                // Calcola larghezza barra in base al testo
+                FontMetrics fmBar = g2.getFontMetrics();
+                int barW = fmBar.stringWidth(lblFrz) + 20;
+                int barH = Math.max(fmBar.getHeight() + 4, (int)(H * 0.028f));
                 // Sfondo pillola
-                g2.setColor(new Color(20, 40, 80, 210));
-                g2.fillRoundRect(gox + 8, statoY, barW + 40, barH + 6, 6, 6);
-                // Barra progresso blu ghiaccio
-                g2.setColor(new Color(80, 180, 255, 220));
-                g2.fillRoundRect(gox + 8, statoY, (int)((barW + 40) * prog), barH + 6, 6, 6);
+                g2.setColor(new Color(10, 25, 60, 220));
+                g2.fillRoundRect(gox + 8, statoY, barW, barH, barH/2, barH/2);
+                // Fill progresso
+                g2.setColor(new Color(60, 150, 255, 210));
+                g2.fillRoundRect(gox + 8, statoY, Math.max(barH, (int)(barW * prog)), barH, barH/2, barH/2);
                 // Bordo
-                g2.setColor(new Color(160, 220, 255, 200));
+                g2.setColor(new Color(140, 210, 255, 200));
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(gox + 8, statoY, barW, barH, barH/2, barH/2);
                 g2.setStroke(new BasicStroke(1f));
-                g2.drawRoundRect(gox + 8, statoY, barW + 40, barH + 6, 6, 6);
-                // Etichetta
-                String lblFrz = "FREEZE";
-                g2.setColor(new Color(200, 240, 255));
-                g2.drawString(lblFrz, gox + 12, statoY + barH + fmSt.getAscent() - 1);
-                statoY += barH + 10;
+                // Label DENTRO la barra, centrata verticalmente
+                g2.setColor(new Color(220, 245, 255));
+                int lblX = gox + 8 + (barW - fmBar.stringWidth(lblFrz)) / 2;
+                int lblY = statoY + (barH + fmBar.getAscent() - fmBar.getDescent()) / 2;
+                g2.drawString(lblFrz, lblX, lblY);
+                statoY += barH + 4;
             }
 
             if (state.slowAttivo && !state.freezeAttivo) {
                 int rimasti = state.slowTimer;
                 int totale  = GameState.SLOW_DURATA;
                 float prog  = Math.max(0f, rimasti / (float)totale);
-                int barW    = Math.max(50, (int)(W * 0.075f));
-                int barH    = Math.max(8,  (int)(H * 0.013f));
-                g2.setColor(new Color(20, 50, 70, 210));
-                g2.fillRoundRect(gox + 8, statoY, barW + 40, barH + 6, 6, 6);
-                g2.setColor(new Color(60, 160, 220, 200));
-                g2.fillRoundRect(gox + 8, statoY, (int)((barW + 40) * prog), barH + 6, 6, 6);
-                g2.setColor(new Color(120, 200, 255, 180));
+                String lblSl = Lang.t("hud.lento");
+                FontMetrics fmBar = g2.getFontMetrics();
+                int barW = fmBar.stringWidth(lblSl) + 20;
+                int barH = Math.max(fmBar.getHeight() + 4, (int)(H * 0.028f));
+                g2.setColor(new Color(10, 35, 50, 220));
+                g2.fillRoundRect(gox + 8, statoY, barW, barH, barH/2, barH/2);
+                g2.setColor(new Color(40, 130, 200, 200));
+                g2.fillRoundRect(gox + 8, statoY, Math.max(barH, (int)(barW * prog)), barH, barH/2, barH/2);
+                g2.setColor(new Color(100, 185, 245, 180));
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(gox + 8, statoY, barW, barH, barH/2, barH/2);
                 g2.setStroke(new BasicStroke(1f));
-                g2.drawRoundRect(gox + 8, statoY, barW + 40, barH + 6, 6, 6);
-                String lblSl = "LENTO";
-                g2.setColor(new Color(160, 220, 255));
-                g2.drawString(lblSl, gox + 12, statoY + barH + fmSt.getAscent() - 1);
+                g2.setColor(new Color(200, 235, 255));
+                int lblX = gox + 8 + (barW - fmBar.stringWidth(lblSl)) / 2;
+                int lblY = statoY + (barH + fmBar.getAscent() - fmBar.getDescent()) / 2;
+                g2.drawString(lblSl, lblX, lblY);
             }
 
             // Indicatore melee sbloccato
@@ -3178,7 +3705,7 @@ public class RenderEngine {
             TileSet ts = tileSetCorrente();
             g2.setFont(new Font("Consolas", Font.BOLD, Math.max(9, fs - 2)));
             g2.setColor(ts.coloreTemaUI);
-            String mn = "M" + state.mondoAttuale;
+            String mn = String.format(Lang.t("hud.mondo"), state.mondoAttuale);
             g2.drawString(mn, lx - g2.getFontMetrics().stringWidth(mn)/2, ly);
             ly += fs + 6;
             g2.setColor(Color.WHITE);
@@ -3202,7 +3729,7 @@ public class RenderEngine {
             TileSet ts = tileSetCorrente();
             g2.setFont(new Font("Consolas", Font.BOLD, fs));
             g2.setColor(ts.coloreTemaUI);
-            g2.drawString("M" + state.mondoAttuale + " St." + state.stanzaNelMondo, gox + 10, goy + pad + ico + fs + 4);
+            g2.drawString(String.format(Lang.t("hud.mondo"), state.mondoAttuale) + " St." + state.stanzaNelMondo, gox + 10, goy + pad + ico + fs + 4);
         }
 
         disegnaUIBoss(g2, W, H, gox, goy, gW, gH);
@@ -3218,7 +3745,8 @@ public class RenderEngine {
         if (bossCorrente == null) return;
 
         String[] nomiUI = {
-                "MANNIE", "PRESAGIO", "RE FORNO", "GELO", "YABBADUHLON"
+                Lang.t("boss.m1.nome"), Lang.t("boss.m2.nome"), Lang.t("boss.m3.nome"),
+                Lang.t("boss.m4.nome"), Lang.t("boss.m5.nome")
         };
         String nomeBoss = nomiUI[((state.mondoAttuale - 1) % 5)];
 

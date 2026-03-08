@@ -6,7 +6,7 @@ import java.awt.image.BufferedImage;
  * Contiene il tema visivo di muri e pavimento per ogni mondo.
  *
  * Ogni mondo ha:
- *  - Nome (es. "IL CANTIERE", "LE FOGNE")
+ *  - Nome (es. Lang.t("mondo.1"), Lang.t("mondo.2"))
  *  - Colore di sfondo fallback per muri e pavimento (se le immagini non ci sono)
  *  - Immagini muro e pavimento (prese da ResourceLoader)
  *  - Colore tematico per UI (nome mondo, boss bar, ecc.)
@@ -45,7 +45,7 @@ public class TileSet {
     public static TileSet perMondo(int mondo, ResourceLoader res) {
         // Mondo 0 = stanza Casa speciale
         if (mondo == 0) return new TileSet(
-                "CASA",
+                Lang.t("mondo.casa"),
                 res.imgMuroCasa      != null ? res.imgMuroCasa      : res.imgMuroMondo1,
                 res.imgPavimentoCasa != null ? res.imgPavimentoCasa : res.imgPavimentoMondo1,
                 new Color(120, 90, 60),
@@ -58,35 +58,35 @@ public class TileSet {
 
         return switch (temaIndex) {
             case 1 -> new TileSet(
-                    "IL CANTIERE",
+                    Lang.t("mondo.1"),
                     res.imgMuroMondo1, res.imgPavimentoMondo1,
                     new Color(60,  45,  30),
                     new Color(100, 85,  60),
                     new Color(220, 170, 80)
             );
             case 2 -> new TileSet(
-                    "LE FOGNE",
+                    Lang.t("mondo.2"),
                     res.imgMuroMondo2, res.imgPavimentoMondo2,
                     new Color(30,  50,  70),
                     new Color(50,  70,  90),
                     new Color(80,  160, 220)
             );
             case 3 -> new TileSet(
-                    "LA FORNACE",
+                    Lang.t("mondo.3"),
                     res.imgMuroMondo3, res.imgPavimentoMondo3,
                     new Color(80,  30,  20),
                     new Color(60,  20,  10),
                     new Color(255, 80,  30)
             );
             case 4 -> new TileSet(
-                    "IL GHIACCIAIO",
+                    Lang.t("mondo.4"),
                     res.imgMuroMondo4, res.imgPavimentoMondo4,
                     new Color(60,  90,  130),
                     new Color(130, 170, 210),
                     new Color(140, 220, 255)
             );
             case 5 -> new TileSet(
-                    "IL CASTELLO",
+                    Lang.t("mondo.5"),
                     res.imgMuroMondo5 != null ? res.imgMuroMondo5 : res.imgMuroMondo4,
                     res.imgPavimentoMondo5 != null ? res.imgPavimentoMondo5 : res.imgPavimentoMondo4,
                     new Color(40,  40,  60),
@@ -94,7 +94,7 @@ public class TileSet {
                     new Color(180, 80,  220)
             );
             default -> new TileSet(
-                    "L'ABISSO",
+                    Lang.t("mondo.abisso"),
                     null, null,
                     new Color(15, 15, 25),
                     new Color(25, 25, 40),

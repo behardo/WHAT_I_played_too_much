@@ -13,13 +13,15 @@ public class InputHandler {
     private final UIManager          ui;
     private final RoomManager        roomMgr;
     private final FullscreenManager  fullscreenMgr;
+    private final ResourceLoader     res;
 
     public InputHandler(GameState state, UIManager ui, RoomManager roomMgr,
-                        FullscreenManager fullscreenMgr) {
+                        FullscreenManager fullscreenMgr, ResourceLoader res) {
         this.state         = state;
         this.ui            = ui;
         this.roomMgr       = roomMgr;
         this.fullscreenMgr = fullscreenMgr;
+        this.res           = res;
     }
 
     // ── KeyAdapter ────────────────────────────────────────────────────────────
@@ -273,6 +275,8 @@ public class InputHandler {
                     state.controlliScrollY = 0;
                 } else if (ui.btnEsciMenu.contains(p))
                     System.exit(0);
+                else if (ui.btnLingua.contains(p))
+                    cambiLingua();
             }
 
             case IMPOSTAZIONI -> {
@@ -350,6 +354,34 @@ public class InputHandler {
     private void tornaDaImpostazioni() {
         state.statoGioco = state.statoPrecedente != null
                 ? state.statoPrecedente : GameState.StatoGioco.MENU;
+    }
+
+    /** Alterna IT ↔ EN e aggiorna le label di tutti i bottoni. */
+    private void cambiLingua() {
+        Lang.lingua = (Lang.lingua == Lang.Lingua.IT) ? Lang.Lingua.EN : Lang.Lingua.IT;
+        state.lingua = Lang.lingua;
+        // Aggiorna label di tutti i bottoni che dipendono dalla lingua
+        ui.btnGioca.label              = Lang.t("btn.gioca");
+        ui.btnImpostazioni.label       = Lang.t("btn.impostazioni");
+        ui.btnControlli.label          = Lang.t("btn.controlli");
+        ui.btnEsciMenu.label           = Lang.t("btn.esci");
+        ui.btnLingua.label             = Lang.t("btn.lingua");
+        ui.btnRiprendi.label           = Lang.t("btn.riprendi");
+        ui.btnImpostazioniPausa.label  = Lang.t("btn.impostazioni");
+        ui.btnMenuPrincipalePausa.label= Lang.t("btn.menu");
+        ui.btnEsciPausa.label          = Lang.t("btn.esci");
+        ui.btnRiprova.label            = Lang.t("btn.riprova");
+        ui.btnMenuPrincipaleGO.label   = Lang.t("btn.menu");
+        ui.btnEsciGO.label             = Lang.t("btn.esci");
+        ui.btnMenuPrincipaleVittoria.label = Lang.t("btn.menu.principale");
+        ui.btnChiudiImpostazioni.label = Lang.t("btn.indietro");
+        ui.btnChiudiControlli.label    = Lang.t("btn.indietro");
+        // Aggiorna bandiera sul bottone
+        if (res != null) {
+            ui.btnLingua.setIcona(
+                    Lang.lingua == Lang.Lingua.IT ? res.imgBandieraIT : res.imgBandieraEN
+            );
+        }
     }
 
     private void confermaSelezioneModalita() {

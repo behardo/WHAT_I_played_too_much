@@ -216,7 +216,7 @@ public class RoomManager {
             if (!state.freezeAttivo) {
                 state.freezeAttivo = true;
                 state.freezeTimer  = GameState.FREEZE_DURATA;
-                state.arduaRicompensaMsg   = "CONGELATO!";
+                state.arduaRicompensaMsg   = Lang.t("popup.congelato");
                 state.arduaRicompensaTimer = 80;
             }
         });
@@ -235,68 +235,38 @@ public class RoomManager {
         state.dialogoNarrazione.pulisci();
         switch (tipoBoss) {
             case 0 -> { // MANNIE — Cantiere M1
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Dai, non ho tempo - sono gia in ritardo!",
-                        true);
-                state.dialogoNarrazione.aggiungi("MANNIE", sprBoss,
-                        "Nemmeno io.",
-                        false);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m1.pg0", true);
+                state.dialogoNarrazione.aggiungiKey("boss.m1.nome", sprBoss,
+                        "boss.m1.b0", false);
             }
             case 1 -> { // PRESAGIO — Fogne M2
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Quindi e qui che si finisce a forza di giocare ai videogiochi...",
-                        true);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m2.pg0", true);
             }
             case 2 -> { // RE FORNO — Fornace M3
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Levati di mezzo. Non mi interessa se sei un re.",
-                        true);
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Saro io a spodestarti!",
-                        true);
-                state.dialogoNarrazione.aggiungi("RE FORNO", sprBoss,
-                        "*rumori arrabbiati da teglia*",
-                        false);
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "...",
-                        true);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg0", true);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg1", true);
+                state.dialogoNarrazione.aggiungiKey("boss.m3.nome", sprBoss,
+                        "boss.m3.b0", false);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg2", true);
             }
             case 3 -> { // GELO — Ghiacciaio M4
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Che freddo. Come si vive qua?",
-                        true);
-                state.dialogoNarrazione.aggiungi("GELO", sprBoss,
-                        "Non ci si vive. Ci si congela.",
-                        false);
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Simpatico.",
-                        true);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m4.pg0", true);
+                state.dialogoNarrazione.aggiungiKey("boss.m4.nome", sprBoss,
+                        "boss.m4.b0", false);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m4.pg1", true);
             }
             case 4 -> { // YABBADUHLON — Castello M5
-                state.dialogoNarrazione.aggiungi("YABBADUHLON", sprBoss,
-                        "Si... sono io.",
-                        false);
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Sei tu il responsabile di tutto questo casino?",
-                        true);
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Cosa?!",
-                        true);
-                state.dialogoNarrazione.aggiungi("YABBADUHLON", sprBoss,
-                        "So gia tutto quello che stai per dire, fare o qualsiasi cosa tu voglia tentare.",
-                        false);
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Hai qualche potere?",
-                        true);
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Beh... il mio cervello sta per fondere a questo ritmo.",
-                        true);
-                state.dialogoNarrazione.aggiungi("YABBADUHLON", sprBoss,
-                        "Non arriverai MAI in ufficio!!!",
-                        false);
-                state.dialogoNarrazione.aggiungi(nomePg, sprPg,
-                        "Chi lo spieghera al mio capo...",
-                        true);
+                state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
+                        "boss.m5.b0", false);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg0", true);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg1", true);
+                state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
+                        "boss.m5.b1", false);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg2", true);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg3", true);
+                state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
+                        "boss.m5.b2", false);
+                state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg4", true);
             }
         }
         if (state.dialogoNarrazione.getTotale() > 0)
@@ -408,7 +378,7 @@ public class RoomManager {
         if (!state.meleeUnlocked) {
             state.meleeUnlocked       = true;
             state.meleeUnlockedDaArdua = true;
-            state.arduaRicompensaMsg   = "MELEE SBLOCCATO!";
+            state.arduaRicompensaMsg   = Lang.t("popup.melee");
             state.arduaRicompensaTimer = 90;
         } else {
             int roll = random.nextInt(4);
@@ -441,7 +411,7 @@ public class RoomManager {
             state.meleeUnlocked = true;
         } else {
             state.dannoPugno += 3;
-            state.arduaRicompensaMsg   = "+3 DANNO ARMA!";
+            state.arduaRicompensaMsg   = Lang.t("popup.danno");
             state.arduaRicompensaTimer = 90;
         }
     }

@@ -31,6 +31,9 @@ public class GameState {
     public StatoGioco statoPrecedente;
     public Modalita   modalitaScelta = Modalita.STORIA;
 
+    /** Lingua UI — sincronizzata con Lang.lingua */
+    public Lang.Lingua lingua = Lang.Lingua.IT;
+
     // ── Impostazioni (dati persistenti tra le schermate) ──────────────────────
     public final Impostazioni impostazioni = new Impostazioni();
 
@@ -167,12 +170,12 @@ public class GameState {
     /** Nome dell'attacco melee in base al personaggio selezionato. */
     public String getMeleeNome() {
         return switch (indicePersonaggioSelezionato) {
-            case 0 -> "COLPO DI VALIGIA";
-            case 1 -> "CHIAVE INGLESE";
-            case 2 -> "ACCETTA";
-            case 3 -> "COLPO DI GAMEPAD";
-            case 4 -> "CANCELLAZIONE";
-            default -> "MELEE";
+            case 0 -> Lang.t("melee.0");
+            case 1 -> Lang.t("melee.1");
+            case 2 -> Lang.t("melee.2");
+            case 3 -> Lang.t("melee.3");
+            case 4 -> Lang.t("melee.4");
+            default -> Lang.t("melee.default");
         };
     }
     public int  cooldownSparo = 0;

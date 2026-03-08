@@ -55,7 +55,7 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         fullscreen = new FullscreenManager(finestra, this, device);
 
         // 5. Input (dipende da state, ui, roomMgr, fullscreen)
-        input      = new InputHandler(state, ui, roomMgr, fullscreen);
+        input      = new InputHandler(state, ui, roomMgr, fullscreen, res);
 
         // 6. Game loop (dipende da state, roomMgr)
         gameLoop   = new GameLoop(state, roomMgr, ui);

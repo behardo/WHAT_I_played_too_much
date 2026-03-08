@@ -24,17 +24,25 @@ import java.util.List;
 public class DialogoNarrazione {
 
     public static class Pagina {
-        public final String        nome;
+        public final String        nomeKey;   // chiave Lang.t() oppure nome diretto
         public final BufferedImage sprite;
-        public final String        testo;
-        public final boolean       isLeft; // true = sinistra (protagonista)
+        public final String        testoKey;  // chiave Lang.t() oppure testo diretto
+        public final boolean       isLeft;
+        private final boolean      usaLang;   // true = passa per Lang.t()
 
-        public Pagina(String nome, BufferedImage sprite, String testo, boolean isLeft) {
-            this.nome   = nome;
-            this.sprite = sprite;
-            this.testo  = testo;
-            this.isLeft = isLeft;
+        public Pagina(String nomeKey, BufferedImage sprite, String testoKey,
+                      boolean isLeft, boolean usaLang) {
+            this.nomeKey  = nomeKey;
+            this.sprite   = sprite;
+            this.testoKey = testoKey;
+            this.isLeft   = isLeft;
+            this.usaLang  = usaLang;
         }
+        /** Nome parlante, nella lingua corrente se usaLang=true */
+        public String getNome()  { return usaLang ? Lang.t(nomeKey)  : nomeKey;  }
+        /** Testo del dialogo, nella lingua corrente se usaLang=true */
+        public String getTesto() { return usaLang ? Lang.t(testoKey) : testoKey; }
+
     }
 
     private final List<Pagina> pagine  = new ArrayList<>();
@@ -43,8 +51,23 @@ public class DialogoNarrazione {
 
     // ── Costruzione ───────────────────────────────────────────────────────────
 
+    /** Aggiunge una pagina con testo diretto (non tradotto dinamicamente). */
     public void aggiungi(String nome, BufferedImage sprite, String testo, boolean isLeft) {
-        pagine.add(new Pagina(nome, sprite, testo, isLeft));
+        pagine.add(new Pagina(nome, sprite, testo, isLeft, false));
+    }
+    /** Aggiunge una pagina con chiavi Lang.t() — tradotta dinamicamente al display. */
+    public void aggiungiKey(String nomeKey, BufferedImage sprite, String testoKey, boolean isLeft) {
+        pagine.add(new Pagina(nomeKey, sprite, testoKey, isLeft, true));
+    }
+    /**
+     * Aggiunge una pagina dove il nome è una stringa diretta (es. variabile nomePg)
+     * ma il testo è una chiave Lang.t() — risolta dinamicamente al display.
+     */
+    public void aggiungiPgKey(String nomeDirecto, BufferedImage sprite, String testoKey, boolean isLeft) {
+        // Usiamo una Pagina specializzata: nomeKey=nome diretto, testoKey=chiave
+        pagine.add(new Pagina(nomeDirecto, sprite, testoKey, isLeft, false) {
+            @Override public String getTesto() { return Lang.t(testoKey); }
+        });
     }
 
     public void pulisci() {
