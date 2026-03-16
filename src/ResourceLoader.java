@@ -257,8 +257,13 @@ public class ResourceLoader {
     }
 
     public BufferedImage getBossSprite(int mondoAttuale) {
-        int i = ((mondoAttuale - 1) % 5);
+        int i = Math.max(0, Math.min(4, mondoAttuale - 1));
         return imgBossPerMondo[i] != null ? imgBossPerMondo[i] : imgBoss;
+    }
+
+    public BufferedImage getBossProiettile(int mondoAttuale) {
+        int i = Math.max(0, Math.min(4, mondoAttuale - 1));
+        return imgProiettilePerBoss[i] != null ? imgProiettilePerBoss[i] : imgBossProjectile;
     }
 
     // ── Utilità ───────────────────────────────────────────────────────────────

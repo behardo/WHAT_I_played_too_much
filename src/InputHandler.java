@@ -50,6 +50,7 @@ public class InputHandler {
                     case TETRIS                -> gestisciTetris(k);
                     case PAUSA                 -> gestisciPausa(k);
                     case GIOCO                 -> gestisciGioco(k, true);
+                    case BOSS_RUSH             -> gestisciBossRush(k);
                     case VITTORIA_STORIA,
                          GAME_OVER             -> gestisciFinale(k);
                     case UFFICIO               -> gestisciUfficio(k);
@@ -58,7 +59,8 @@ public class InputHandler {
 
             @Override
             public void keyReleased(KeyEvent e) {
-                if (state.statoGioco == GameState.StatoGioco.GIOCO) {
+                if (state.statoGioco == GameState.StatoGioco.GIOCO
+                        || state.statoGioco == GameState.StatoGioco.BOSS_RUSH) {
                     toggleMovimento(e.getKeyCode(), false);
                     toggleSparo(e.getKeyCode(), false);
                 }
@@ -109,7 +111,7 @@ public class InputHandler {
     private void sincronizzaIndicePausa(Point p) {
         if (state.statoGioco != GameState.StatoGioco.PAUSA) return;
         MenuButton[] btns = { ui.btnRiprendi, ui.btnImpostazioniPausa,
-                ui.btnMenuPrincipalePausa, ui.btnEsciPausa };
+                              ui.btnMenuPrincipalePausa, ui.btnEsciPausa };
         for (int i = 0; i < btns.length; i++)
             if (btns[i].contains(p)) { state.indiceBtnPausa = i; return; }
     }
@@ -178,7 +180,7 @@ public class InputHandler {
             switch (state.indiceBtnPausa) {
                 case 0 -> state.statoGioco = GameState.StatoGioco.GIOCO;
                 case 1 -> { state.statoPrecedente = GameState.StatoGioco.PAUSA;
-                    state.statoGioco = GameState.StatoGioco.IMPOSTAZIONI; }
+                            state.statoGioco = GameState.StatoGioco.IMPOSTAZIONI; }
                 case 2 -> { state.tornaAlMenu(); roomMgr.resetCompleto(); }
                 case 3 -> System.exit(0);
             }
@@ -190,7 +192,7 @@ public class InputHandler {
         // 0. Popup nota codice debug
         if (state.mostraNota
                 && (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE
-                || k == KeyEvent.VK_ESCAPE)) {
+                    || k == KeyEvent.VK_ESCAPE)) {
             state.mostraNota = false;
             return;
         }
@@ -198,7 +200,7 @@ public class InputHandler {
         // 1. Dialogo Casa (singola pagina)
         if (state.mostraDialogoCasa
                 && (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE
-                || k == KeyEvent.VK_ESCAPE)) {
+                    || k == KeyEvent.VK_ESCAPE)) {
             state.mostraDialogoCasa = false;
             return;
         }
@@ -340,6 +342,21 @@ public class InputHandler {
                     System.exit(0);
             }
 
+            case BOSS_RUSH -> {
+                if (state.bossRushSceltaPowerUp) {
+                    // Click sulle 3 card opzioni
+                    for (int i = 0; i < 3; i++) {
+                        if (state.bossRushRectsOpzioni != null
+                                && i < state.bossRushRectsOpzioni.length
+                                && state.bossRushRectsOpzioni[i] != null
+                                && state.bossRushRectsOpzioni[i].contains(p)) {
+                            roomMgr.applicaPowerUpBossRush(i);
+                            break;
+                        }
+                    }
+                }
+            }
+
             case VITTORIA_STORIA -> {
                 if (ui.btnMenuPrincipaleVittoria.contains(p)) {
                     state.tornaAlMenu();
@@ -379,9 +396,24 @@ public class InputHandler {
         // Aggiorna bandiera sul bottone
         if (res != null) {
             ui.btnLingua.setIcona(
-                    Lang.lingua == Lang.Lingua.IT ? res.imgBandieraIT : res.imgBandieraEN
+                Lang.lingua == Lang.Lingua.IT ? res.imgBandieraIT : res.imgBandieraEN
             );
         }
+    }
+
+    private void gestisciBossRush(int k) {
+        // Se è in corso la scelta power-up
+        if (state.bossRushSceltaPowerUp) {
+            if (k == KeyEvent.VK_LEFT  || k == KeyEvent.VK_A)
+                state.bossRushOpzioneScelta = Math.max(0, state.bossRushOpzioneScelta - 1);
+            if (k == KeyEvent.VK_RIGHT || k == KeyEvent.VK_D)
+                state.bossRushOpzioneScelta = Math.min(2, state.bossRushOpzioneScelta + 1);
+            if (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE)
+                roomMgr.applicaPowerUpBossRush(state.bossRushOpzioneScelta);
+            return;
+        }
+        // Altrimenti gestisci come gioco normale
+        gestisciGioco(k, true);
     }
 
     private void confermaSelezioneModalita() {

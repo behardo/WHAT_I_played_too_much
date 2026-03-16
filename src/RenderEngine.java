@@ -70,6 +70,7 @@ public class RenderEngine {
             case SELEZIONE_MODALITA    -> disegnaSelezioneModalita(g2, panelWidth, panelHeight);
             case TETRIS                -> disegnaTetris(g2, panelWidth, panelHeight);
             case GIOCO                 -> disegnaGioco(g2, panelWidth, panelHeight);
+            case BOSS_RUSH             -> disegnaBossRush(g2, panelWidth, panelHeight);
             case PAUSA -> {
                 java.awt.geom.AffineTransform t1 = g2.getTransform();
                 disegnaGioco(g2, panelWidth, panelHeight);
@@ -174,13 +175,13 @@ public class RenderEngine {
 
         // xRel, yRel, scaleFactor, speedMul, phaseSeed, useVariant2
         float[][] dati = {
-                {0.07f, 0.58f, 1.00f, 1.00f,  0f, 0},  // grande sinistra
-                {0.87f, 0.52f, 0.90f, 1.25f,  2f, 1},  // grande destra
-                {0.18f, 0.82f, 0.70f, 0.85f,  5f, 0},  // medio sinistra basso
-                {0.80f, 0.80f, 0.68f, 1.10f,  8f, 1},  // medio destra basso
-                {0.48f, 0.90f, 0.48f, 1.55f, 12f, 0},  // piccolo centro basso
-                {0.25f, 0.42f, 0.38f, 0.70f, 17f, 1},  // piccolo sinistra medio
-                {0.75f, 0.38f, 0.34f, 1.80f, 22f, 0},  // piccolo destra medio
+            {0.07f, 0.58f, 1.00f, 1.00f,  0f, 0},  // grande sinistra
+            {0.87f, 0.52f, 0.90f, 1.25f,  2f, 1},  // grande destra
+            {0.18f, 0.82f, 0.70f, 0.85f,  5f, 0},  // medio sinistra basso
+            {0.80f, 0.80f, 0.68f, 1.10f,  8f, 1},  // medio destra basso
+            {0.48f, 0.90f, 0.48f, 1.55f, 12f, 0},  // piccolo centro basso
+            {0.25f, 0.42f, 0.38f, 0.70f, 17f, 1},  // piccolo sinistra medio
+            {0.75f, 0.38f, 0.34f, 1.80f, 22f, 0},  // piccolo destra medio
         };
         int baseSize = (int)(H * 0.20f);
 
@@ -244,7 +245,7 @@ public class RenderEngine {
             g2.setColor(new Color(255,255,200, Math.max(0,Math.min(255,(int)(210*sa)))));
             g2.setStroke(new BasicStroke(2f));
             g2.drawLine((int)(W*0.15f+W*0.55f*pct),(int)(H*0.04f+H*0.12f*pct),
-                    (int)(W*0.15f+W*0.55f*pct-45*(1-pct)),(int)(H*0.04f+H*0.12f*pct-22*(1-pct)));
+                        (int)(W*0.15f+W*0.55f*pct-45*(1-pct)),(int)(H*0.04f+H*0.12f*pct-22*(1-pct)));
             g2.setStroke(new BasicStroke(1f));
         }
         int lX=(int)(W*0.80f), lY=(int)(H*0.13f), lR=(int)(W*0.052f+(int)(W*0.003f*Math.sin(ms*0.0008)));
@@ -430,7 +431,7 @@ public class RenderEngine {
     }
 
     private void disegnaSliderPixel(Graphics2D g2, int x, int y, int w, int h,
-                                    int valore, Color colPieno, Color colLuce) {
+                                     int valore, Color colPieno, Color colLuce) {
         g2.setColor(new Color(12,8,2)); g2.fillRect(x,y,w,h);
         g2.setColor(new Color(28,18,6));
         for (int px2=x+3;px2<x+w-2;px2+=4) g2.fillRect(px2,y+h/2-1,2,2);
@@ -448,7 +449,7 @@ public class RenderEngine {
     }
 
     private void disegnaSlider(Graphics2D g2, int x, int y, int w, int h,
-                               int valore, Color colorePieno, Color coloreLuce) {
+                                int valore, Color colorePieno, Color coloreLuce) {
         disegnaSliderPixel(g2,x,y,w,h,valore,colorePieno,coloreLuce);
     }
 
@@ -664,8 +665,8 @@ public class RenderEngine {
             int alpha = Math.max(0, Math.min(255, (int)(200 * blink * brightnessBoost)));
             // Variazione colore: bianche, bluastre, oro rare
             int[] cols = rng.nextFloat() < 0.15f
-                    ? new int[]{255, 230, 130}   // stelle oro
-                    : rng.nextFloat() < 0.3f
+                ? new int[]{255, 230, 130}   // stelle oro
+                : rng.nextFloat() < 0.3f
                     ? new int[]{180, 210, 255} // stelle blu
                     : new int[]{255, 248, 230}; // stelle bianche
             g2.setColor(new Color(cols[0], cols[1], cols[2], alpha));
@@ -724,14 +725,14 @@ public class RenderEngine {
                         int wy = by2 + wr * 12;
                         // Alcune finestre lampeggiano lentamente
                         float flicker = wRng.nextFloat() < 0.08f
-                                ? (float)Math.abs(Math.sin(sec * 1.2f + b*0.7f + wr))
-                                : 1f;
+                            ? (float)Math.abs(Math.sin(sec * 1.2f + b*0.7f + wr))
+                            : 1f;
                         int amb = (int)((140 + wRng.nextInt(80)) * flicker);
                         if (amb > 40) {
                             g2.setColor(new Color(
-                                    Math.min(255, amb),
-                                    Math.min(255, (int)(amb * 0.78f)),
-                                    Math.min(255, (int)(amb * 0.25f)), 200));
+                                Math.min(255, amb),
+                                Math.min(255, (int)(amb * 0.78f)),
+                                Math.min(255, (int)(amb * 0.25f)), 200));
                             g2.fillRect(wx, wy, 4, 5);
                         }
                     }
@@ -746,7 +747,7 @@ public class RenderEngine {
             float baseY  = pRng.nextFloat() * (H * 0.75f);
             float driftX = (float)Math.sin(sec * 0.3f + i * 0.8f) * 14f;
             float driftY = (float)Math.cos(sec * 0.22f + i * 1.1f) * 9f
-                    - sec * (5f + pRng.nextFloat() * 8f) % (H * 0.75f);
+                           - sec * (5f + pRng.nextFloat() * 8f) % (H * 0.75f);
             float px     = (baseX + driftX + W) % W;
             float py     = ((baseY + driftY) % (H * 0.75f) + H * 0.75f) % (H * 0.75f);
             float bright = 0.5f + 0.5f * (float)Math.sin(sec * 1.5f + i * 2.1f);
@@ -817,8 +818,8 @@ public class RenderEngine {
 
             // ── Bob verticale animato (solo card sbloccate/selezionate) ────────
             float bobOffset = sel
-                    ? (float)Math.sin(sec * 2.2f + i * 0.9f) * 5f
-                    : (float)Math.sin(sec * 0.8f + i * 1.4f) * 2.5f;
+                ? (float)Math.sin(sec * 2.2f + i * 0.9f) * 5f
+                : (float)Math.sin(sec * 0.8f + i * 1.4f) * 2.5f;
             int ry = r.y + (int)bobOffset;
 
             // ── Sfondo card ───────────────────────────────────────────────────
@@ -826,8 +827,8 @@ public class RenderEngine {
                 for (int dy = 0; dy < rh; dy++) {
                     float tt = (float) dy / rh;
                     g2.setColor(new Color(
-                            (int)(70 + 50*tt), (int)(42 + 22*tt), (int)(5 + 12*tt),
-                            sel ? 215 : 150));
+                        (int)(70 + 50*tt), (int)(42 + 22*tt), (int)(5 + 12*tt),
+                        sel ? 215 : 150));
                     g2.drawLine(rx+1, ry+dy, rx+rw-2, ry+dy);
                 }
             } else if (lock) {
@@ -839,11 +840,11 @@ public class RenderEngine {
             } else {
                 // Colori card per personaggio: ogni pg ha sfumatura unica
                 int[][] cardPalette = {
-                        {25, 30, 65},   // BELLGERD — blu notte
-                        {15, 45, 25},   // VLAD — verde scuro
-                        {55, 22, 15},   // PAUL — rosso mattone
-                        {20, 20, 50},   // JUICY — indaco
-                        {60, 42,  5},   // D.I.T.T.O. — oro
+                    {25, 30, 65},   // BELLGERD — blu notte
+                    {15, 45, 25},   // VLAD — verde scuro
+                    {55, 22, 15},   // PAUL — rosso mattone
+                    {20, 20, 50},   // JUICY — indaco
+                    {60, 42,  5},   // D.I.T.T.O. — oro
                 };
                 int[] cp = cardPalette[Math.min(i, cardPalette.length-1)];
                 for (int dy = 0; dy < rh; dy++) {
@@ -858,9 +859,9 @@ public class RenderEngine {
 
             // ── Bordi e glow ─────────────────────────────────────────────────
             Color bordo = segreto ? new Color(255, 200, 50)
-                    : lock    ? new Color(35, 38, 65)
-                    : sel     ? new Color(140, 200, 255)
-                    : new Color(70, 90, 140);
+                        : lock    ? new Color(35, 38, 65)
+                        : sel     ? new Color(140, 200, 255)
+                                  : new Color(70, 90, 140);
             if (sel) {
                 // Glow esterno multilivello pulsante
                 float glow = 0.55f + 0.45f * (float)Math.sin(sec * 2.5f);
@@ -977,8 +978,8 @@ public class RenderEngine {
             FontMetrics fmN = g2.getFontMetrics();
             g2.drawString(pg.nome, rx + (rw - fmN.stringWidth(pg.nome))/2 + 1, nomeY+1);
             g2.setColor(segreto ? new Color(255, 210, 50)
-                    : sel    ? new Color(210, 235, 255)
-                    : new Color(180, 200, 240));
+                       : sel    ? new Color(210, 235, 255)
+                                : new Color(180, 200, 240));
             g2.drawString(pg.nome, rx + (rw - fmN.stringWidth(pg.nome))/2, nomeY);
 
             // Linea separatore
@@ -1054,9 +1055,9 @@ public class RenderEngine {
         for (int r2 = lunaR; r2 >= 0; r2--) {
             float t = 1f - (float)r2/lunaR;
             g2.setColor(new Color(
-                    Math.min(255,(int)(230 + 20*t)),
-                    Math.min(255,(int)(235 + 15*t)),
-                    Math.min(255,(int)(210 + 30*t)), 255));
+                Math.min(255,(int)(230 + 20*t)),
+                Math.min(255,(int)(235 + 15*t)),
+                Math.min(255,(int)(210 + 30*t)), 255));
             g2.fillOval(lunaX-r2, lunaY-r2, r2*2, r2*2);
         }
         // Ombra lieve (effetto sfumato lato sinistro)
@@ -1095,8 +1096,8 @@ public class RenderEngine {
         // Tronco con leggero movimento nel vento
         float wind = (float)Math.sin(sec * 0.6f) * 2f;
         int[] trunkX = {trX - trW/2, trX + trW/2,
-                trX + trW/2 + (int)(wind*2), trX - trW/2 + (int)(wind*2),
-                trX - trW/3 + (int)(wind*4), trX + trW/3 + (int)(wind*4)};
+                        trX + trW/2 + (int)(wind*2), trX - trW/2 + (int)(wind*2),
+                        trX - trW/3 + (int)(wind*4), trX + trW/3 + (int)(wind*4)};
         // Gradiente tronco (più scuro in basso, più chiaro in alto)
         for (int seg = 0; seg < 20; seg++) {
             float t = (float)seg / 20;
@@ -1151,12 +1152,12 @@ public class RenderEngine {
 
         // ── Corvi che volano ───────────────────────────────────────────────────
         int[][] crowData = {
-                // {seed_x, seed_y, speed_mult, size}
-                {(int)(W*0.45f), (int)(H*0.12f), 12, 8},
-                {(int)(W*0.60f), (int)(H*0.08f), 9,  6},
-                {(int)(W*0.35f), (int)(H*0.18f), 7,  7},
-                {(int)(W*0.72f), (int)(H*0.14f), 14, 5},
-                {(int)(W*0.55f), (int)(H*0.22f), 11, 6},
+            // {seed_x, seed_y, speed_mult, size}
+            {(int)(W*0.45f), (int)(H*0.12f), 12, 8},
+            {(int)(W*0.60f), (int)(H*0.08f), 9,  6},
+            {(int)(W*0.35f), (int)(H*0.18f), 7,  7},
+            {(int)(W*0.72f), (int)(H*0.14f), 14, 5},
+            {(int)(W*0.55f), (int)(H*0.22f), 11, 6},
         };
         for (int[] cr : crowData) {
             float t2 = sec * cr[2] * 0.04f;
@@ -1167,7 +1168,7 @@ public class RenderEngine {
             // Ali in 3 posizioni: su, mezzo, giù (ogni 0.4 secondi)
             float wingPhase = (sec * 3.5f + cr[0] * 0.01f) % 1f;
             int wingY = wingPhase < 0.33f ? -s :
-                    wingPhase < 0.66f ? 0  : s/2;
+                        wingPhase < 0.66f ? 0  : s/2;
             // Corpo
             g2.setColor(new Color(10, 8, 15, 230));
             g2.fillOval((int)cx2 - s/2, (int)cy2 - s/4, s, s/2);
@@ -1248,7 +1249,7 @@ public class RenderEngine {
 
             // Bob verticale
             float bob = sel ? (float)Math.sin(sec*2.0f+i*0.6f)*4f
-                    : (float)Math.sin(sec*0.7f+i*1.6f)*1.8f;
+                            : (float)Math.sin(sec*0.7f+i*1.6f)*1.8f;
             int ry2 = rect.y + (int)bob;
 
             // Gradiente sfondo
@@ -1402,6 +1403,300 @@ public class RenderEngine {
 
 
     // ── Game Over ─────────────────────────────────────────────────────────────
+
+
+    // ── Boss Rush ─────────────────────────────────────────────────────────────
+
+    private void disegnaBossRush(Graphics2D g2, int W, int H) {
+        long ms  = System.currentTimeMillis();
+        double gs  = gameScale(W, H);
+        int    gox = gameOffX(W, H);
+        int    goy = gameOffY(W, H);
+
+        // ── Sfondo: arena sotterranea scura ───────────────────────────────────
+        // Gradiente verticale scuro
+        for (int y = 0; y < H; y++) {
+            float t = (float)y/H;
+            g2.setColor(new Color(
+                (int)(12 + 8*(1-t)),
+                (int)(6  + 4*(1-t)),
+                (int)(18 + 12*(1-t))));
+            g2.drawLine(0, y, W, y);
+        }
+
+        // Griglia pavimento
+        g2.setColor(new Color(30, 25, 40, 80));
+        int gSize = (int)(W * 0.045f);
+        for (int x = 0; x < W; x += gSize) g2.drawLine(x, 0, x, H);
+        for (int y = 0; y < H; y += gSize) g2.drawLine(0, y, W, y);
+
+        // ── Rendering gameplay scalato ────────────────────────────────────────
+        java.awt.geom.AffineTransform baseTransform = g2.getTransform();
+        g2.translate(gox, goy);
+        g2.scale(gs, gs);
+
+        // Pavimento arena boss rush — colori castello scuro
+        Color bossRushMuro  = new Color(28, 20, 38);
+        Color bossRushPavim = new Color(18, 14, 28);
+        for (int row = 0; row < GameState.RIG_TOTALI; row++) {
+            for (int col = 0; col < GameState.COL_TOTALI; col++) {
+                boolean isBorder = row == 0 || row == GameState.RIG_TOTALI-1
+                        || col == 0 || col == GameState.COL_TOTALI-1;
+                g2.setColor(isBorder ? bossRushMuro : bossRushPavim);
+                g2.fillRect(col*GameState.TILE_SIZE, row*GameState.TILE_SIZE,
+                        GameState.TILE_SIZE, GameState.TILE_SIZE);
+                // Griglia sottile sul pavimento
+                if (!isBorder) {
+                    g2.setColor(new Color(35, 28, 48));
+                    g2.drawRect(col*GameState.TILE_SIZE, row*GameState.TILE_SIZE,
+                            GameState.TILE_SIZE, GameState.TILE_SIZE);
+                }
+            }
+        }
+
+        // Proiettili boss
+        if (proiettiliCannone != null)
+            for (BossProjectile bp : proiettiliCannone) bp.draw(g2);
+
+        // Nemici (boss)
+        for (Nemico n : roomMgr.getNemiciBossRush()) {
+            n.draw(g2, res.getBossSprite(state.bossRushIndice));
+            n.disegnaBarraVita(g2);
+        }
+
+        // Pugni e proiettili giocatore
+        if (pugniAttivi != null) for (Pugno p : pugniAttivi) p.draw(g2);
+
+        // Giocatore
+        disegnaGiocatore(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
+        if (state.meleeTimer > 0) disegnaMelee(g2);
+
+        g2.setTransform(baseTransform);
+
+        // ── HUD boss rush ─────────────────────────────────────────────────────
+        disegnaHUD(g2, W, H);
+
+        // Banner titolo boss rush in alto
+        int banFs = Math.max(16, (int)(H * 0.038f));
+        g2.setFont(res.fontCustomBold != null
+                ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)banFs)
+                : new Font("Consolas", Font.BOLD, banFs));
+        String banTxt = Lang.t("bossrush.titolo") + "  —  "
+                + switch (state.bossRushIndice) {
+                    case 2 -> Lang.t("bossrush.boss2");
+                    case 3 -> Lang.t("bossrush.boss3");
+                    case 4 -> Lang.t("bossrush.boss4");
+                    default -> "";
+                };
+        FontMetrics fmBan = g2.getFontMetrics();
+        int banW = fmBan.stringWidth(banTxt) + 28;
+        int banX = W/2 - banW/2;
+        int banY = (int)(H * 0.018f);
+        // sfondo
+        g2.setColor(new Color(10, 5, 25, 220));
+        g2.fillRoundRect(banX, banY, banW, banFs + 14, 10, 10);
+        g2.setColor(new Color(180, 80, 255, 180));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRoundRect(banX, banY, banW, banFs + 14, 10, 10);
+        g2.setStroke(new BasicStroke(1f));
+        // Pallini progresso boss (3 cerchi)
+        int dotR = Math.max(5, (int)(H*0.008f));
+        int dotSpacing = dotR * 3;
+        int dotsW = 3 * dotSpacing;
+        int dotSX = banX + banW + (int)(W*0.012f);
+        int dotSY = banY + (banFs + 14)/2 - dotR;
+        for (int i = 0; i < 3; i++) {
+            boolean done = i < state.bossRushSconfitti;
+            g2.setColor(done ? new Color(100, 255, 120) : new Color(60, 50, 80));
+            g2.fillOval(dotSX + i*dotSpacing, dotSY, dotR*2, dotR*2);
+            g2.setColor(done ? new Color(0,200,50) : new Color(100,80,130));
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.drawOval(dotSX + i*dotSpacing, dotSY, dotR*2, dotR*2);
+            g2.setStroke(new BasicStroke(1f));
+        }
+        // testo banner
+        g2.setColor(new Color(220, 180, 255));
+        g2.drawString(banTxt, banX + 14, banY + banFs + 3);
+
+        // Dialogo narrazione
+        if (state.dialogoNarrazione.isAttivo()) disegnaDialogoNarrazione(g2, W, H);
+
+        // ── Schermata scelta power-up ─────────────────────────────────────────
+        if (state.bossRushSceltaPowerUp) {
+            disegnaSceltaPowerUpBossRush(g2, W, H);
+        }
+    }
+
+    private void disegnaSceltaPowerUpBossRush(Graphics2D g2, int W, int H) {
+        long ms = System.currentTimeMillis();
+        float pulse = 0.6f + 0.4f * (float)Math.sin(ms * 0.004f);
+
+        // ── Overlay scuro con blur visivo ─────────────────────────────────────
+        g2.setColor(new Color(0, 0, 0, 200));
+        g2.fillRect(0, 0, W, H);
+
+        // ── Pannello popup centrale ───────────────────────────────────────────
+        int popW = (int)(W * 0.72f);
+        int popH = (int)(H * 0.70f);
+        int popX = W/2 - popW/2;
+        int popY = H/2 - popH/2;
+
+        // Ombra pannello
+        g2.setColor(new Color(0, 0, 0, 150));
+        g2.fillRoundRect(popX + 8, popY + 8, popW, popH, 20, 20);
+        // Sfondo
+        g2.setColor(new Color(10, 7, 22, 252));
+        g2.fillRoundRect(popX, popY, popW, popH, 20, 20);
+        // Bordo viola pulsante
+        for (int gi = 4; gi >= 1; gi--) {
+            int ga = Math.max(0, (int)(25 * pulse / gi));
+            g2.setColor(new Color(140, 80, 255, ga));
+            g2.setStroke(new BasicStroke(gi * 2));
+            g2.drawRoundRect(popX - gi, popY - gi, popW + gi*2, popH + gi*2, 20, 20);
+        }
+        g2.setStroke(new BasicStroke(2f));
+        g2.setColor(new Color(120, 60, 220));
+        g2.drawRoundRect(popX, popY, popW, popH, 20, 20);
+        g2.setColor(new Color(80, 40, 160, 100));
+        g2.setStroke(new BasicStroke(1f));
+        g2.drawRoundRect(popX + 3, popY + 3, popW - 6, popH - 6, 17, 17);
+
+        // ── Titolo dentro il pannello ─────────────────────────────────────────
+        int titFs = Math.max(16, (int)(H * 0.040f));
+        g2.setFont(res.fontCustomBold != null
+                ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)titFs)
+                : new Font("Consolas", Font.BOLD, titFs));
+        g2.setColor(new Color(200, 170, 255));
+        int titY = popY + titFs + (int)(H * 0.028f);
+        drawTextCentered(g2, Lang.t("bossrush.scegli"), W/2, titY, titFs);
+        disegnaLineaOrnamentale(g2, W/2, titY + (int)(H*0.018f), (int)(popW*0.3f));
+
+        // ── 3 card power-up ───────────────────────────────────────────────────
+        int cardW  = (int)(popW * 0.26f);
+        int cardH  = (int)(popH * 0.55f);
+        int gap    = (int)(popW * 0.04f);
+        int totalCW = cardW * 3 + gap * 2;
+        int startX = W/2 - totalCW/2;
+        int cardY  = titY + (int)(H * 0.06f);
+
+        // Descrizioni dettagliate
+        String[] pwNomi  = {"", Lang.t("bossrush.pw.cura"), Lang.t("bossrush.pw.vel"),
+                               Lang.t("bossrush.pw.danno"), Lang.t("bossrush.pw.melee")};
+        String[] pwDesc  = {"",
+            Lang.isEN() ? "+2 max HP" : "+2 vita max",
+            Lang.isEN() ? "Move faster" : "Più veloce",
+            Lang.isEN() ? "Deal more damage" : "Più danno",
+            Lang.isEN() ? "Unlock melee" : "Sblocca melee"};
+        Color[] pwColori = {Color.WHITE,
+            new Color(80, 220, 100), new Color(80, 180, 255),
+            new Color(255, 120, 60), new Color(255, 215, 0)};
+        String[] pwIcons = {"", "♥", "▶▶", "✦", "⚔"};
+
+        if (state.bossRushRectsOpzioni == null)
+            state.bossRushRectsOpzioni = new java.awt.Rectangle[3];
+
+        // Hover: aggiorna opzione selezionata se mouse è su una card
+        for (int i = 0; i < 3; i++) {
+            int cx = startX + i * (cardW + gap);
+            state.bossRushRectsOpzioni[i] = new java.awt.Rectangle(cx, cardY, cardW, cardH);
+            if (state.bossRushRectsOpzioni[i].contains(state.mouseX, state.mouseY)) {
+                state.bossRushOpzioneScelta = i;
+            }
+        }
+
+        for (int i = 0; i < 3; i++) {
+            int tipo = state.bossRushOpzioni[i];
+            int cx   = startX + i * (cardW + gap);
+            boolean sel = (i == state.bossRushOpzioneScelta);
+            float cardPulse = 0.7f + 0.3f * (float)Math.sin(ms * 0.005f + i * 1.2f);
+            Color col = pwColori[Math.min(tipo, pwColori.length-1)];
+
+            // Glow se hover/selezionata
+            if (sel) {
+                for (int gi = 5; gi >= 1; gi--) {
+                    int ga = Math.max(0, (int)(35 * cardPulse / gi));
+                    g2.setColor(new Color(col.getRed(), col.getGreen(), col.getBlue(), ga));
+                    g2.setStroke(new BasicStroke(gi * 2.2f));
+                    g2.drawRoundRect(cx - gi, cardY - gi, cardW + gi*2, cardH + gi*2, 14, 14);
+                }
+                g2.setStroke(new BasicStroke(1f));
+            }
+
+            // Sfondo card — più luminoso se selezionata
+            g2.setColor(sel
+                ? new Color(col.getRed()/6+15, col.getGreen()/6+10, col.getBlue()/6+30, 245)
+                : new Color(14, 10, 25, 230));
+            g2.fillRoundRect(cx, cardY, cardW, cardH, 12, 12);
+
+            // Striscia colore in cima alla card
+            g2.setColor(new Color(col.getRed(), col.getGreen(), col.getBlue(), sel ? 200 : 120));
+            g2.fillRoundRect(cx, cardY, cardW, (int)(cardH * 0.07f), 12, 12);
+            g2.fillRect(cx, cardY + (int)(cardH * 0.04f), cardW, (int)(cardH * 0.03f));
+
+            // Bordo card
+            g2.setColor(sel ? col : new Color(col.getRed()/2, col.getGreen()/2, col.getBlue()/2, 160));
+            g2.setStroke(new BasicStroke(sel ? 2.5f : 1.2f));
+            g2.drawRoundRect(cx, cardY, cardW, cardH, 12, 12);
+            g2.setStroke(new BasicStroke(1f));
+
+            // Icona grande
+            int iconFs = Math.max(22, (int)(cardH * 0.25f));
+            g2.setFont(new Font("Serif", Font.BOLD, iconFs));
+            g2.setColor(sel ? col : new Color(col.getRed(), col.getGreen(), col.getBlue(), 180));
+            String icon = pwIcons[Math.min(tipo, pwIcons.length-1)];
+            FontMetrics fmI = g2.getFontMetrics();
+            g2.drawString(icon, cx + (cardW - fmI.stringWidth(icon))/2,
+                    cardY + (int)(cardH * 0.44f));
+
+            // Nome power-up (grande)
+            int nomFs = Math.max(10, (int)(cardH * 0.115f));
+            g2.setFont(res.fontCustomBold != null
+                    ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)nomFs)
+                    : new Font("Consolas", Font.BOLD, nomFs));
+            g2.setColor(sel ? Color.WHITE : new Color(180, 170, 200));
+            String nome = pwNomi[Math.min(tipo, pwNomi.length-1)];
+            FontMetrics fmN = g2.getFontMetrics();
+            g2.drawString(nome, cx + (cardW - fmN.stringWidth(nome))/2,
+                    cardY + (int)(cardH * 0.64f));
+
+            // Descrizione (piccola)
+            int descFs = Math.max(8, (int)(cardH * 0.09f));
+            g2.setFont(new Font("Consolas", Font.PLAIN, descFs));
+            g2.setColor(sel ? new Color(col.getRed(), col.getGreen(), col.getBlue(), 220)
+                            : new Color(120, 115, 140));
+            String desc = pwDesc[Math.min(tipo, pwDesc.length-1)];
+            FontMetrics fmD = g2.getFontMetrics();
+            g2.drawString(desc, cx + (cardW - fmD.stringWidth(desc))/2,
+                    cardY + (int)(cardH * 0.79f));
+
+            // Badge "CLICCA" / "CLICK" se selezionata
+            if (sel) {
+                int badFs = Math.max(8, (int)(cardH * 0.085f));
+                g2.setFont(res.fontCustomBold != null
+                        ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)badFs)
+                        : new Font("Consolas", Font.BOLD, badFs));
+                String badge = Lang.isEN() ? "CLICK" : "SCEGLI";
+                FontMetrics fmBg = g2.getFontMetrics();
+                int bgW = fmBg.stringWidth(badge) + 14;
+                int bgX = cx + (cardW - bgW) / 2;
+                int bgY = cardY + (int)(cardH * 0.87f);
+                g2.setColor(col);
+                g2.fillRoundRect(bgX, bgY, bgW, badFs + 6, 6, 6);
+                g2.setColor(new Color(0, 0, 0, 200));
+                g2.drawString(badge, bgX + 7, bgY + badFs + 1);
+            }
+        }
+
+        // ── Hint tastiera in fondo al popup ───────────────────────────────────
+        int hintFs = Math.max(8, (int)(H * 0.016f));
+        g2.setFont(new Font("Consolas", Font.PLAIN, hintFs));
+        g2.setColor(new Color(100, 95, 125));
+        String hint = Lang.isEN() ? "◄ ► or hover to select   ENTER / click to confirm"
+                                  : "◄ ► o passa sopra per selezionare   INVIO / click per confermare";
+        FontMetrics fmH = g2.getFontMetrics();
+        g2.drawString(hint, W/2 - fmH.stringWidth(hint)/2,
+                popY + popH - (int)(H * 0.022f));
+    }
 
     private void disegnaGameOver(Graphics2D g2, int W, int H) {
         long ms  = System.currentTimeMillis();
@@ -1621,7 +1916,7 @@ public class RenderEngine {
         int bR    = (int)(ctrlW * 0.05f);
         int[][] btnPos = {{0,-1},{1,0},{0,1},{-1,0}};
         Color[] btnCol = {new Color(200,60,60), new Color(60,160,60),
-                new Color(60,100,200), new Color(200,180,60)};
+                          new Color(60,100,200), new Color(200,180,60)};
         for (int bi = 0; bi < 4; bi++) {
             int bx = btnCX + (int)(btnPos[bi][0] * bR * 2.2f);
             int by = btnCY + (int)(btnPos[bi][1] * bR * 2.2f);
@@ -1880,19 +2175,19 @@ public class RenderEngine {
 
         // ── Font helpers ──────────────────────────────────────────────────────
         java.util.function.Function<Float, java.awt.Font> cf  =
-                s -> res.fontCustomBold != null ? res.fontCustomBold.deriveFont(Font.PLAIN,  s)
-                        : new Font("Consolas", Font.BOLD,  s.intValue());
+            s -> res.fontCustomBold != null ? res.fontCustomBold.deriveFont(Font.PLAIN,  s)
+                                        : new Font("Consolas", Font.BOLD,  s.intValue());
         java.util.function.Function<Float, java.awt.Font> cfl =
-                s -> res.fontCustom != null ? res.fontCustom.deriveFont(Font.PLAIN, s)
-                        : new Font("Consolas", Font.PLAIN, s.intValue());
+            s -> res.fontCustom != null ? res.fontCustom.deriveFont(Font.PLAIN, s)
+                                        : new Font("Consolas", Font.PLAIN, s.intValue());
 
         // ── Dimensioni celle proporzionali ────────────────────────────────────
         // Riserviamo il 38% della larghezza per i due pannelli laterali (19% ciascuno)
         // e il resto per shell+griglia. La griglia occupa al max il 90% dell'altezza.
         int availForShell = (int)(W * 0.62f);
         int cellH = Math.min((int)(H * 0.043f),
-                Math.min((int)(availForShell * 0.72f / TetrisGame.COLS),
-                        (int)(H * 0.9f / TetrisGame.ROWS)));
+                    Math.min((int)(availForShell * 0.72f / TetrisGame.COLS),
+                             (int)(H * 0.9f / TetrisGame.ROWS)));
         int cellW = cellH;
         int gridW = TetrisGame.COLS * cellW;
         int gridH = TetrisGame.ROWS * cellH;
@@ -1913,8 +2208,8 @@ public class RenderEngine {
         // Pannelli laterali — usano tutto lo spazio disponibile a sx e dx del body
         int sideGap = Math.max(6, (int)(cellW * 0.7f));
         int sideW   = Math.max((int)(cellW * 4f),
-                Math.min((shellX - sideGap),        // spazio a sinistra
-                        (W - shellX - shellW - sideGap))); // spazio a destra
+                      Math.min((shellX - sideGap),        // spazio a sinistra
+                               (W - shellX - shellW - sideGap))); // spazio a destra
         int leftX   = shellX - sideGap - sideW;
         int rightX  = shellX + shellW + sideGap;
         int sideY   = shellY;
@@ -1933,8 +2228,8 @@ public class RenderEngine {
         g2.fillRoundRect(shellX + 6, shellY + 8, shellW, shellH, 28, 28);
         // Body principale — grigio scuro stile plastica
         GradientPaint bodyGrad = new GradientPaint(
-                shellX, shellY, new Color(52, 52, 68),
-                shellX, shellY + shellH, new Color(30, 30, 42));
+            shellX, shellY, new Color(52, 52, 68),
+            shellX, shellY + shellH, new Color(30, 30, 42));
         g2.setPaint(bodyGrad);
         g2.fillRoundRect(shellX, shellY, shellW, shellH, 28, 28);
         // Bordo esterno
@@ -2122,17 +2417,17 @@ public class RenderEngine {
      * sx=true  → pannello destra: NEXT piece, PREMIO
      */
     private void disegnaPannelloLaterale(Graphics2D g2,
-                                         int px, int py, int pw, int ph, int cellH,
-                                         java.util.function.Function<Float, java.awt.Font> cf,
-                                         java.util.function.Function<Float, java.awt.Font> cfl,
-                                         TetrisGame t, boolean isDestro) {
+            int px, int py, int pw, int ph, int cellH,
+            java.util.function.Function<Float, java.awt.Font> cf,
+            java.util.function.Function<Float, java.awt.Font> cfl,
+            TetrisGame t, boolean isDestro) {
 
         // Sfondo pannello
         g2.setColor(new Color(0, 0, 0, 140));
         g2.fillRoundRect(px + 3, py + 4, pw, ph, 14, 14);
         GradientPaint panGrad = new GradientPaint(
-                px, py, new Color(38, 36, 54),
-                px, py + ph, new Color(22, 20, 34));
+            px, py, new Color(38, 36, 54),
+            px, py + ph, new Color(22, 20, 34));
         g2.setPaint(panGrad);
         g2.fillRoundRect(px, py, pw, ph, 14, 14);
         g2.setStroke(new BasicStroke(1.5f));
@@ -2151,14 +2446,14 @@ public class RenderEngine {
         if (!isDestro) {
             // ── Pannello SINISTRO: PUNTEGGIO · LIVELLO · RIGHE ───────────────
             String[][] voci = {
-                    {"PUNTEGGIO", "" + t.punteggio},
-                    {"LIVELLO",   "" + t.livello},
-                    {"RIGHE",     "" + t.righe},
+                {"PUNTEGGIO", "" + t.punteggio},
+                {"LIVELLO",   "" + t.livello},
+                {"RIGHE",     "" + t.righe},
             };
             Color[] coloriVal = {
-                    Color.WHITE,
-                    new Color(255, 220, 80),
-                    new Color(100, 220, 100),
+                Color.WHITE,
+                new Color(255, 220, 80),
+                new Color(100, 220, 100),
             };
             for (int i = 0; i < voci.length; i++) {
                 // Separatore
@@ -2331,7 +2626,7 @@ public class RenderEngine {
         if (notaCasa != null) notaCasa.draw(g2);
 
         if (pugniAttivi != null) for (Pugno p : pugniAttivi) p.draw(g2);
-        if (proiettiliCannone != null) for (BossProjectile bp : proiettiliCannone) bp.draw(g2);
+            if (proiettiliCannone != null) for (BossProjectile bp : proiettiliCannone) bp.draw(g2);
         disegnaNemici(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
         disegnaGiocatore(g2, GameState.LARGHEZZA_GIOCO, GameState.ALTEZZA_GIOCO);
         if (state.meleeTimer > 0) disegnaMelee(g2);
@@ -2424,8 +2719,8 @@ public class RenderEngine {
     /** Scala del gameplay: adatta le coordinate tile/giocatore alla finestra reale. */
     private double gameScale(int W, int H) {
         return Math.min(
-                (double) W / GameState.LARGHEZZA_GIOCO,
-                (double) H / GameState.ALTEZZA_GIOCO
+            (double) W / GameState.LARGHEZZA_GIOCO,
+            (double) H / GameState.ALTEZZA_GIOCO
         );
     }
     /** Offset X per centrare il gioco nella finestra reale. */
@@ -2590,13 +2885,73 @@ public class RenderEngine {
             g2.setStroke(new BasicStroke(1f));
             // Freccia giù + scritta B
             g2.setFont(res.fontCustomBold != null
-                    ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)(T - 2))
+                ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)(T - 2))
                     : new Font("Consolas", Font.BOLD, T - 2));
             g2.setColor(new Color(255, 200, 200));
             FontMetrics fmP = g2.getFontMetrics();
             String lblP = "B";
             g2.drawString(lblP, pdX + (pdW - fmP.stringWidth(lblP)) / 2,
                     pdY + (pdH + fmP.getAscent()) / 2 - 3);
+        }
+
+        // ── Tombino Boss Rush — tile sul pavimento ────────────────────────────
+        if (state.tombinoVisibile
+                && state.mondoAttuale == 1
+                && state.stanzaNelMondo == GameState.STANZA_BOSS
+                && state.bossSconfitto) {
+            long tmMs = System.currentTimeMillis();
+            float tmP = 0.6f + 0.4f * (float)Math.sin(tmMs * 0.004f);
+            int tmTX = GameState.TOMBINO_COL * T;
+            int tmTY = GameState.TOMBINO_RIG * T;
+
+            // Base tile pavimento (già disegnata dal loop pavimento, qui sovrapponiamo)
+            // Lastra metallica del tombino — riempie tutta la tile
+            g2.setColor(new Color(50, 52, 55));
+            g2.fillRect(tmTX + 2, tmTY + 2, T - 4, T - 4);
+
+            // Bordo incassato (effetto tridimensionale)
+            g2.setColor(new Color(35, 36, 38));
+            g2.setStroke(new BasicStroke(3f));
+            g2.drawRect(tmTX + 2, tmTY + 2, T - 4, T - 4);
+            g2.setColor(new Color(75, 78, 82));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRect(tmTX + 5, tmTY + 5, T - 10, T - 10);
+            g2.setStroke(new BasicStroke(1f));
+
+            // Cerchio centrale tombino
+            int cR = T / 3;
+            int cX = tmTX + T/2 - cR;
+            int cY = tmTY + T/2 - cR;
+            g2.setColor(new Color(40, 42, 45));
+            g2.fillOval(cX, cY, cR*2, cR*2);
+            g2.setColor(new Color(90, 95, 100));
+            g2.setStroke(new BasicStroke(2f));
+            g2.drawOval(cX, cY, cR*2, cR*2);
+            g2.setStroke(new BasicStroke(1f));
+
+            // Viti ai 4 angoli
+            int vR = 4;
+            int[][] viti = {{tmTX+10, tmTY+10},{tmTX+T-10, tmTY+10},{tmTX+10, tmTY+T-10},{tmTX+T-10, tmTY+T-10}};
+            for (int[] v : viti) {
+                g2.setColor(new Color(60, 62, 65));
+                g2.fillOval(v[0]-vR, v[1]-vR, vR*2, vR*2);
+                g2.setColor(new Color(100, 105, 110));
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawOval(v[0]-vR, v[1]-vR, vR*2, vR*2);
+                // Taglio della vite (-)
+                g2.drawLine(v[0]-vR+2, v[1], v[0]+vR-2, v[1]);
+            }
+
+            // Glow verde pulsante attorno al tile
+            int glA = Math.max(0, Math.min(255, (int)(80 * tmP)));
+            g2.setColor(new Color(0, 220, 80, glA));
+            g2.setStroke(new BasicStroke(2.5f));
+            g2.drawRect(tmTX + 1, tmTY + 1, T - 2, T - 2);
+            // secondo layer glow
+            g2.setColor(new Color(0, 180, 60, glA / 2));
+            g2.setStroke(new BasicStroke(1.5f));
+            g2.drawRect(tmTX - 1, tmTY - 1, T + 2, T + 2);
+            g2.setStroke(new BasicStroke(1f));
         }
     }
 
@@ -2968,16 +3323,16 @@ public class RenderEngine {
 
         String[] etichette = { "NO", "SI" };
         Color[] coloriSfondo = {
-                new Color(20, 50, 20),
-                new Color(60, 15, 15)
+            new Color(20, 50, 20),
+            new Color(60, 15, 15)
         };
         Color[] coloriSel = {
-                new Color(40, 120, 40),
-                new Color(150, 30, 30)
+            new Color(40, 120, 40),
+            new Color(150, 30, 30)
         };
         Color[] coloriBordo = {
-                new Color(60, 180, 60),
-                new Color(220, 60, 60)
+            new Color(60, 180, 60),
+            new Color(220, 60, 60)
         };
 
         for (int i = 0; i < 2; i++) {
@@ -3008,7 +3363,7 @@ public class RenderEngine {
             // Testo bottone (font custom)
             int btnFs = Math.max(12, (int)(H * 0.025f));
             g2.setFont(res.fontCustomBold != null
-                    ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) btnFs)
+                ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) btnFs)
                     : new Font("Consolas", Font.BOLD, btnFs));
             FontMetrics fmB = g2.getFontMetrics();
             g2.setColor(sel ? Color.WHITE : new Color(160, 160, 160));
@@ -3211,12 +3566,12 @@ public class RenderEngine {
         FontMetrics fmB = g2.getFontMetrics();
 
         String[] righe = {
-                Lang.t("nota.riga0"),
-                Lang.t("nota.riga1"),
-                Lang.t("nota.riga2"),
-                Lang.t("nota.riga3"),
-                Lang.t("nota.riga4"),
-                Lang.t("nota.riga5"),
+            Lang.t("nota.riga0"),
+            Lang.t("nota.riga1"),
+            Lang.t("nota.riga2"),
+            Lang.t("nota.riga3"),
+            Lang.t("nota.riga4"),
+            Lang.t("nota.riga5"),
         };
 
         int ly = by + 62;
@@ -3391,7 +3746,7 @@ public class RenderEngine {
         g2.fillRoundRect(W/2 - (int)(W*0.15), banY, (int)(W*0.30), banH, 8, 8);
 
         g2.setFont(res.fontCustomBold != null ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)fs)
-                : new Font("Consolas", Font.BOLD, fs));
+                                          : new Font("Consolas", Font.BOLD, fs));
         g2.setColor(new Color(255, 200, 80));
         String txt = Lang.t("banner.casa");
         FontMetrics fm = g2.getFontMetrics();
@@ -3448,10 +3803,10 @@ public class RenderEngine {
                 int ty = panY + 6 + lineH/2 + fm.getAscent()/2 + i * lineH;
                 int tx = panX + (panW - fm.stringWidth(lbl)) / 2;
                 g2.setColor(
-                        "header".equals(tipo) ? new Color(255, 200, 200) :
-                                "malus".equals(tipo)  ? new Color(255, 120, 120) :
-                                        "sep".equals(tipo)    ? new Color(180, 60, 60, 150) :
-                                                new Color(180, 160, 160));
+                    "header".equals(tipo) ? new Color(255, 200, 200) :
+                    "malus".equals(tipo)  ? new Color(255, 120, 120) :
+                    "sep".equals(tipo)    ? new Color(180, 60, 60, 150) :
+                                           new Color(180, 160, 160));
                 g2.drawString(lbl, tx, ty);
             }
         }
@@ -3528,7 +3883,7 @@ public class RenderEngine {
                     // Testo "BONUS"
                     int bFs = Math.max(7, (int)(bH * 0.65f));
                     g2.setFont(res.fontCustomBold != null
-                            ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)bFs)
+                ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)bFs)
                             : new Font("Consolas", Font.BOLD, bFs));
                     g2.setColor(new Color(255, 210, 210));
                     FontMetrics fmB = g2.getFontMetrics();
@@ -3559,7 +3914,7 @@ public class RenderEngine {
             int statoY  = cy - ico/2;   // allineati con burn
             int statoFs = Math.max(7, fs - 1);
             Font statoFont = res.fontCustomBold != null
-                    ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)statoFs)
+                ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)statoFs)
                     : new Font("Consolas", Font.BOLD, statoFs);
             g2.setFont(statoFont);
             FontMetrics fmSt = g2.getFontMetrics();
@@ -3662,7 +4017,7 @@ public class RenderEngine {
                 int pgScreenY = goy + (int)(state.y * gs2) - Math.max(0, Math.min(255, (int)(12 * gs2)));
                 int flashFs = Math.max(11, (int)(gs2 * 16));
                 g2.setFont(res.fontCustomBold != null
-                        ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) flashFs)
+                ? res.fontCustomBold.deriveFont(Font.PLAIN, (float) flashFs)
                         : new Font("Consolas", Font.BOLD, flashFs));
                 FontMetrics fmF = g2.getFontMetrics();
                 String nome = state.getMeleeNome();
@@ -3728,6 +4083,33 @@ public class RenderEngine {
             g2.drawString(String.format(Lang.t("hud.mondo"), state.mondoAttuale) + " St." + state.stanzaNelMondo, gox + 10, goy + pad + ico + fs + 4);
         }
 
+        // ── Hint tombino boss rush ────────────────────────────────────────────
+        if (state.tombinoVisibile
+                && state.mondoAttuale == 1
+                && state.stanzaNelMondo == GameState.STANZA_BOSS
+                && state.bossSconfitto) {
+            boolean blinkTomb = (System.currentTimeMillis() / 500) % 2 == 0;
+            if (blinkTomb) {
+                int hintFs = Math.max(11, (int)(H * 0.022f));
+                g2.setFont(res.fontCustomBold != null
+                        ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)hintFs)
+                        : new Font("Consolas", Font.BOLD, hintFs));
+                String htxt = Lang.t("bossrush.tombino");
+                FontMetrics fmH = g2.getFontMetrics();
+                int hx = W/2 - fmH.stringWidth(htxt)/2;
+                int hy = H - (int)(H * 0.06f);
+                // Sfondo pillola
+                g2.setColor(new Color(10, 30, 10, 200));
+                g2.fillRoundRect(hx - 10, hy - hintFs - 2, fmH.stringWidth(htxt) + 20, hintFs + 8, 8, 8);
+                g2.setColor(new Color(0, 200, 80, 200));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(hx - 10, hy - hintFs - 2, fmH.stringWidth(htxt) + 20, hintFs + 8, 8, 8);
+                g2.setStroke(new BasicStroke(1f));
+                g2.setColor(new Color(100, 255, 140));
+                g2.drawString(htxt, hx, hy);
+            }
+        }
+
         disegnaUIBoss(g2, W, H, gox, goy, gW, gH);
     }
     private void disegnaUIBoss(Graphics2D g2, int W, int H, int gox, int goy, int gW, int gH) {
@@ -3741,8 +4123,8 @@ public class RenderEngine {
         if (bossCorrente == null) return;
 
         String[] nomiUI = {
-                Lang.t("boss.m1.nome"), Lang.t("boss.m2.nome"), Lang.t("boss.m3.nome"),
-                Lang.t("boss.m4.nome"), Lang.t("boss.m5.nome")
+            Lang.t("boss.m1.nome"), Lang.t("boss.m2.nome"), Lang.t("boss.m3.nome"),
+            Lang.t("boss.m4.nome"), Lang.t("boss.m5.nome")
         };
         String nomeBoss = nomiUI[((state.mondoAttuale - 1) % 5)];
 
@@ -3784,8 +4166,8 @@ public class RenderEngine {
         g2.fillRect(uiX, barY, barW, barH);
         float perc = (float) bossCorrente.getVita() / bossCorrente.getVitaMax();
         Color colVita = perc > 0.5f ? new Color(200, 40, 40)
-                : perc > 0.25f ? new Color(220, 120, 0)
-                : new Color(255, 40, 40);
+                      : perc > 0.25f ? new Color(220, 120, 0)
+                      : new Color(255, 40, 40);
         g2.setColor(colVita);
         g2.fillRect(uiX, barY, (int)(barW * perc), barH);
         g2.setColor(new Color(80, 20, 20));

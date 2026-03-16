@@ -48,6 +48,11 @@ public class GameLoop {
      * Chiamato SOLO quando statoGioco == GIOCO.
      */
     public void tick() {
+        // Boss rush ha la sua logica separata
+        if (state.inBossRush) {
+            aggiornaBossRush();
+            return;
+        }
         // Blocca il gameplay durante i dialoghi narrazione (boss intro / shopkeeper)
         if (state.dialogoNarrazione.isAttivo()) return;
         if (state.mostraDialogoCasa) return;
@@ -66,6 +71,158 @@ public class GameLoop {
         aggiornaNota();
         aggiornaUfficio();
         raccogliOggetti();
+    }
+
+    // ── Boss Rush ─────────────────────────────────────────────────────────────
+
+    private void aggiornaBossRush() {
+        if (state.dialogoNarrazione.isAttivo()) return;
+        if (state.bossRushSceltaPowerUp) return;
+
+        // NON chiamare tickTimerBoss — userebbe stanzaNelMondo=8 e manderebbe in GAME_OVER
+        state.tickInvulnerabilita();
+        aggiornaMovBossRush();   // movimento senza transizioni stanza
+        aggiornaSparo();
+        aggiornaMelee();
+        aggiornaPugni();
+        aggiornaTileEffetto();
+        aggiornaProiettiliCannone();
+        aggiornaCollisioniBossRush(); // collisioni senza avanzaMondo
+
+        // Spawna boss se non ancora spawnato
+        if (!state.bossSpawnato) {
+            spawnaBossRush(state.bossRushIndice);
+        }
+    }
+
+    /** Movimento in boss rush: solo WASD dentro l'arena, nessuna porta */
+    private void aggiornaMovBossRush() {
+        final int T   = GameState.TILE_SIZE;
+        final float minX = GameState.OFFSET * T;
+        final float maxX = (GameState.COL_TOTALI - GameState.OFFSET - 1) * T - GameState.PG_SIZE;
+        final float minY = GameState.OFFSET * T;
+        final float maxY = (GameState.RIG_TOTALI - GameState.OFFSET - 1) * T - GameState.PG_SIZE;
+        float vel = state.velocita;
+        if (state.freezeAttivo) return;
+        if (state.slowAttivo) vel *= GameState.SLOW_MULT;
+
+        if (state.up    && state.y > minY) { state.y -= vel; if (collideOstacolo()) state.y += vel; }
+        if (state.down  && state.y < maxY) { state.y += vel; if (collideOstacolo()) state.y -= vel; }
+        if (state.left  && state.x > minX) { state.x -= vel; if (collideOstacolo()) state.x += vel; }
+        if (state.right && state.x < maxX) { state.x += vel; if (collideOstacolo()) state.x -= vel; }
+
+        // Confini stretti — il giocatore non può uscire dall'arena
+        state.x = Math.max(minX, Math.min(maxX, state.x));
+        state.y = Math.max(minY, Math.min(maxY, state.y));
+    }
+
+    /** Collisioni in boss rush: proiettili e danno nemici, senza transizioni stanza */
+    private void aggiornaCollisioniBossRush() {
+        List<Nemico> nemici = roomMgr.getNemiciBossRush();
+        int[][] ostacoli = null; // nessun ostacolo in boss rush
+
+        // Aggiorna AI boss e collisioni contatto
+        for (int i = 0; i < nemici.size(); i++) {
+            Nemico n = nemici.get(i);
+            n.update(state.x, state.y, nemici, ostacoli);
+
+            if (n.toccaGiocatore(state.x, state.y, GameState.PG_SIZE)) {
+                state.riceviDanno();
+            }
+            // Proiettili boss → giocatore
+            if (n instanceof Boss b) {
+                BossProjectile.Tipo colpito =
+                    b.controllaCollisioneProiettiliConTipo(state.x, state.y, GameState.PG_SIZE);
+                if (colpito != null) {
+                    state.riceviDanno();
+                    if (colpito == BossProjectile.Tipo.FUOCO) {
+                        if (state.bossRushIndice == 4) {
+                            if (!state.freezeAttivo) {
+                                state.freezeAttivo = true;
+                                state.freezeTimer  = GameState.FREEZE_DURATA;
+                            }
+                        } else {
+                            state.burnAttivo = true;
+                            state.burnTimer  = GameState.BURN_DURATA;
+                            state.burnTick   = 0;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Burn tick
+        if (state.burnAttivo) {
+            state.burnTimer--;
+            state.burnTick++;
+            if (state.burnTick >= GameState.BURN_INTERVALLO) {
+                state.burnTick = 0;
+                if (state.vite > 0) state.vite -= GameState.BURN_DANNO;
+            }
+            if (state.burnTimer <= 0) { state.burnAttivo = false; state.burnTimer = 0; }
+        }
+
+        // Tick barre vita
+        for (Nemico n : nemici) n.tickBarra();
+
+        // Pugni giocatore → boss
+        for (int i = pugniAttivi.size()-1; i >= 0; i--) {
+            Pugno p = pugniAttivi.get(i);
+            if (p.daRimuovere) { pugniAttivi.remove(i); continue; }
+            Rectangle hbP = p.getHitbox();
+            for (int j = nemici.size()-1; j >= 0; j--) {
+                Nemico n = nemici.get(j);
+                if (!hbP.intersects(n.getHitbox())) continue;
+                n.subisciDanno(p.getDanno());
+                p.daRimuovere = true;
+                if (n.isMorto()) {
+                    nemici.remove(j);
+                    state.audio.suonaEffetto(AudioManager.SFX_MORTE_NEMICO);
+                    state.audio.suonaMusica(AudioManager.VITTORIA);
+                    state.bossSconfitto = true;
+                    roomMgr.bossRushBossSconfitto();
+                }
+                break;
+            }
+        }
+
+        // Melee → boss
+        if (state.meleeTimer > 0) {
+            int meleeRaggio = getMeleeRaggio();
+            Rectangle hbMelee = new Rectangle(
+                    state.meleeHitX - meleeRaggio, state.meleeHitY - meleeRaggio,
+                    meleeRaggio * 2, meleeRaggio * 2);
+            for (int j = nemici.size()-1; j >= 0; j--) {
+                Nemico n = nemici.get(j);
+                if (!hbMelee.intersects(n.getHitbox())) continue;
+                n.subisciDanno(getMeleeDanno());
+                if (n.isMorto()) {
+                    nemici.remove(j);
+                    state.audio.suonaEffetto(AudioManager.SFX_MORTE_NEMICO);
+                    state.audio.suonaMusica(AudioManager.VITTORIA);
+                    state.bossSconfitto = true;
+                    roomMgr.bossRushBossSconfitto();
+                }
+                break;
+            }
+        }
+
+        // Game over se vita = 0
+        if (state.vite <= 0) {
+            state.statoGioco = GameState.StatoGioco.GAME_OVER;
+        }
+    }
+
+    private void spawnaBossRush(int mondoBoss) {
+        java.util.List<Nemico> nemici = roomMgr.getNemiciBossRush();
+        if (!nemici.isEmpty()) return; // già spawnato
+        int vitaBoss = StatNemico.vitaBoss(mondoBoss);
+        Boss boss = new Boss(7, 2, GameState.TILE_SIZE, vitaBoss, mondoBoss);
+        nemici.add(boss);
+        state.bossSpawnato = true;
+        state.bossSconfitto = false;
+        state.dialogoNarrazione.pulisci();
+        state.audio.suonaMusica(AudioManager.BOSS);
     }
 
     // ── Dialogo shopkeeper ────────────────────────────────────────────────────
@@ -190,6 +347,24 @@ public class GameLoop {
         if (state.down && state.y >= maxY && in62Aperta) {
             roomMgr.entraInBonus();
             return;
+        }
+
+        // Tombino boss rush: appare nella stanza boss del mondo 1 dopo aver sconfitto Mannie
+        if (state.tombinoVisibile
+                && state.stanzaNelMondo == GameState.STANZA_BOSS
+                && state.mondoAttuale == 1
+                && state.bossSconfitto) {
+            int T2 = GameState.TILE_SIZE;
+            // Centro della tile tombino (usa costanti per allinearsi col renderer)
+            float tombinoX = GameState.TOMBINO_COL * T2 + T2 / 2f;
+            float tombinoY = GameState.TOMBINO_RIG * T2 + T2 / 2f;
+            float pgCX = state.x + GameState.PG_SIZE / 2f;
+            float pgCY = state.y + GameState.PG_SIZE / 2f;
+            float dist = (float) Math.sqrt(Math.pow(pgCX - tombinoX, 2) + Math.pow(pgCY - tombinoY, 2));
+            if (dist < T2 * 1.1f) {
+                roomMgr.entraInBossRush();
+                return;
+            }
         }
 
         // Porta nord shop
@@ -592,8 +767,8 @@ public class GameLoop {
         java.util.List<ShopItem> items = roomMgr.inStanzaBonus
                 ? roomMgr.getItemsBonus()
                 : roomMgr.inStanzaShop
-                ? roomMgr.getItemsShop()
-                : roomMgr.getShopItemsCorrenti();
+                        ? roomMgr.getItemsShop()
+                        : roomMgr.getShopItemsCorrenti();
 
         for (Shopkeeper sk : shopkeepers) {
             if (hbPG.intersects(sk.getHitbox())) sk.attivaBattuta();
@@ -641,8 +816,8 @@ public class GameLoop {
         List<Nemico> nemici = roomMgr.inStanzaBonus
                 ? roomMgr.getNemiciBonus()
                 : roomMgr.inStanzaShop
-                ? roomMgr.getShopNemici()
-                : roomMgr.getNemiciCorrenti();
+                        ? roomMgr.getShopNemici()
+                        : roomMgr.getNemiciCorrenti();
 
         // Nemici vs giocatore — update con lista per separazione
         int[][] ostacoli = roomMgr.getOstacoliCorrenti();
@@ -665,7 +840,7 @@ public class GameLoop {
             }
             if (n instanceof Boss b) {
                 BossProjectile.Tipo colpito =
-                        b.controllaCollisioneProiettiliConTipo(state.x, state.y, GameState.PG_SIZE);
+                    b.controllaCollisioneProiettiliConTipo(state.x, state.y, GameState.PG_SIZE);
                 if (colpito != null) {
                     state.riceviDanno();
                     if (colpito == BossProjectile.Tipo.FUOCO) {
@@ -728,6 +903,13 @@ public class GameLoop {
                     if (isBoss) {
                         state.bossSconfitto = true;
                         state.audio.suonaMusica(AudioManager.VITTORIA);
+                        if (state.inBossRush) {
+                            roomMgr.bossRushBossSconfitto();
+                        } else if (state.mondoAttuale == 1
+                                && state.modalitaScelta == GameState.Modalita.STORIA
+                                && !state.bossRushCompletata) {
+                            state.tombinoVisibile = true;
+                        }
                     } else if (isShopkeeper) {
                         // Shopkeeper sconfitto: sblocca melee o buffa danno se gia sbloccato
                         roomMgr.onShopkeeperSconfitto();
@@ -765,6 +947,13 @@ public class GameLoop {
                     if (isBoss2) {
                         state.bossSconfitto = true;
                         state.audio.suonaMusica(AudioManager.VITTORIA);
+                        if (state.inBossRush) {
+                            roomMgr.bossRushBossSconfitto();
+                        } else if (state.mondoAttuale == 1
+                                && state.modalitaScelta == GameState.Modalita.STORIA
+                                && !state.bossRushCompletata) {
+                            state.tombinoVisibile = true;
+                        }
                     } else if (isShopkeeper2) {
                         roomMgr.onShopkeeperSconfitto();
                     } else if (nemici.isEmpty() && roomMgr.inStanzaBonus) {

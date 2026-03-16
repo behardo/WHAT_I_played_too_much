@@ -13,7 +13,7 @@ public class GameState {
     public enum StatoGioco {
         MENU, IMPOSTAZIONI, CONTROLLI,
         SELEZIONE_PERSONAGGIO, SELEZIONE_MODALITA,
-        TETRIS, GIOCO, UFFICIO, VITTORIA_STORIA, GAME_OVER, PAUSA
+        TETRIS, GIOCO, BOSS_RUSH, UFFICIO, VITTORIA_STORIA, GAME_OVER, PAUSA
     }
 
     // ── Nota in Casa ──────────────────────────────────────────────────────────
@@ -23,6 +23,31 @@ public class GameState {
 
     // ── Ufficio ───────────────────────────────────────────────────────────────
     public boolean ufficioDialogoAvviato = false;
+
+    // ── Boss Rush (tombino dopo Mannie) ───────────────────────────────────────
+
+    /** True se il tombino è visibile (boss m1 sconfitto, modalità storia) */
+    public boolean tombinoVisibile      = false;
+    /** True se il giocatore è dentro la boss rush */
+    public boolean inBossRush           = false;
+    /** Quale boss si sta affrontando nella rush: 2=Presagio, 3=ReForni, 4=Gelo */
+    public int     bossRushIndice       = 2;
+    /** Boss rush completata (tutti e 3 sconfitti) */
+    public boolean bossRushCompletata   = false;
+    /** Quanti boss rush boss sconfitti finora */
+    public int     bossRushSconfitti    = 0;
+    /** Power-up guadagnati nella boss rush (uno per boss, max 3) */
+    public int     bossRushPowerUp1     = 0; // 0=nessuno, 1=cura, 2=vel, 3=danno, 4=melee
+    public int     bossRushPowerUp2     = 0;
+    public int     bossRushPowerUp3     = 0;
+    /** Schermata scelta power-up attiva */
+    public boolean bossRushSceltaPowerUp = false;
+    /** Opzioni presentate per la scelta corrente (3 indici) */
+    public int[]   bossRushOpzioni      = {1, 2, 3};
+    /** Opzione selezionata (0-2) */
+    public int     bossRushOpzioneScelta = 0;
+    /** Rettangoli delle card opzioni power-up (settati dal renderer) */
+    public java.awt.Rectangle[] bossRushRectsOpzioni = new java.awt.Rectangle[3];
 
     public enum Modalita { STORIA, INFINITA }
 
@@ -132,6 +157,9 @@ public class GameState {
     public static final int COL_TOTALI     = COL_GIOCO + (OFFSET * 2);
     public static final int RIG_TOTALI     = RIG_GIOCO + (OFFSET * 2);
     public static final int LARGHEZZA_GIOCO = COL_TOTALI * TILE_SIZE;
+    /** Posizione tile tombino nella stanza boss m1 (centro pavimento) */
+    public static final int TOMBINO_COL = COL_TOTALI / 2;
+    public static final int TOMBINO_RIG = RIG_TOTALI / 2 + 1;
     public static final int ALTEZZA_GIOCO   = RIG_TOTALI * TILE_SIZE;
     public static final int PG_SIZE         = 50;
     public static final int STANZA_BOSS     = 8;
@@ -313,6 +341,16 @@ public class GameState {
         sistemaPersonaggi.resetSoloCombo(); // mantiene i mondi sconfitti (sblocchi)
         dialogoShopkeeper.reset();
         statoGioco                   = StatoGioco.MENU;
+        tombinoVisibile              = false;
+        inBossRush                   = false;
+        bossRushIndice               = 2;
+        bossRushCompletata           = false;
+        bossRushSconfitti            = 0;
+        bossRushPowerUp1             = 0;
+        bossRushPowerUp2             = 0;
+        bossRushPowerUp3             = 0;
+        bossRushSceltaPowerUp        = false;
+        bossRushOpzioneScelta        = 0;
         resetGiocatore();
     }
 

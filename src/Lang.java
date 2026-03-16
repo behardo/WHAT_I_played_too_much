@@ -210,8 +210,8 @@ public class Lang {
             case "boss.m5.b2"   -> "Non arriverai MAI in ufficio!!!";
             case "boss.m5.pg4"  -> "Chi lo spieghera al mio capo...";
 
-
-
+  
+  
             // ── Stanza bonus panel ────────────────────────────────────────────
             case "bonus.titolo"     -> "STANZA BONUS";
             case "bonus.danno"      -> "DANNO";
@@ -251,7 +251,7 @@ public class Lang {
             case "dial.capo.pg2"   -> "...";
             case "dial.capo.sk3"   -> "Siediti. Hai l'aria di qualcuno che ha bisogno di un caffe.";
 
-            // ── Nomi mondi ────────────────────────────────────────────────────
+          // ── Nomi mondi ────────────────────────────────────────────────────
             case "mondo.casa"   -> "CASA";
             case "mondo.1"      -> "IL CANTIERE";
             case "mondo.2"      -> "LE FOGNE";
@@ -260,12 +260,28 @@ public class Lang {
             case "mondo.5"      -> "IL CASTELLO";
             case "mondo.abisso" -> "L'ABISSO";
 
-            // ── Nomi boss ─────────────────────────────────────────────────────
+          // ── Nomi boss ─────────────────────────────────────────────────────
             case "boss.m1.nome"  -> "MANNIE";
             case "boss.m2.nome"  -> "OMEN";
             case "boss.m3.nome"  -> "KING OVEN";
             case "boss.m4.nome"  -> "FROST";
             case "boss.m5.nome"  -> "YABBADUHLON";
+
+
+            // ── Boss Rush ─────────────────────────────────────────────────────
+            case "bossrush.titolo"     -> "BOSS RUSH";
+            case "bossrush.sottotit"   -> "Sconfiggi i boss per arrivare al Castello";
+            case "bossrush.scegli"     -> "Scegli un potenziamento";
+            case "bossrush.prossimo"   -> "Prossimo Boss";
+            case "bossrush.completa"   -> "Accesso al Castello sbloccato!";
+            case "bossrush.tombino"    -> "[ S ] Boss Rush";
+            case "bossrush.pw.cura"    -> "+2 Vita Max";
+            case "bossrush.pw.vel"     -> "+Velocita";
+            case "bossrush.pw.danno"   -> "+Danno";
+            case "bossrush.pw.melee"   -> "Melee";
+            case "bossrush.boss2"      -> "PRESAGIO";
+            case "bossrush.boss3"      -> "RE DEL FORNO";
+            case "bossrush.boss4"      -> "GELO";
 
             default -> null;
         };
@@ -496,6 +512,22 @@ public class Lang {
             case "dial.capo.sk2"   -> "You know what's funny? The meeting got moved to tomorrow.";
             case "dial.capo.pg2"   -> "...";
             case "dial.capo.sk3"   -> "Sit down. You look like someone who needs a coffee.";
+
+
+            // ── Boss Rush ─────────────────────────────────────────────────────
+            case "bossrush.titolo"     -> "BOSS RUSH";
+            case "bossrush.sottotit"   -> "Defeat the bosses to reach the Castle";
+            case "bossrush.scegli"     -> "Choose a power-up";
+            case "bossrush.prossimo"   -> "Next Boss";
+            case "bossrush.completa"   -> "Castle access unlocked!";
+            case "bossrush.tombino"    -> "[ S ] Boss Rush";
+            case "bossrush.pw.cura"    -> "+2 Max HP";
+            case "bossrush.pw.vel"     -> "+Speed";
+            case "bossrush.pw.danno"   -> "+Damage";
+            case "bossrush.pw.melee"   -> "Melee";
+            case "bossrush.boss2"      -> "OMEN";
+            case "bossrush.boss3"      -> "KING OVEN";
+            case "bossrush.boss4"      -> "FROST";
 
             // ── World names ───────────────────────────────────────────────────
             case "mondo.casa"   -> "HOME";

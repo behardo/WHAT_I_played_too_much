@@ -237,7 +237,7 @@ public class RoomManager {
             case 0 -> { // MANNIE — Cantiere M1
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m1.pg0", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m1.nome", sprBoss,
-                        "boss.m1.b0", false);
+                    "boss.m1.b0", false);
             }
             case 1 -> { // PRESAGIO — Fogne M2
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m2.pg0", true);
@@ -246,26 +246,26 @@ public class RoomManager {
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg0", true);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg1", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m3.nome", sprBoss,
-                        "boss.m3.b0", false);
+                    "boss.m3.b0", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg2", true);
             }
             case 3 -> { // GELO — Ghiacciaio M4
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m4.pg0", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m4.nome", sprBoss,
-                        "boss.m4.b0", false);
+                    "boss.m4.b0", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m4.pg1", true);
             }
             case 4 -> { // YABBADUHLON — Castello M5
                 state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
-                        "boss.m5.b0", false);
+                    "boss.m5.b0", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg0", true);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg1", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
-                        "boss.m5.b1", false);
+                    "boss.m5.b1", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg2", true);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg3", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
-                        "boss.m5.b2", false);
+                    "boss.m5.b2", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg4", true);
             }
         }
@@ -287,7 +287,7 @@ public class RoomManager {
         // Tile effetto della stanza corrente (per evitare spawn sopra)
         List<TileEffetto> tileCorr = tileEffettoPerStanza.isEmpty() ? null
                 : tileEffettoPerStanza.size() > state.indiceStanzaMemoria
-                ? tileEffettoPerStanza.get(state.indiceStanzaMemoria) : null;
+                    ? tileEffettoPerStanza.get(state.indiceStanzaMemoria) : null;
 
         for (int i = 0; i < quanti; i++) {
             int[] pos  = trovaPosizioneSicura(ostacoli, tileCorr);
@@ -489,6 +489,10 @@ public class RoomManager {
 
     // ── Stanza Bonus (porta a sud dalla stanza 6) ───────────────────────────────
     public boolean inStanzaBonus = false;
+
+    // ── Boss Rush — lista nemici dedicata ─────────────────────────────────────
+    private final java.util.List<Nemico> nemiciBossRush = new java.util.ArrayList<>();
+    public java.util.List<Nemico> getNemiciBossRush() { return nemiciBossRush; }
 
     private final java.util.List<Nemico>   nemiciBonus  = new java.util.ArrayList<>();
     private final java.util.List<ShopItem> itemsBonus   = new java.util.ArrayList<>();
@@ -754,8 +758,8 @@ public class RoomManager {
                 case 2 -> TileEffetto.Tipo.VELENO;
                 case 3 -> TileEffetto.Tipo.FUOCO;
                 case 4 -> random.nextFloat() < 0.75f
-                        ? TileEffetto.Tipo.GHIACCIO
-                        : TileEffetto.Tipo.GHIACCIO_FORTE;
+                            ? TileEffetto.Tipo.GHIACCIO
+                            : TileEffetto.Tipo.GHIACCIO_FORTE;
                 case 5 -> TileEffetto.Tipo.CANNONE;
                 default -> null;
             };
@@ -786,4 +790,97 @@ public class RoomManager {
         void onCambioMondo(int nuovoMondo);
         void onVittoriaStoria();
     }
+
+    // ── Boss Rush ─────────────────────────────────────────────────────────────
+
+    /** Entra nella boss rush: prepara la stanza col boss dell'indice richiesto */
+    public void entraInBossRush() {
+        state.inBossRush             = true;
+        state.tombinoVisibile        = false;
+        state.bossRushIndice         = 2; // inizia da Presagio
+        state.bossRushSconfitti      = 0;
+        state.bossRushSceltaPowerUp  = false;
+        state.statoGioco             = GameState.StatoGioco.BOSS_RUSH;
+        preparaStanzaBossRush();
+    }
+
+    /** Prepara la stanza per il boss corrente della rush */
+    public void preparaStanzaBossRush() {
+        nemiciBossRush.clear();
+        if (pugniAttiviRef != null) pugniAttiviRef.clear();
+        if (proiettiliCannoneRef != null) proiettiliCannoneRef.clear();
+        state.bossSpawnato        = false;
+        state.bossSconfitto       = false;
+        // Reset timer boss per evitare GAME_OVER immediato
+        state.tempoRimanenteBoss  = GameState.TEMPO_BOSS_DEFAULT;
+        // burnAttivo/freeze resettatati
+        state.burnAttivo   = false; state.burnTimer  = 0;
+        state.freezeAttivo = false; state.freezeTimer = 0;
+        state.slowAttivo   = false; state.slowTimer   = 0;
+        // Posiziona giocatore al centro
+        state.x = (GameState.COL_TOTALI / 2f) * GameState.TILE_SIZE - GameState.PG_SIZE / 2f;
+        state.y = (GameState.RIG_TOTALI / 2f) * GameState.TILE_SIZE - GameState.PG_SIZE / 2f;
+    }
+
+    /** Chiamato quando un boss della rush viene sconfitto */
+    public void bossRushBossSconfitto() {
+        state.bossRushSconfitti++;
+        state.bossRushSceltaPowerUp = true;
+        // Genera 3 opzioni random distinte
+        java.util.List<Integer> pool = new java.util.ArrayList<>(java.util.Arrays.asList(1,2,3,4));
+        java.util.Collections.shuffle(pool, random);
+        state.bossRushOpzioni = new int[]{ pool.get(0), pool.get(1), pool.get(2) };
+        state.bossRushOpzioneScelta = 0;
+    }
+
+    /** Applica il power-up scelto e passa al boss successivo o termina */
+    public void applicaPowerUpBossRush(int opzione) {
+        int tipo = state.bossRushOpzioni[opzione];
+        // Salva il power-up
+        if      (state.bossRushSconfitti == 1) state.bossRushPowerUp1 = tipo;
+        else if (state.bossRushSconfitti == 2) state.bossRushPowerUp2 = tipo;
+        else                                    state.bossRushPowerUp3 = tipo;
+        // Applica immediatamente
+        applicaTipoPowerUp(tipo);
+        state.bossRushSceltaPowerUp = false;
+
+        if (state.bossRushSconfitti >= 3) {
+            // Boss rush completata → vai direttamente al castello
+            state.bossRushCompletata = true;
+            state.inBossRush         = false;
+            state.mondoAttuale       = 5; // Castello
+            state.stanzaNelMondo     = 1;
+            state.bossSpawnato       = false;
+            state.bossSconfitto      = false;
+            state.shopSbloccato      = true;
+            state.statoGioco         = GameState.StatoGioco.GIOCO;
+            resetCompleto();
+            state.resetGiocatore();
+            state.dialogoShopkeeper.reset();
+            state.dialogoNarrazione.pulisci();
+        } else {
+            // Prossimo boss
+            state.bossRushIndice++;
+            preparaStanzaBossRush();
+        }
+    }
+
+    private void applicaTipoPowerUp(int tipo) {
+        switch (tipo) {
+            case 1 -> { // Cura +2 vita max
+                state.viteMaxGiocatore += 2;
+                state.vite = Math.min(state.vite + 2, state.viteMaxGiocatore);
+            }
+            case 2 -> { // Velocità
+                state.velocita += 1.5f;
+            }
+            case 3 -> { // Danno
+                state.dannoPugno += 2;
+            }
+            case 4 -> { // Melee
+                state.meleeUnlocked = true;
+            }
+        }
+    }
+
 }

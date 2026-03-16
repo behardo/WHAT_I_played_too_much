@@ -116,7 +116,8 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        if (state.statoGioco == GameState.StatoGioco.GIOCO) {
+        if (state.statoGioco == GameState.StatoGioco.GIOCO
+                || state.statoGioco == GameState.StatoGioco.BOSS_RUSH) {
             gameLoop.tick();
         } else if (state.statoGioco == GameState.StatoGioco.TETRIS
                 && state.tetris != null) {
