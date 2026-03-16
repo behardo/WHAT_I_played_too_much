@@ -3101,7 +3101,9 @@ public class RenderEngine {
         int testoFs = Math.max(11, (int)(H * 0.022f));
         g2.setFont(new Font("Consolas", Font.BOLD, testoFs));
         FontMetrics fmT = g2.getFontMetrics();
-        int lineY  = sprY + fmN.getHeight() + (int)(H * 0.013f);
+        // lineY parte dopo la box nome (height + padding) + gap
+        int nomeBgH = fmN.getHeight() + 8;
+        int lineY  = sprY + nomeBgH + (int)(H * 0.014f);
         int lineH  = fmT.getHeight() + 3;
 
         String[] parole = pag.getTesto().split(" ");
@@ -3553,8 +3555,8 @@ public class RenderEngine {
                 }
             }
 
-            // ── Indicatori stato: freeze / slow — colonna verticale sotto HUD ─
-            int statoY  = cy + ico + 6;   // partono sotto la riga vita
+            // ── Indicatori stato: freeze / slow — stessa riga di burn ─────────
+            int statoY  = cy - ico/2;   // allineati con burn
             int statoFs = Math.max(7, fs - 1);
             Font statoFont = res.fontCustomBold != null
                     ? res.fontCustomBold.deriveFont(Font.PLAIN, (float)statoFs)
@@ -3567,27 +3569,21 @@ public class RenderEngine {
                 int totale  = GameState.FREEZE_DURATA;
                 float prog  = Math.max(0f, rimasti / (float)totale);
                 String lblFrz = Lang.t("hud.freeze");
-                // Calcola larghezza barra in base al testo
                 FontMetrics fmBar = g2.getFontMetrics();
                 int barW = fmBar.stringWidth(lblFrz) + 20;
                 int barH = Math.max(fmBar.getHeight() + 4, (int)(H * 0.028f));
-                // Sfondo pillola
                 g2.setColor(new Color(10, 25, 60, 220));
-                g2.fillRoundRect(gox + 8, statoY, barW, barH, barH/2, barH/2);
-                // Fill progresso
+                g2.fillRoundRect(cx, statoY, barW, barH, barH/2, barH/2);
                 g2.setColor(new Color(60, 150, 255, 210));
-                g2.fillRoundRect(gox + 8, statoY, Math.max(barH, (int)(barW * prog)), barH, barH/2, barH/2);
-                // Bordo
+                g2.fillRoundRect(cx, statoY, Math.max(barH, (int)(barW * prog)), barH, barH/2, barH/2);
                 g2.setColor(new Color(140, 210, 255, 200));
                 g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(gox + 8, statoY, barW, barH, barH/2, barH/2);
+                g2.drawRoundRect(cx, statoY, barW, barH, barH/2, barH/2);
                 g2.setStroke(new BasicStroke(1f));
-                // Label DENTRO la barra, centrata verticalmente
                 g2.setColor(new Color(220, 245, 255));
-                int lblX = gox + 8 + (barW - fmBar.stringWidth(lblFrz)) / 2;
+                int lblX = cx + (barW - fmBar.stringWidth(lblFrz)) / 2;
                 int lblY = statoY + (barH + fmBar.getAscent() - fmBar.getDescent()) / 2;
                 g2.drawString(lblFrz, lblX, lblY);
-                statoY += barH + 4;
             }
 
             if (state.slowAttivo && !state.freezeAttivo) {
@@ -3599,15 +3595,15 @@ public class RenderEngine {
                 int barW = fmBar.stringWidth(lblSl) + 20;
                 int barH = Math.max(fmBar.getHeight() + 4, (int)(H * 0.028f));
                 g2.setColor(new Color(10, 35, 50, 220));
-                g2.fillRoundRect(gox + 8, statoY, barW, barH, barH/2, barH/2);
+                g2.fillRoundRect(cx, statoY, barW, barH, barH/2, barH/2);
                 g2.setColor(new Color(40, 130, 200, 200));
-                g2.fillRoundRect(gox + 8, statoY, Math.max(barH, (int)(barW * prog)), barH, barH/2, barH/2);
+                g2.fillRoundRect(cx, statoY, Math.max(barH, (int)(barW * prog)), barH, barH/2, barH/2);
                 g2.setColor(new Color(100, 185, 245, 180));
                 g2.setStroke(new BasicStroke(1.2f));
-                g2.drawRoundRect(gox + 8, statoY, barW, barH, barH/2, barH/2);
+                g2.drawRoundRect(cx, statoY, barW, barH, barH/2, barH/2);
                 g2.setStroke(new BasicStroke(1f));
                 g2.setColor(new Color(200, 235, 255));
-                int lblX = gox + 8 + (barW - fmBar.stringWidth(lblSl)) / 2;
+                int lblX = cx + (barW - fmBar.stringWidth(lblSl)) / 2;
                 int lblY = statoY + (barH + fmBar.getAscent() - fmBar.getDescent()) / 2;
                 g2.drawString(lblSl, lblX, lblY);
             }
