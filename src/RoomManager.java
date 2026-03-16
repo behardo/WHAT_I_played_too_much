@@ -409,9 +409,12 @@ public class RoomManager {
         state.monete += 20; // bottino shopkeeper sconfitto
         if (!state.meleeUnlocked) {
             state.meleeUnlocked = true;
+            state.arduaRicompensaMsg   = Lang.t("popup.melee");
+            state.arduaRicompensaTimer = 90;
         } else {
-            state.dannoPugno += 3;
-            state.arduaRicompensaMsg   = Lang.t("popup.danno");
+            // Melee già sbloccato: potenzia danno melee
+            state.meleeDannoBonus += 2;
+            state.arduaRicompensaMsg   = "+" + state.meleeDannoBonus + " " + Lang.t("popup.danno");
             state.arduaRicompensaTimer = 90;
         }
     }
@@ -437,6 +440,11 @@ public class RoomManager {
     }
 
     public void tornaAllaStanzaPrecedente() {
+        // Blocca: non si può tornare prima della stanza 1
+        if (state.stanzaNelMondo <= 1 || state.indiceStanzaMemoria <= 0) {
+            state.x = (GameState.OFFSET + 1) * GameState.TILE_SIZE; // respingi
+            return;
+        }
         int maxX = (GameState.COL_TOTALI - GameState.OFFSET - 1) * GameState.TILE_SIZE - 20;
         state.x = maxX;
         state.indiceStanzaMemoria--;
@@ -619,11 +627,15 @@ public class RoomManager {
         inStanzaShop = false;
     }
 
-    public List<Nemico>     getNemiciCorrenti()      { return nemiciPerStanza.get(state.indiceStanzaMemoria); }
-    public List<Cura>       getCureCorrenti()         { return curePerStanza.get(state.indiceStanzaMemoria); }
-    public List<Moneta>     getMoneteCorrenti()       { return monetePerStanza.get(state.indiceStanzaMemoria); }
-    public List<Shopkeeper> getShopkeepersCorrenti()  { return shopkeepersPerStanza.get(state.indiceStanzaMemoria); }
-    public List<ShopItem>   getShopItemsCorrenti()    { return shopItemsPerStanza.get(state.indiceStanzaMemoria); }
+    public List<Nemico>     getNemiciCorrenti()      {
+        int idx = state.indiceStanzaMemoria;
+        if (state.inBossRush) return nemiciBossRush; // boss rush usa lista dedicata
+        return (idx < nemiciPerStanza.size()) ? nemiciPerStanza.get(idx) : new java.util.ArrayList<>();
+    }
+    public List<Cura>       getCureCorrenti()         { int idx=state.indiceStanzaMemoria; return (idx < curePerStanza.size()) ? curePerStanza.get(idx) : new java.util.ArrayList<>(); }
+    public List<Moneta>     getMoneteCorrenti()       { int idx=state.indiceStanzaMemoria; return (idx < monetePerStanza.size()) ? monetePerStanza.get(idx) : new java.util.ArrayList<>(); }
+    public List<Shopkeeper> getShopkeepersCorrenti()  { int idx=state.indiceStanzaMemoria; return (idx < shopkeepersPerStanza.size()) ? shopkeepersPerStanza.get(idx) : new java.util.ArrayList<>(); }
+    public List<ShopItem>   getShopItemsCorrenti()    { int idx=state.indiceStanzaMemoria; return (idx < shopItemsPerStanza.size()) ? shopItemsPerStanza.get(idx) : new java.util.ArrayList<>(); }
     public int[][]          getOstacoliCorrenti() {
         if (inStanzaBonus) return ostacoliBonus;
         int idx = state.indiceStanzaMemoria;
@@ -848,13 +860,31 @@ public class RoomManager {
             // Boss rush completata → vai direttamente al castello
             state.bossRushCompletata = true;
             state.inBossRush         = false;
+            // Registra sconfitte boss 2,3,4 per sblocco personaggi
+            state.sistemaPersonaggi.registraBossSconfitto(2);
+            state.sistemaPersonaggi.registraBossSconfitto(3);
+            state.sistemaPersonaggi.registraBossSconfitto(4);
             state.mondoAttuale       = 5; // Castello
             state.stanzaNelMondo     = 1;
             state.bossSpawnato       = false;
             state.bossSconfitto      = false;
             state.shopSbloccato      = true;
+            state.stanzaCasaVisitata = true; // salta la Casa
             state.statoGioco         = GameState.StatoGioco.GIOCO;
             resetCompleto();
+            // resetCompleto chiama inizializzaStanzaDefault che aggiunge stanza vuota (index 0)
+            // Sostituiscila con una stanza normale con nemici
+            nemiciPerStanza.clear();
+            curePerStanza.clear();
+            monetePerStanza.clear();
+            shopkeepersPerStanza.clear();
+            shopItemsPerStanza.clear();
+            ostacoliPerStanza.clear();
+            tileEffettoPerStanza.clear();
+            // Genera stanza 1 castello con nemici reali
+            generaNuovaStanza();
+            state.indiceStanzaMemoria = 0;
+            state.stanzaNelMondo      = 1;
             state.resetGiocatore();
             state.dialogoShopkeeper.reset();
             state.dialogoNarrazione.pulisci();

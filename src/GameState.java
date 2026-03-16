@@ -170,6 +170,7 @@ public class GameState {
     public boolean shootUp, shootDown, shootLeft, shootRight;
     public boolean meleeAttivo   = false;   // il giocatore ha premuto Z
     public boolean meleeUnlocked = false;   // sbloccato dopo aver battuto lo shopkeeper
+    public int     meleeDannoBonus = 0;     // bonus danno melee accumulato
     public boolean meleeUnlockedDaArdua = false; // melee dato dalla stanza ardua (non shop)
 
     // Ricompensa stanza ardua

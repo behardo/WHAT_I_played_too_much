@@ -180,14 +180,17 @@ public class GameLoop {
                     state.audio.suonaEffetto(AudioManager.SFX_MORTE_NEMICO);
                     state.audio.suonaMusica(AudioManager.VITTORIA);
                     state.bossSconfitto = true;
+                    // Rimuovi tutti i proiettili per non danneggiare il prossimo boss
+                    pugniAttivi.clear();
                     roomMgr.bossRushBossSconfitto();
+                    return; // esci subito, lista cambiata
                 }
                 break;
             }
         }
 
-        // Melee → boss
-        if (state.meleeTimer > 0) {
+        // Melee → boss (solo se meleeTimer ancora attivo e boss rush non appena cambiata)
+        if (state.meleeTimer > 0 && !state.bossRushSceltaPowerUp) {
             int meleeRaggio = getMeleeRaggio();
             Rectangle hbMelee = new Rectangle(
                     state.meleeHitX - meleeRaggio, state.meleeHitY - meleeRaggio,
@@ -201,6 +204,8 @@ public class GameLoop {
                     state.audio.suonaEffetto(AudioManager.SFX_MORTE_NEMICO);
                     state.audio.suonaMusica(AudioManager.VITTORIA);
                     state.bossSconfitto = true;
+                    state.meleeTimer = 0; // azzera melee per non colpire il prossimo boss
+                    state.meleeCooldown = GameState.MELEE_DELAY;
                     roomMgr.bossRushBossSconfitto();
                 }
                 break;
@@ -575,7 +580,7 @@ public class GameLoop {
 
     /** Danno melee per personaggio. */
     private int getMeleeDanno() {
-        return switch (state.indicePersonaggioSelezionato) {
+        int base = switch (state.indicePersonaggioSelezionato) {
             case 0 -> 3;   // BELLGERD — Colpo di Valigia
             case 1 -> 2;   // VLAD     — Chiave Inglese
             case 2 -> 6;   // PAUL     — Accetta
@@ -583,6 +588,7 @@ public class GameLoop {
             case 4 -> 99;  // D.I.T.T.O. — Cancellazione
             default -> 3;
         };
+        return base + state.meleeDannoBonus;
     }
 
     /** Raggio hitbox melee (px). */

@@ -73,14 +73,19 @@ public class RenderEngine {
             case BOSS_RUSH             -> disegnaBossRush(g2, panelWidth, panelHeight);
             case PAUSA -> {
                 java.awt.geom.AffineTransform t1 = g2.getTransform();
-                disegnaGioco(g2, panelWidth, panelHeight);
-                g2.setTransform(t1);  // ripristina prima di disegnare la pausa
+                if (state.statoPrecedente == GameState.StatoGioco.BOSS_RUSH)
+                    disegnaBossRush(g2, panelWidth, panelHeight);
+                else
+                    disegnaGioco(g2, panelWidth, panelHeight);
+                g2.setTransform(t1);
                 disegnaPausa(g2, panelWidth, panelHeight);
             }
             case GAME_OVER -> {
                 java.awt.geom.AffineTransform t2 = g2.getTransform();
-                disegnaGioco(g2, panelWidth, panelHeight);
-                g2.setTransform(t2);  // ripristina prima di disegnare game over
+                // In GAME_OVER da boss rush, sfondo neutro (non chiamare disegnaGioco)
+                if (!state.inBossRush)
+                    disegnaGioco(g2, panelWidth, panelHeight);
+                g2.setTransform(t2);
                 disegnaGameOver(g2, panelWidth, panelHeight);
             }
             case VITTORIA_STORIA       -> disegnaVittoriaStoria(g2, panelWidth, panelHeight);
