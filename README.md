@@ -33,7 +33,7 @@ Prima del boss appare una stanza di sfida con malus attivi (danno ridotto, veloc
 **5. Stanza Bonus** *(opzionale, mondi 3–5)*
 Accessibile da una porta a sud in alcune stanze. Contiene un potenziamento extra.
 
-**6. Boss**
+**6. entity.Boss**
 L'ultima stanza di ogni mondo. Sconfiggi il boss per avanzare. La porta si blocca all'ingresso.
 
 **7. Negozio**
@@ -45,7 +45,7 @@ Appare dopo alcune stanze. Spendi le monete raccolte per comprare potenziamenti.
 
 | Punteggio | Ricompensa |
 |-----------|------------|
-| 500+ | Cura extra |
+| 500+ | items.Cura extra |
 | 1500+ | Velocita aumentata |
 | 3000+ | Danno aumentato |
 | 5000+ | Melee sbloccato |
@@ -85,7 +85,7 @@ Ogni personaggio ha un attacco melee unico, sbloccabile sconfiggendo il negozian
 
 ---
 
-## I Mondi e i Boss
+## I Mondi e i entity.Boss
 
 **Mondo 1 — Il Cantiere**
 Tileset industriale. Il boss ti insegue e spara un ventaglio a 3 proiettili.
@@ -137,7 +137,7 @@ Richiede Java 17 o superiore.
 
 ```bash
 javac *.java
-java WhatIvePlayedTooMuch
+java core.WhatIvePlayedTooMuch
 ```
 
 ---
@@ -146,31 +146,31 @@ java WhatIvePlayedTooMuch
 
 | File | Ruolo |
 |------|-------|
-| `WhatIvePlayedTooMuch.java` | Entry point e finestra |
-| `GameLoop.java` | Logica di gioco, collisioni, melee, cannoni |
-| `GameState.java` | Stato della run |
-| `RenderEngine.java` | Rendering di tutti gli stati |
-| `RoomManager.java` | Generazione stanze e dialoghi boss |
-| `Boss.java` | Comportamento e fasi dei boss |
-| `BossProjectile.java` | Proiettili boss tipizzati |
-| `TetrisGame.java` | Minigame Tetris pre-partita |
-| `AudioManager.java` | Musica e SFX |
-| `ResourceLoader.java` | Caricamento asset e sprite |
-| `Lang.java` | Sistema di localizzazione IT/EN |
-| `UIManager.java` | Layout bottoni e lista personaggi |
-| `InputHandler.java` | Input mouse e tastiera |
-| `MenuButton.java` | Bottone pixel-art 3D con hover glow |
-| `SistemaPersonaggi.java` | Sblocco personaggi e combo segreto |
-| `DatiPersonaggio.java` | Statistiche e descrizione personaggio |
+| `core.WhatIvePlayedTooMuch.java` | Entry point e finestra |
+| `core.GameLoop.java` | Logica di gioco, collisioni, melee, cannoni |
+| `core.GameState.java` | Stato della run |
+| `render.RenderEngine.java` | Rendering di tutti gli stati |
+| `room.RoomManager.java` | Generazione stanze e dialoghi boss |
+| `entity.Boss.java` | Comportamento e fasi dei boss |
+| `entity.BossProjectile.java` | Proiettili boss tipizzati |
+| `game.TetrisGame.java` | Minigame Tetris pre-partita |
+| `audio.AudioManager.java` | Musica e SFX |
+| `ui.ResourceLoader.java` | Caricamento asset e sprite |
+| `data.Lang.java` | Sistema di localizzazione IT/EN |
+| `ui.UIManager.java` | Layout bottoni e lista personaggi |
+| `ui.InputHandler.java` | Input mouse e tastiera |
+| `ui.MenuButton.java` | Bottone pixel-art 3D con hover glow |
+| `data.SistemaPersonaggi.java` | Sblocco personaggi e combo segreto |
+| `data.DatiPersonaggio.java` | Statistiche e descrizione personaggio |
 | `DialogoNarrazione.java` | Sistema dialogo JRPG multi-pagina |
 | `DialogoShopkeeper.java` | Dialogo scelta attacco negoziante |
-| `TileSet.java` | Tileset per mondo con effetti speciali |
-| `FullscreenManager.java` | Gestione fullscreen e ridimensionamento |
+| `room.TileSet.java` | Tileset per mondo con effetti speciali |
+| `ui.FullscreenManager.java` | Gestione fullscreen e ridimensionamento |
 
 ---
 
 ## Easter egg
 
-**Nota debug** — Nella stanza Casa spawna in posizione casuale una nota raccoglibile. Raccogliendola appare un popup in stile carta trovata con il codice **WIPT-4269**, che compare anche sulla schermata finale della storia.
+**items.Nota debug** — Nella stanza Casa spawna in posizione casuale una nota raccoglibile. Raccogliendola appare un popup in stile carta trovata con il codice **WIPT-4269**, che compare anche sulla schermata finale della storia.
 
 **D.I.T.T.O.** — Il quinto personaggio non ha statistiche visibili. Si sblocca con una combinazione segreta di tasti non documentata.
