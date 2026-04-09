@@ -253,7 +253,7 @@ public class RoomManager {
             case 0 -> { // MANNIE — Cantiere M1
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m1.pg0", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m1.nome", sprBoss,
-                    "boss.m1.b0", false);
+                        "boss.m1.b0", false);
             }
             case 1 -> { // PRESAGIO — Fogne M2
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m2.pg0", true);
@@ -262,26 +262,26 @@ public class RoomManager {
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg0", true);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg1", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m3.nome", sprBoss,
-                    "boss.m3.b0", false);
+                        "boss.m3.b0", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m3.pg2", true);
             }
             case 3 -> { // GELO — Ghiacciaio M4
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m4.pg0", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m4.nome", sprBoss,
-                    "boss.m4.b0", false);
+                        "boss.m4.b0", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m4.pg1", true);
             }
             case 4 -> { // YABBADUHLON — Castello M5
                 state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
-                    "boss.m5.b0", false);
+                        "boss.m5.b0", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg0", true);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg1", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
-                    "boss.m5.b1", false);
+                        "boss.m5.b1", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg2", true);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg3", true);
                 state.dialogoNarrazione.aggiungiKey("boss.m5.nome", sprBoss,
-                    "boss.m5.b2", false);
+                        "boss.m5.b2", false);
                 state.dialogoNarrazione.aggiungiPgKey(nomePg, sprPg, "boss.m5.pg4", true);
             }
         }
@@ -303,7 +303,7 @@ public class RoomManager {
         // Tile effetto della stanza corrente (per evitare spawn sopra)
         List<TileEffetto> tileCorr = tileEffettoPerStanza.isEmpty() ? null
                 : tileEffettoPerStanza.size() > state.indiceStanzaMemoria
-                    ? tileEffettoPerStanza.get(state.indiceStanzaMemoria) : null;
+                ? tileEffettoPerStanza.get(state.indiceStanzaMemoria) : null;
 
         for (int i = 0; i < quanti; i++) {
             int[] pos  = trovaPosizioneSicura(ostacoli, tileCorr);
@@ -783,8 +783,8 @@ public class RoomManager {
                 case 2 -> TileEffetto.Tipo.VELENO;
                 case 3 -> TileEffetto.Tipo.FUOCO;
                 case 4 -> random.nextFloat() < 0.75f
-                            ? TileEffetto.Tipo.GHIACCIO
-                            : TileEffetto.Tipo.GHIACCIO_FORTE;
+                        ? TileEffetto.Tipo.GHIACCIO
+                        : TileEffetto.Tipo.GHIACCIO_FORTE;
                 case 5 -> TileEffetto.Tipo.CANNONE;
                 default -> null;
             };

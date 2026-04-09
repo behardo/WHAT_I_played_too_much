@@ -14,8 +14,8 @@ public class Cura {
     private long spawnMs = System.currentTimeMillis();
 
     public Cura(int tileX, int tileY, int tileSize, BufferedImage img) {
-        this.x    = tileX;
-        this.y    = tileY;
+        this.x    = tileX * tileSize;
+        this.y    = tileY * tileSize;
         this.size = tileSize / 2;
         this.img  = img;
     }
@@ -23,11 +23,10 @@ public class Cura {
     /** Ritorna true se il giocatore ha raccolto questo oggetto. */
     public boolean controllaRaccolta(float pgX, float pgY, int pgSize) {
         return pgX < x + size && pgX + pgSize > x
-            && pgY < y + size && pgY + pgSize > y;
+                && pgY < y + size && pgY + pgSize > y;
     }
 
     public void draw(Graphics2D g2) {
-        // Effetto bob verticale
         float bob = (float) Math.sin((System.currentTimeMillis() - spawnMs) * 0.005) * 4f;
         int dy = (int) bob;
         if (img != null) {

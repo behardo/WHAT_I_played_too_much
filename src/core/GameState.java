@@ -242,8 +242,8 @@ public class GameState {
      * Centra il giocatore nello schermo e pulisce gli input.
      */
     public void resetGiocatore() {
-        this.x = LARGHEZZA_GIOCO / 2f;
-        this.y = ALTEZZA_GIOCO  / 2f;
+        this.x = (OFFSET + 2) * TILE_SIZE;
+        this.y = (OFFSET + RIG_GIOCO / 2) * TILE_SIZE;
         invulnerabile       = false;
         timerInvulnerabilita = 0;
         up = down = left = right = false;

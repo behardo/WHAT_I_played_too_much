@@ -15,8 +15,8 @@ public class Moneta {
     private long spawnMs = System.currentTimeMillis();
 
     public Moneta(int tileX, int tileY, int tileSize, BufferedImage img) {
-        this.x      = tileX;
-        this.y      = tileY;
+        this.x      = tileX * tileSize;
+        this.y      = tileY * tileSize;
         this.size   = tileSize / 2;
         this.img    = img;
         this.valore = 1;
@@ -27,7 +27,7 @@ public class Moneta {
     /** Ritorna true se il giocatore ha raccolto questa moneta. */
     public boolean controllaRaccolta(float pgX, float pgY, int pgSize) {
         return pgX < x + size && pgX + pgSize > x
-            && pgY < y + size && pgY + pgSize > y;
+                && pgY < y + size && pgY + pgSize > y;
     }
 
     public void draw(Graphics2D g2) {
