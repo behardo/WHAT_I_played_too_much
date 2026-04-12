@@ -132,6 +132,14 @@ public class SistemaPersonaggi {
      * Reset completo (nuova partita): azzera tutto inclusi gli sblocchi.
      */
 
+    /**
+     * Sblocca Ditto direttamente (es. dopo decodifica nota terminale).
+     */
+    public void sblocaDitto() {
+        segretoAttivo   = true;
+        contatoreBCombo = 0;
+    }
+
     public void resetCompleto() {
         contatoreBCombo = 0;
         segretoAttivo   = false;

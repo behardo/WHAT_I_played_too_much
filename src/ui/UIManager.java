@@ -187,7 +187,7 @@ public class UIManager {
 
         // D.I.T.T.O. — segreto, tutto al massimo
         listaPersonaggi.add(new DatiPersonaggio(
-                "D.I.T.T.O.", 99, 14.0f, 30,
+                "D.I.T.T.O.", 25, 14.0f, 30,
                 res.getIconaPerIndice(4),
                 res.imgPersonaggioGod != null ? res.imgPersonaggioGod : res.imgPersonaggioDefault,
                 "pg.ditto.desc",

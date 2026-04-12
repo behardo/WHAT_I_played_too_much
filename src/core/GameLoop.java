@@ -244,6 +244,7 @@ public class GameLoop {
             java.awt.image.BufferedImage imgSKN = shopkeeperNemicoImgRef != null
                     ? shopkeeperNemicoImgRef : shopkeeperImgRef;
             roomMgr.getShopNemici().add(new ShopkeeperNemico(skX, skY, imgSKN));
+            state.shopkeeperFight = true;
             dialogo.consuma();
             state.dialogoNarrazione.pulisci();
             state.dialogoShopkeeperNarrazioneAvviata = false;
@@ -296,7 +297,14 @@ public class GameLoop {
             if (state.down  && state.y < maxY) state.y += vel;
             if (state.left  && state.x > minX) state.x -= vel;
             if (state.right && state.x < maxX) state.x += vel;
-            if (state.y >= maxY && state.down) roomMgr.esciDalloShop();
+            if (state.y >= maxY && state.down) {
+                // Non uscire durante il fight con lo shopkeeper
+                if (state.shopkeeperFight) {
+                    state.y = maxY - 2; // respingi
+                } else {
+                    roomMgr.esciDalloShop();
+                }
+            }
             return;
         }
 
@@ -401,6 +409,11 @@ public class GameLoop {
         if (isBossStanza && state.bossSpawnato) {
             if (state.bossSconfitto) {
                 roomMgr.avanzaAlMondoSuccessivo();
+                // Ferma timer speedrun se la storia è finita
+                if (state.statoGioco == GameState.StatoGioco.UFFICIO
+                        || state.statoGioco == GameState.StatoGioco.VITTORIA_STORIA) {
+                    state.fermaRunTimer();
+                }
                 pugniAttivi.clear();
             } else {
                 state.x = maxX - 10;
@@ -736,7 +749,11 @@ public class GameLoop {
             Nemico n = nemici.get(i);
             n.update(state.x, state.y, nemici, ostacoli);
 
-            if (n.toccaGiocatore(state.x, state.y, GameState.PG_SIZE)) {
+            if (n instanceof ShopkeeperNemico skn) {
+                if (skn.tentaAttaccoMelee(state.x, state.y)) {
+                    state.riceviDanno();
+                }
+            } else if (n.toccaGiocatore(state.x, state.y, GameState.PG_SIZE)) {
                 state.riceviDanno();
                 int mondoN = state.mondoAttuale;
                 if (n instanceof NemicoForte) {
@@ -816,6 +833,7 @@ public class GameLoop {
                             state.tombinoVisibile = true;
                         }
                     } else if (isShopkeeper) {
+                        state.shopkeeperFight = false;
                         roomMgr.onShopkeeperSconfitto();
                     } else if (nemici.isEmpty() && roomMgr.inStanzaBonus) {
                         roomMgr.completaStanzaArdua();
@@ -857,6 +875,7 @@ public class GameLoop {
                             state.tombinoVisibile = true;
                         }
                     } else if (isShopkeeper2) {
+                        state.shopkeeperFight = false;
                         roomMgr.onShopkeeperSconfitto();
                     } else if (nemici.isEmpty() && roomMgr.inStanzaBonus) {
                         roomMgr.completaStanzaArdua();

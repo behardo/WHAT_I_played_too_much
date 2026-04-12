@@ -24,10 +24,53 @@ public class GameState {
         TETRIS, GIOCO, BOSS_RUSH, UFFICIO, VITTORIA_STORIA, GAME_OVER, PAUSA
     }
 
+    // ── Speedrun timer ───────────────────────────────────────────────────────
+    /** Timestamp (ms) quando il run è iniziato (dopo tetris) */
+    public long    runTimerStart  = 0;
+    /** True mentre il timer è in corso */
+    public boolean runTimerAttivo = false;
+    /** Tempo finale fermato (ms), 0 se non ancora completato */
+    public long    runTimerFinale = 0;
+
+    /** Avvia il timer speedrun */
+    public void avviaRunTimer() {
+        runTimerStart  = System.currentTimeMillis();
+        runTimerAttivo = true;
+        runTimerFinale = 0;
+    }
+
+    /** Ferma il timer e salva il tempo finale */
+    public void fermaRunTimer() {
+        if (!runTimerAttivo) return;
+        runTimerFinale = System.currentTimeMillis() - runTimerStart;
+        runTimerAttivo = false;
+    }
+
+    /** Tempo corrente in ms (se attivo) o finale (se fermato) */
+    public long getRunMs() {
+        if (runTimerAttivo) return System.currentTimeMillis() - runTimerStart;
+        return runTimerFinale;
+    }
+
+    // ── Shopkeeper fight ─────────────────────────────────────────────────────
+    /** True mentre il combattimento con lo shopkeeper è in corso */
+    public boolean shopkeeperFight = false;
+
     // ── Nota in Casa ──────────────────────────────────────────────────────────
     public boolean notaRaccolta    = false;   // true se il giocatore l'ha presa
     public boolean mostraNota      = false;   // true mentre il popup è visibile
     public static final String CODICE_DEBUG = "WIPT-4269";  // codice mostrato nella nota
+
+    // ── Terminale Nota (mini-gioco decodifica) ─────────────────────────────────
+    /** 0 = popup nota classico, 1 = terminale decodifica */
+    public int     notaFase             = 0;
+    /** Testo digitato nel terminale */
+    public String  notaTerminaleInput   = "";
+    /** True se il codice è stato inserito correttamente */
+    public boolean notaTerminaleRisolta = false;
+    /** Simboli usati per cifrare WIPT-4269 (ordine: W I P T - 4 2 6 9) */
+    public static final String[] SIMBOLI_CIFRA = {"#%","!|","@>","^+","~~","$4","&2","*6","%9"};
+    public static final char[]   CHIAVI_CIFRA  = {'W','I','P','T','-','4','2','6','9'};
 
     // ── Ufficio ───────────────────────────────────────────────────────────────
     public boolean ufficioDialogoAvviato = false;
@@ -248,8 +291,15 @@ public class GameState {
         timerInvulnerabilita = 0;
         up = down = left = right = false;
         shootUp = shootDown = shootLeft = shootRight = false;
-        notaRaccolta   = false;
-        mostraNota     = false;
+        shopkeeperFight = false;
+        runTimerStart   = 0;
+        runTimerAttivo  = false;
+        runTimerFinale  = 0;
+        notaRaccolta        = false;
+        mostraNota          = false;
+        notaFase            = 0;
+        notaTerminaleInput  = "";
+        notaTerminaleRisolta = false;
         ufficioDialogoAvviato = false;
         meleeTimer     = 0;
         meleeNomeTimer = 0;
