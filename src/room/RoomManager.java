@@ -1,18 +1,20 @@
 package room;
+import java.awt.*;
+import java.util.*;
 
 import core.GameState;
 import data.Lang;
 import entity.Boss;
+import entity.BossProjectile;
 import entity.Nemico;
 import entity.NemicoForte;
+import entity.Pugno;
 import entity.Shopkeeper;
 import items.Cura;
 import items.Moneta;
 import items.Nota;
 import items.ShopItem;
 import resource.ResourceLoader;
-import entity.Pugno;
-import entity.BossProjectile;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -397,24 +399,31 @@ public class RoomManager {
             state.arduaRicompensaMsg   = Lang.t("popup.melee");
             state.arduaRicompensaTimer = 90;
         } else {
+            // Applica effetto direttamente invece di spawnare un item irraggiungibile
             int roll = random.nextInt(4);
-            String tipo; java.awt.image.BufferedImage img;
             switch (roll) {
-                case 0 -> { tipo = "HP UP";      img = res.imgCura; }
-                case 1 -> { tipo = "DANNO";      img = res.imgItemDamage; }
-                case 2 -> { tipo = "VELOCITA";   img = res.imgItemSpeed; }
-                default -> { tipo = "FIRE RATE"; img = res.imgItemSpeed; }
+                case 0 -> {
+                    state.viteMaxGiocatore++;
+                    state.vite = Math.min(state.vite + 1, state.viteMaxGiocatore);
+                    state.arduaRicompensaMsg = Lang.t("popup.vita");
+                }
+                case 1 -> {
+                    state.dannoPugno += 2;
+                    state.arduaRicompensaMsg = Lang.t("popup.danno2");
+                }
+                case 2 -> {
+                    state.velocita += 1.5f;
+                    state.arduaRicompensaMsg = Lang.t("popup.velocita");
+                }
+                default -> {
+                    state.sparoDelayRiduzione = Math.min(state.sparoDelayRiduzione + 3, 8);
+                    state.arduaRicompensaMsg = Lang.t("popup.firerate");
+                }
             }
-            ShopItem drop = new ShopItem(cx, ry, GameState.TILE_SIZE, tipo, 0, img);
-            drop.setMostraPrezzo(false);
-            itemsBonus.add(drop);
+            state.arduaRicompensaTimer = 90;
         }
 
-        // 40% chance cura extra in posizione sicura (evita tile effetto)
-        if (random.nextFloat() < 0.40f) {
-            int[] pos = trovaPosizioneSicura(ostacoliBonus, tileEffettoBonus);
-            cureBonus.add(new Cura(pos[0], pos[1], GameState.TILE_SIZE, res.imgCura));
-        }
+        // Cura bonus rimossa — l'uscita automatica non dà tempo di raccoglierla
     }
 
     /**
@@ -749,6 +758,9 @@ public class RoomManager {
         return lista.toArray(new int[0][]);
     }
 
+    /**
+     * Evita di piazzarli sopra ostacoli o nelle zone porta.
+     */
     /**
      * Genera tile effetto casuali per la stanza — sostituiscono gli ostacoli fisici.
      * M2=VELENO, M3=FUOCO, M4=GHIACCIO mix (75% slow + 25% freeze), M5=CANNONE. 3-5 per stanza.

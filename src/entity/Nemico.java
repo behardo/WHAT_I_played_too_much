@@ -1,6 +1,8 @@
 package entity;
+import java.util.*;
 
 import core.GameState;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
@@ -15,10 +17,9 @@ import java.util.List;
  */
 public class Nemico extends Entita {
 
-    protected float velocita = 1.6f;
-    protected int   size     = 50;
-
+    public float velocita = 1.6f;
     public void setVelocita(float v) { this.velocita = v; }
+    protected int   size     = 50;
 
     public Nemico(int tileX, int tileY, int tileSize, int vita) {
         super(tileX, tileY, tileSize, vita);

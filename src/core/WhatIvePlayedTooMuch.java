@@ -131,10 +131,13 @@ public class WhatIvePlayedTooMuch extends JPanel implements ActionListener {
         } else if (state.statoGioco == GameState.StatoGioco.TETRIS
                 && state.tetris != null) {
             state.tetris.update();
-            // Auto-avanza se il tetris è finito (tempo scaduto)
-            if (state.tetris.completato && !state.tetris.gameOver) {
-                // aspetta input giocatore per ENTER — non avanza automaticamente
-            }
+        }
+        // Avvia run timer al primo frame di gioco dopo il tetris
+        if ((state.statoGioco == GameState.StatoGioco.GIOCO
+                || state.statoGioco == GameState.StatoGioco.BOSS_RUSH)
+                && !state.runTimerAttivo && state.runTimerFinale == 0
+                && state.runTimerStart == 0) {
+            state.avviaRunTimer();
         }
         repaint();
     }

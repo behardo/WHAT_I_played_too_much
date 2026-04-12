@@ -92,6 +92,7 @@ public class Lang {
             case "win.sub.ritardo"    -> "Con un po' di ritardo.";
             case "win.sub.molto"      -> "Con ritardo.";
             case "win.monete"         -> "Monete guadagnate: %d";
+            case "win.tempo"         -> "TEMPO:";
             case "win.codice"         -> "Codice trovato: %s";
 
             // ── Ufficio ───────────────────────────────────────────────────────
@@ -126,6 +127,7 @@ public class Lang {
 
             // ── Negozio ───────────────────────────────────────────────────────
             case "shop.banner"        -> "NEGOZIO";
+            case "shop.boss.nome"  -> "NEGOZIANTE";
             case "shop.nome"          -> "NEGOZIANTE";
             case "shop.domanda"       -> "Vuoi attaccare il negoziante?";
             case "shop.avviso"        -> "Otterrai 20 monete, ma perderai lo shop.";
@@ -138,7 +140,29 @@ public class Lang {
             // ── Nota di servizio ──────────────────────────────────────────────
             case "nota.titolo"        -> "NOTA DI SERVIZIO";
             case "nota.firma"         -> "- Il Capo";
-            case "nota.chiudi"        -> "[ INVIO per chiudere ]";
+            case "nota.chiudi"        -> "[ ESC per chiudere ]";
+            case "nota.terminale"     -> "Accedi al pannello di diagnostica";
+            case "nota.riga0"         -> "A chiunque trovi questo foglio,";
+            case "nota.riga1"         -> "";
+            case "nota.riga2"         -> "Se il sistema smette di rispondere,";
+            case "nota.riga3"         -> "usa questo codice per il pannello";
+            case "nota.riga4"         -> "di diagnostica:";
+            case "nota.riga5"         -> "";
+            // ── Terminale nota ────────────────────────────────────────────────
+            case "nota.term.avvio"    -> "AVVIO SESSIONE...";
+            case "nota.term.cifrato"  -> "MESSAGGIO CIFRATO RILEVATO:";
+            case "nota.term.chiave"   -> "CHIAVE DI DECODIFICA:";
+            case "nota.term.prompt"   -> "INSERIRE CODICE DI ACCESSO:";
+            case "nota.term.ok1"      -> "CODICE ACCETTATO.";
+            case "nota.term.ok2"      -> "ACCESSO AUTORIZZATO: LIVELLO SEGRETO";
+            case "nota.term.ok3"      -> "C'e qualcosa di nascosto nella";
+            case "nota.term.ok4"      -> "schermata di selezione personaggio.";
+            case "nota.term.ok5"      -> "Premi B cinque volte.";
+            case "nota.term.ok6"      -> "Non chiedere come lo so.";
+            case "nota.term.ok7"      -> "                          - Il Capo";
+            case "nota.term.hint"     -> "[ SPAZIO ]  continua";
+            case "nota.term.errore"   -> "CODICE NON RICONOSCIUTO. RIPROVARE.";
+            case "nota.term.esc"      -> "[ ESC ]  torna alla nota";
 
             // ── Banner stanze ─────────────────────────────────────────────────
             case "banner.casa"        -> "CASA";
@@ -176,25 +200,17 @@ public class Lang {
             case "pg.sblocco.2.r2"    -> "del Mondo 2";
             case "pg.sblocco.3.r1"    -> "Sconfiggi il Boss";
             case "pg.sblocco.3.r2"    -> "del Mondo 3";
-            case "pg.sblocco.4.r1"    -> "???";
-            case "pg.sblocco.4.r2"    -> "";
+            case "pg.sblocco.4.r1"    -> "C'e sempre un modo";
+            case "pg.sblocco.4.r2"    -> "per entrare.";
 
             // ── Shop item label ───────────────────────────────────────────────
             case "item.cura.label"    -> "CURA";
             case "item.vel.label"     -> "VEL";
             case "item.danno.label"   -> "DMG";
 
-            // ── Nota di servizio corpo ────────────────────────────────────────
-            case "nota.riga0"  -> "A chiunque trovi questo foglio,";
-            case "nota.riga1"  -> "";
-            case "nota.riga2"  -> "Se il sistema smette di rispondere,";
-            case "nota.riga3"  -> "usa questo codice per il pannello";
-            case "nota.riga4"  -> "di diagnostica:";
-            case "nota.riga5"  -> "";
-
             // ── Dialoghi boss ─────────────────────────────────────────────────
-            case "boss.m1.pg0"  -> "Dai, non ho tempo - sono gia in ritardo!";
-            case "boss.m1.b0"   -> "Nemmeno io.";
+            case "boss.m1.pg0"  -> "Di tutti i cantieri, proprio questo.";
+            case "boss.m1.b0"   -> "...";
             case "boss.m2.pg0"  -> "Quindi e qui che si finisce a forza di giocare ai videogiochi...";
             case "boss.m3.pg0"  -> "Levati di mezzo. Non mi interessa se sei un re.";
             case "boss.m3.pg1"  -> "Saro io a spodestarti!";
@@ -212,8 +228,8 @@ public class Lang {
             case "boss.m5.b2"   -> "Non arriverai MAI in ufficio!!!";
             case "boss.m5.pg4"  -> "Chi lo spieghera al mio capo...";
 
-  
-  
+
+
             // ── Stanza bonus panel ────────────────────────────────────────────
             case "bonus.titolo"     -> "STANZA BONUS";
             case "bonus.danno"      -> "DANNO";
@@ -253,7 +269,7 @@ public class Lang {
             case "dial.capo.pg2"   -> "...";
             case "dial.capo.sk3"   -> "Siediti. Hai l'aria di qualcuno che ha bisogno di un caffe.";
 
-          // ── Nomi mondi ────────────────────────────────────────────────────
+            // ── Nomi mondi ────────────────────────────────────────────────────
             case "mondo.casa"   -> "CASA";
             case "mondo.1"      -> "IL CANTIERE";
             case "mondo.2"      -> "LE FOGNE";
@@ -262,7 +278,7 @@ public class Lang {
             case "mondo.5"      -> "IL CASTELLO";
             case "mondo.abisso" -> "L'ABISSO";
 
-          // ── Nomi boss ─────────────────────────────────────────────────────
+            // ── Nomi boss ─────────────────────────────────────────────────────
             case "boss.m1.nome"  -> "MANNIE";
             case "boss.m2.nome"  -> "OMEN";
             case "boss.m3.nome"  -> "KING OVEN";
@@ -354,6 +370,7 @@ public class Lang {
             case "win.sub.ritardo"    -> "A little late, but still.";
             case "win.sub.molto"      -> "Better late than never.";
             case "win.monete"         -> "Coins earned: %d";
+            case "win.tempo"         -> "TIME:";
             case "win.codice"         -> "Code found: %s";
 
             // ── Office ───────────────────────────────────────────────────────
@@ -388,6 +405,7 @@ public class Lang {
 
             // ── Shop ─────────────────────────────────────────────────────────
             case "shop.banner"        -> "SHOP";
+            case "shop.boss.nome"  -> "SHOPKEEPER";
             case "shop.nome"          -> "SHOPKEEPER";
             case "shop.domanda"       -> "Do you want to attack the shopkeeper?";
             case "shop.avviso"        -> "You'll get 20 coins, but lose the shop.";
@@ -400,7 +418,23 @@ public class Lang {
             // ── Service note ─────────────────────────────────────────────────
             case "nota.titolo"        -> "MEMO";
             case "nota.firma"         -> "- The Boss";
-            case "nota.chiudi"        -> "[ ENTER to close ]";
+            case "nota.chiudi"        -> "[ ESC to close ]";
+            case "nota.terminale"     -> "Access the diagnostics panel";
+            // ── Terminal nota ─────────────────────────────────────────────────
+            case "nota.term.avvio"    -> "STARTING SESSION...";
+            case "nota.term.cifrato"  -> "ENCRYPTED MESSAGE DETECTED:";
+            case "nota.term.chiave"   -> "DECRYPTION KEY:";
+            case "nota.term.prompt"   -> "ENTER ACCESS CODE:";
+            case "nota.term.ok1"      -> "CODE ACCEPTED.";
+            case "nota.term.ok2"      -> "ACCESS GRANTED: SECRET LEVEL";
+            case "nota.term.ok3"      -> "There is something hidden in the";
+            case "nota.term.ok4"      -> "character selection screen.";
+            case "nota.term.ok5"      -> "Press B five times.";
+            case "nota.term.ok6"      -> "Don't ask me how I know.";
+            case "nota.term.ok7"      -> "                       - The Boss";
+            case "nota.term.hint"     -> "[ SPACE ]  continue";
+            case "nota.term.errore"   -> "CODE NOT RECOGNIZED. TRY AGAIN.";
+            case "nota.term.esc"      -> "[ ESC ]  back to note";
 
             // ── Room banners ─────────────────────────────────────────────────
             case "banner.casa"        -> "HOME";
@@ -438,8 +472,8 @@ public class Lang {
             case "pg.sblocco.2.r2"    -> "of World 2";
             case "pg.sblocco.3.r1"    -> "Defeat the Boss";
             case "pg.sblocco.3.r2"    -> "of World 3";
-            case "pg.sblocco.4.r1"    -> "???";
-            case "pg.sblocco.4.r2"    -> "";
+            case "pg.sblocco.4.r1"    -> "There's always a way";
+            case "pg.sblocco.4.r2"    -> "in.";
 
             // ── Shop item labels ──────────────────────────────────────────────
             case "item.cura.label"    -> "HEAL";
@@ -455,8 +489,8 @@ public class Lang {
             case "nota.riga5"  -> "";
 
             // ── Boss dialogues ────────────────────────────────────────────────
-            case "boss.m1.pg0"  -> "Come on, I have no time - I\'m already late!";
-            case "boss.m1.b0"   -> "Neither do I.";
+            case "boss.m1.pg0"  -> "Of all the construction sites, this one.";
+            case "boss.m1.b0"   -> "...";
             case "boss.m2.pg0"  -> "So this is where you end up playing too many video games...";
             case "boss.m3.pg0"  -> "Get out of the way. I don\'t care if you\'re a king.";
             case "boss.m3.pg1"  -> "I\'ll dethrone you!";

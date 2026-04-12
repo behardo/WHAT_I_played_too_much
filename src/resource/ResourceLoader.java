@@ -282,11 +282,6 @@ public class ResourceLoader {
         try {
             java.net.URL url = context.getClass().getResource(path);
             if (url != null) return ImageIO.read(url);
-            // Non loggare errori per gli sprite per-mondo opzionali (attesi null)
-            if (!path.contains("_m1") && !path.contains("_m2")
-                    && !path.contains("_m3") && !path.contains("_m4")) {
-                System.err.println("[ResourceLoader] Immagine non trovata: " + path);
-            }
         } catch (IOException e) {
             System.err.println("[ResourceLoader] Errore caricamento: " + path + " → " + e.getMessage());
         }

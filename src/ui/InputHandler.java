@@ -119,7 +119,7 @@ public class InputHandler {
     private void sincronizzaIndicePausa(Point p) {
         if (state.statoGioco != GameState.StatoGioco.PAUSA) return;
         MenuButton[] btns = { ui.btnRiprendi, ui.btnImpostazioniPausa,
-                              ui.btnMenuPrincipalePausa, ui.btnEsciPausa };
+                ui.btnMenuPrincipalePausa, ui.btnEsciPausa };
         for (int i = 0; i < btns.length; i++)
             if (btns[i].contains(p)) { state.indiceBtnPausa = i; return; }
     }
@@ -188,7 +188,7 @@ public class InputHandler {
             switch (state.indiceBtnPausa) {
                 case 0 -> state.statoGioco = GameState.StatoGioco.GIOCO;
                 case 1 -> { state.statoPrecedente = GameState.StatoGioco.PAUSA;
-                            state.statoGioco = GameState.StatoGioco.IMPOSTAZIONI; }
+                    state.statoGioco = GameState.StatoGioco.IMPOSTAZIONI; }
                 case 2 -> { state.tornaAlMenu(); roomMgr.resetCompleto(); }
                 case 3 -> System.exit(0);
             }
@@ -198,17 +198,67 @@ public class InputHandler {
 
     private void gestisciGioco(int k, boolean pressed) {
         // 0. Popup nota codice debug
-        if (state.mostraNota
-                && (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE
-                    || k == KeyEvent.VK_ESCAPE)) {
-            state.mostraNota = false;
+        if (state.mostraNota) {
+            if (state.notaFase == 0) {
+                // Fase 0: nota classica
+                if (k == KeyEvent.VK_ESCAPE) {
+                    state.mostraNota = false;
+                    state.notaFase   = 0;
+                    return;
+                }
+                if (k == KeyEvent.VK_T || k == KeyEvent.VK_ENTER) {
+                    // Passa al terminale
+                    state.notaFase           = 1;
+                    state.notaTerminaleInput = "";
+                    return;
+                }
+            } else {
+                // Fase 1: terminale anni '80
+                if (k == KeyEvent.VK_ESCAPE) {
+                    state.notaFase           = 0;
+                    state.notaTerminaleInput = "";
+                    return;
+                }
+                if (k == KeyEvent.VK_BACK_SPACE && !state.notaTerminaleInput.isEmpty()) {
+                    state.notaTerminaleInput = state.notaTerminaleInput
+                            .substring(0, state.notaTerminaleInput.length() - 1);
+                    return;
+                }
+                if (k == KeyEvent.VK_ENTER) {
+                    // Verifica codice
+                    if (state.notaTerminaleInput.equalsIgnoreCase(core.GameState.CODICE_DEBUG)) {
+                        state.notaTerminaleRisolta = true;
+                        state.sistemaPersonaggi.sblocaDitto();
+                        state.notaFase = 2; // fase successo
+                    } else {
+                        state.notaTerminaleInput = ""; // reset — riprova
+                    }
+                    return;
+                }
+                if (k == KeyEvent.VK_SPACE && state.notaFase == 2) {
+                    state.mostraNota = false;
+                    state.notaFase   = 0;
+                    return;
+                }
+                // Tasti alfanumerici e trattino
+                char c = (char) k;
+                boolean isAlpha = (k >= KeyEvent.VK_A && k <= KeyEvent.VK_Z);
+                boolean isDigit = (k >= KeyEvent.VK_0 && k <= KeyEvent.VK_9);
+                boolean isMinus = (k == KeyEvent.VK_MINUS || k == 109);
+                if ((isAlpha || isDigit || isMinus) && state.notaTerminaleInput.length() < 12) {
+                    if (isAlpha) c = java.awt.event.KeyEvent.getKeyText(k).toUpperCase().charAt(0);
+                    else if (isMinus) c = '-';
+                    state.notaTerminaleInput += c;
+                    return;
+                }
+            }
             return;
         }
 
         // 1. Dialogo Casa (singola pagina)
         if (state.mostraDialogoCasa
                 && (k == KeyEvent.VK_ENTER || k == KeyEvent.VK_SPACE
-                    || k == KeyEvent.VK_ESCAPE)) {
+                || k == KeyEvent.VK_ESCAPE)) {
             state.mostraDialogoCasa = false;
             return;
         }
@@ -404,7 +454,7 @@ public class InputHandler {
         // Aggiorna bandiera sul bottone
         if (res != null) {
             ui.btnLingua.setIcona(
-                Lang.lingua == Lang.Lingua.IT ? res.imgBandieraIT : res.imgBandieraEN
+                    Lang.lingua == Lang.Lingua.IT ? res.imgBandieraIT : res.imgBandieraEN
             );
         }
     }
