@@ -1,4 +1,7 @@
 package resource;
+import java.awt.*;
+import java.net.URL;
+import java.io.*;
 
 import render.BitmapFont;
 
@@ -282,8 +285,9 @@ public class ResourceLoader {
         try {
             java.net.URL url = context.getClass().getResource(path);
             if (url != null) return ImageIO.read(url);
+
         } catch (IOException e) {
-            System.err.println("[ResourceLoader] Errore caricamento: " + path + " → " + e.getMessage());
+
         }
         return null;
     }
@@ -336,7 +340,7 @@ public class ResourceLoader {
             if (is == null) return null;
             return java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, is);
         } catch (Exception e) {
-            System.out.println("[ResourceLoader] Font non trovato: " + path);
+
             return null;
         }
     }
