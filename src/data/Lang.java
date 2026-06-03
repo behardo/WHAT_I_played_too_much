@@ -238,9 +238,9 @@ public class Lang {
             case "bonus.nessunmalus"-> "nessun malus";
 
             // ── Attacchi melee ────────────────────────────────────────────────
-            case "melee.0"       -> "COLPO DI VALIGIA";
-            case "melee.1"       -> "CHIAVE INGLESE";
-            case "melee.2"       -> "ACCETTA";
+            case "melee.0"       -> "CHIAVE INGLESE";
+            case "melee.1"       -> "ACCETTA";
+            case "melee.2"       -> "LIBRO";
             case "melee.3"       -> "COLPO DI GAMEPAD";
             case "melee.4"       -> "CANCELLAZIONE";
             case "melee.default" -> "MELEE";
