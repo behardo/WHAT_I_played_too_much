@@ -211,7 +211,7 @@ public class Lang {
             // ── Dialoghi boss ─────────────────────────────────────────────────
             case "boss.m1.pg0"  -> "Di tutti i cantieri, proprio questo.";
             case "boss.m1.b0"   -> "...";
-            case "boss.m2.pg0"  -> "Quindi e qui che si finisce a forza di giocare ai videogiochi...";
+            case "boss.m2.pg0"  -> "Quindi e' qui che si finisce a forza di giocare ai videogiochi...";
             case "boss.m3.pg0"  -> "Levati di mezzo. Non mi interessa se sei un re.";
             case "boss.m3.pg1"  -> "Saro io a spodestarti!";
             case "boss.m3.b0"   -> "*rumori arrabbiati da teglia*";
@@ -265,7 +265,7 @@ public class Lang {
             case "dial.capo.pg0"   -> "Ho attraversato quattro mondi per arrivare qui.";
             case "dial.capo.sk1"   -> "Lo so. Ho visto tutto.";
             case "dial.capo.pg1"   -> "Allora sai anche perche sono in ritardo.";
-            case "dial.capo.sk2"   -> "Sai cosa mi fa piu ridere? La riunione e stata spostata a domani.";
+            case "dial.capo.sk2"   -> "Sai cosa mi fa piu ridere? La riunione e' stata spostata a domani.";
             case "dial.capo.pg2"   -> "...";
             case "dial.capo.sk3"   -> "Siediti. Hai l'aria di qualcuno che ha bisogno di un caffe.";
 
