@@ -71,17 +71,17 @@ Appare dopo alcune stanze. Spendi le monete raccolte per comprare potenziamenti.
 | JUICY | 12 | Bassa | Basso | Moltissima vita, non si ferma mai |
 | D.I.T.T.O. | ??? | ??? | ??? | Sbloccabile con una combinazione segreta |
 
-I personaggi VLAD, PAUL, JUICY e D.I.T.T.O. si sbloccano sconfiggendo i boss dei rispettivi mondi.
+I personaggi VLAD, PAUL, JUICY si sbloccano sconfiggendo i boss dei rispettivi mondi.
 
 Ogni personaggio ha un attacco melee unico, sbloccabile sconfiggendo il negoziante:
 
-| Personaggio | Melee |
-|-------------|-------|
-| BELLGERD | Colpo di valigia |
-| VLAD | Chiave inglese |
-| PAUL | Accetta |
+| Personaggio | Melee            |
+|-------------|------------------|
+| BELLGERD | Chiave inglese   |
+| VLAD | Accetta          |
+| PAUL | Colpo di valigia |
 | JUICY | Colpo di gamepad |
-| D.I.T.T.O. | Cancellazione |
+| D.I.T.T.O. | Cancellazione    |
 
 ---
 
