@@ -577,7 +577,7 @@ public class RenderEngine {
         disegnaTastoInfo(g2,col1X,tetY+rigaH,   "S",      Lang.t("ctrl.s"));
         disegnaTastoInfo(g2,col2X,tetY+rigaH,   "SPAZIO", Lang.t("ctrl.spazio"));
         disegnaTastoInfo(g2,col1X,tetY+rigaH*2, "ESC",    Lang.t("ctrl.escsalta"));
-        disegnaTastoInfo(g2,col2X,tetY+rigaH*2, "500+ pt",Lang.t("ctrl.punteggi"));
+        disegnaTastoInfo(g2,col2X,tetY+rigaH*2, "PUNTI",Lang.t("ctrl.punteggi"));
 
         int contenutoFine=tetY+rigaH*3+(int)(H*0.05f);
         int scrollMax=Math.max(0,contenutoFine-(panY+panH)+(int)(H*0.02f)+scrollY);
