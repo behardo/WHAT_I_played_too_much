@@ -15,7 +15,8 @@ import java.util.List;
  *  Tipo 2 — OMBRA    : si muove a scatti, spara a 8 direzioni
  *  Tipo 3 — CARICA   : carica verso il giocatore + bruciatura al contatto
  *                       + proiettili di fuoco
- *  Tipo 4 — FINALE   : si muove SPECULARMENTE al giocatore,
+ *  Tipo 4 — GHIACCIO  :ti CONGELA con proiettili speciali
+ *  Tipo 5 — FINALE   : si muove SPECULARMENTE al giocatore,
  *                       può schivare proiettili in arrivo (prob. bassa),
  *                       alterna spirale e burst mirato
  */

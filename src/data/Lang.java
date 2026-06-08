@@ -247,7 +247,7 @@ public class Lang {
 
 
             // ── Descrizioni modalità ──────────────────────────────────────────
-            case "mod.storia.d1"    -> "Sconfiggi 4 Boss";
+            case "mod.storia.d1"    -> "Sconfiggi 5 Boss";
             case "mod.storia.d2"    -> "per arrivare in ufficio.";
             case "mod.infinita.d1"  -> "Sopravvivi all'infinito!";
             case "mod.infinita.d2"  -> "Nemici sempre piu forti.";
@@ -262,7 +262,7 @@ public class Lang {
             // ── Dialogo finale ufficio ────────────────────────────────────────
             case "dial.capo.nome"  -> "CAPO";
             case "dial.capo.sk0"   -> "Finalmente sei arrivato. Ti aspettavo.";
-            case "dial.capo.pg0"   -> "Ho attraversato quattro mondi per arrivare qui.";
+            case "dial.capo.pg0"   -> "Ho attraversato cinque mondi per arrivare qui.";
             case "dial.capo.sk1"   -> "Lo so. Ho visto tutto.";
             case "dial.capo.pg1"   -> "Allora sai anche perche sono in ritardo.";
             case "dial.capo.sk2"   -> "Sai cosa mi fa piu ridere? La riunione e' stata spostata a domani.";
